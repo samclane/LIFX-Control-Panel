@@ -38,6 +38,7 @@ class AverageColorThread(threading.Thread):
     def stopped(self):
         return self._stop.isSet()
 
+
 class AverageColorMatcher:
     def __init__(self, bulb):
         self.bulb = bulb

@@ -1,9 +1,9 @@
 from tkinter import *
 from tkinter import ttk
-import threading
-from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD
-import average_color
 
+from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD
+
+import average_color
 
 HEARTBEAT_RATE = 3000  # 3 seconds
 
@@ -33,9 +33,13 @@ class LifxFrame(ttk.Frame):
         self.dropdownMenu.grid(row=1, column=1)
         self.lightvar.trace('w', self.change_dropdown)
 
+        if len(self.lightsdict):
+            self.change_dropdown()
+
     def change_dropdown(self, *args):
         self.current_light = self.lightsdict[self.lightvar.get()]
         self.lf = LightFrame(self, self.current_light)
+
 
 class LightFrame(ttk.Labelframe):
     def __init__(self, master, bulb):
@@ -65,12 +69,12 @@ class LightFrame(ttk.Labelframe):
                      IntVar(self, b, "Brightness"),
                      IntVar(self, k, "Kelvin"))
         self.hsbk_scale = (
-        Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[0], command=self.update_color),
-        Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[1], command=self.update_color),
-        Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[2], command=self.update_color),
-        Scale(self, from_=2500, to=9000, orient=HORIZONTAL, variable=self.hsbk[3], command=self.update_color))
+            Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[0], command=self.update_color),
+            Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[1], command=self.update_color),
+            Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[2], command=self.update_color),
+            Scale(self, from_=2500, to=9000, orient=HORIZONTAL, variable=self.hsbk[3], command=self.update_color))
         for key, scale in enumerate(self.hsbk_scale):
-            Label(self, text=self.hsbk[key]._name).grid(row=key+1, column=0)
+            Label(self, text=self.hsbk[key]._name).grid(row=key + 1, column=0)
             scale.grid(row=key + 1, column=1)
 
         Button(self, text="White", command=lambda: self.set_color(WHITE)).grid(row=5, column=0)
