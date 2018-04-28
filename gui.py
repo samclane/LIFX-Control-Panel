@@ -1,7 +1,9 @@
 from tkinter import *
 from tkinter import ttk
-
+import threading
 from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD
+import average_color
+
 
 HEARTBEAT_RATE = 3000  # 3 seconds
 
@@ -16,7 +18,7 @@ class LifxFrame(ttk.Frame):
 
         self.lightvar = StringVar(self)
 
-        self.lifx = LifxLAN(verbose=True)
+        self.lifx = LifxLAN(verbose=False)
         self.lights = self.lifx.get_lights()
         self.lightsdict = {}
 
@@ -45,8 +47,8 @@ class LightFrame(ttk.Labelframe):
 
         self.powervar = BooleanVar(self)
         self.powervar.set(bulb.get_power())
-        self.option_on = Radiobutton(self, text="On", variable=self.powervar, value=65535, command=self.change_power)
-        self.option_off = Radiobutton(self, text="Off", variable=self.powervar, value=0, command=self.change_power)
+        self.option_on = Radiobutton(self, text="On", variable=self.powervar, value=65535, command=self.update_power)
+        self.option_off = Radiobutton(self, text="Off", variable=self.powervar, value=0, command=self.update_power)
         if self.powervar.get() == 0:
             # Light is off
             self.option_off.select()
@@ -63,26 +65,34 @@ class LightFrame(ttk.Labelframe):
                      IntVar(self, b, "Brightness"),
                      IntVar(self, k, "Kelvin"))
         self.hsbk_scale = (
-        Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[0], command=self.change_color),
-        Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[1], command=self.change_color),
-        Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[2], command=self.change_color),
-        Scale(self, from_=2500, to=9000, orient=HORIZONTAL, variable=self.hsbk[3], command=self.change_color))
+        Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[0], command=self.update_color),
+        Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[1], command=self.update_color),
+        Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[2], command=self.update_color),
+        Scale(self, from_=2500, to=9000, orient=HORIZONTAL, variable=self.hsbk[3], command=self.update_color))
         for key, scale in enumerate(self.hsbk_scale):
             Label(self, text=self.hsbk[key]._name).grid(row=key+1, column=0)
             scale.grid(row=key + 1, column=1)
 
-        Button(self, text="White", command=lambda: self.bulb.set_color(WHITE)).grid(row=5, column=0)
-        Button(self, text="Warm White", command=lambda: self.bulb.set_color(WARM_WHITE)).grid(row=5, column=1)
-        Button(self, text="Cold White", command=lambda: self.bulb.set_color(COLD_WHITE)).grid(row=5, column=2)
-        Button(self, text="Gold", command=lambda: self.bulb.set_color(GOLD)).grid(row=5, column=3)
+        Button(self, text="White", command=lambda: self.set_color(WHITE)).grid(row=5, column=0)
+        Button(self, text="Warm White", command=lambda: self.set_color(WARM_WHITE)).grid(row=5, column=1)
+        Button(self, text="Cold White", command=lambda: self.set_color(COLD_WHITE)).grid(row=5, column=2)
+        Button(self, text="Gold", command=lambda: self.set_color(GOLD)).grid(row=5, column=3)
+        self.acm = average_color.AverageColorMatcher(self.bulb)
+        Button(self, text="Avg. Color", command=self.acm.start).grid(row=5, column=4)
 
         self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
 
-    def change_power(self):
+    def update_power(self):
+        self.acm.stop()
         self.bulb.set_power(self.powervar.get())
 
-    def change_color(self, *args):
+    def update_color(self, *args):
+        self.acm.stop()
         self.bulb.set_color([c.get() for c in self.hsbk], rapid=True)
+
+    def set_color(self, color):
+        self.acm.stop()
+        self.bulb.set_color(color)
 
     def update_status_from_bulb(self):
         self.powervar.set(self.bulb.get_power())
@@ -97,6 +107,7 @@ class LightFrame(ttk.Labelframe):
         for key, val in enumerate(self.hsbk):
             self.hsbk[key].set(hsbk[key])
         self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
+
 
 if __name__ == "__main__":
     root = Tk()
