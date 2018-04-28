@@ -1,12 +1,13 @@
 from tkinter import *
 from tkinter import ttk
 
-from lifxlan import LifxLAN
+from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD
 
 
 class LifxFrame(ttk.Frame):
     def __init__(self, master):
         ttk.Frame.__init__(self, master, padding="3 3 12 12")
+        self.master = master
         self.grid(column=0, row=0, sticky=(N, W, E, S))
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
@@ -32,6 +33,7 @@ class LifxFrame(ttk.Frame):
     def change_dropdown(self, *args):
         self.current_light = self.lightsdict[self.lightvar.get()]
         self.lf = LightFrame(self, self.current_light)
+        self.lf.grid(row=2, column=2)
 
 
 class LightFrame(ttk.Frame):
@@ -67,8 +69,13 @@ class LightFrame(ttk.Frame):
         Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[2], command=self.change_color),
         Scale(self, from_=2500, to=9000, orient=HORIZONTAL, variable=self.hsbk[3], command=self.change_color))
         for key, scale in enumerate(self.hsbk_scale):
-            scale.set(self.hsbk[key].get())
-            scale.grid(row=key + 1, column=0)
+            Label(self, text=self.hsbk[key]._name).grid(row=key+1, column=0)
+            scale.grid(row=key + 1, column=1)
+
+        Button(master, text="White", command=lambda: self.bulb.set_color(WHITE)).grid(row=5, column=0)
+        Button(master, text="Warm White", command=lambda: self.bulb.set_color(WARM_WHITE)).grid(row=5, column=1)
+        Button(master, text="Cold White", command=lambda: self.bulb.set_color(COLD_WHITE)).grid(row=5, column=2)
+        Button(master, text="Gold", command=lambda: self.bulb.set_color(GOLD)).grid(row=5, column=3)
 
     def change_power(self):
         self.bulb.set_power(self.powervar.get())
