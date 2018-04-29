@@ -1,3 +1,4 @@
+import os
 from tkinter import *
 from tkinter import ttk
 from tkinter.colorchooser import *
@@ -13,6 +14,7 @@ class LifxFrame(ttk.Frame):
     def __init__(self, master):
         ttk.Frame.__init__(self, master, padding="3 3 12 12")
         self.master = master
+        self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.grid(column=0, row=0, sticky=(N, W, E, S))
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
@@ -40,6 +42,10 @@ class LifxFrame(ttk.Frame):
     def change_dropdown(self, *args):
         self.current_light = self.lightsdict[self.lightvar.get()]
         self.lf = LightFrame(self, self.current_light)
+
+    def on_closing(self):
+        self.master.destroy()
+        os._exit(1)
 
 
 class LightFrame(ttk.Labelframe):
@@ -83,7 +89,7 @@ class LightFrame(ttk.Labelframe):
         Button(self, text="Cold White", command=lambda: self.set_color(COLD_WHITE)).grid(row=5, column=2)
         Button(self, text="Gold", command=lambda: self.set_color(GOLD)).grid(row=6, column=0)
         self.acm = average_color.AverageColorMatcher(self.bulb)
-        Button(self, text="Avg. Color", command=self.acm.start).grid(row=6, column=1)
+        Button(self, text="Avg. Screen Color", command=self.acm.start).grid(row=6, column=1)
         Button(self, text="Pick Color", command=self.get_color_hbsk).grid(row=6, column=2)
 
         self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
@@ -105,6 +111,7 @@ class LightFrame(ttk.Labelframe):
     def get_color_hbsk(self):
         color = askcolor()[0]
         if color:
+            # RGBtoHBSK sometimes returns >65535, so we have to truncate
             hbsk = [min(c, 65535) for c in utils.RGBtoHSBK(color, self.hsbk[3].get())]
             self.set_color(hbsk)
 
