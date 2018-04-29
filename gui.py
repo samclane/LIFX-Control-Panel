@@ -103,9 +103,10 @@ class LightFrame(ttk.Labelframe):
             self.hsbk[key].set(color[key])
 
     def get_color_hbsk(self):
-        color = askcolor()
-        hbsk = [min(c, 65535) for c in utils.RGBtoHSBK(color[0], self.hsbk[3].get())]
-        self.set_color(hbsk)
+        color = askcolor()[0]
+        if color:
+            hbsk = [min(c, 65535) for c in utils.RGBtoHSBK(color, self.hsbk[3].get())]
+            self.set_color(hbsk)
 
     def update_status_from_bulb(self):
         self.powervar.set(self.bulb.get_power())
@@ -116,7 +117,7 @@ class LightFrame(ttk.Labelframe):
         else:
             self.option_on.select()
             self.option_off.selection_clear()
-        hsbk = (h, s, b, k) = self.bulb.get_color()
+        hsbk = self.bulb.get_color()
         for key, val in enumerate(self.hsbk):
             self.hsbk[key].set(hsbk[key])
         self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
