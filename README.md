@@ -1,5 +1,5 @@
 # LIFX-Control-Panel
-As LIFX no longer supports their Windows 10 app, I created an open-source alternative for controlling LIFX-brand smart lights. 
+As LIFX [no longer supports their Windows 10 app](https://www.windowscentral.com/lifx-drops-support-windows-10), I created an open-source alternative for controlling LIFX-brand smart lights. 
 
 ![screenshot](https://i.imgur.com/Ft6RKEj.png)
 
