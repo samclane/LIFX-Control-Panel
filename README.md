@@ -8,7 +8,8 @@ The application uses [mclarkk](https://github.com/mclarkk)'s [lifxlan](https://g
 It uses the tk framework for the GUI.
 
 # Quick Start
-Go over to [releases](https://github.com/samclane/LIFX-Control-Panel/releases) and download the latest .exe
+Go over to [releases](https://github.com/samclane/LIFX-Control-Panel/releases) and download the latest `.exe` file.
+
 Starting the program takes a moment, as it first must scan your LAN for any LIFX devices. 
 
 # Running the source code
