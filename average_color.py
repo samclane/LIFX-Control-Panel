@@ -5,18 +5,20 @@ import threading
 from time import sleep
 
 import pyautogui
-from lifxlan import LifxLAN
+from lifxlan import LifxLAN, utils
 
 
 def get_avg_color():
     screenshot = pyautogui.screenshot()
     screenshot2 = screenshot.resize((1, 1))
     color = screenshot2.getpixel((0, 0))
+    """    
     # print('#{:02x}{:02x}{:02x}'.format(*color))
     hsv_color = colorsys.rgb_to_hsv(*color)
     # print(hsv_color)
     hsv_fixed = [hsv_color[0] * 65535, hsv_color[1] * 65535, hsv_color[2] * (65535 / 255)]
-    return hsv_fixed + [9000]
+    return hsv_fixed + [9000]"""
+    return utils.RGBtoHSBK(color, temperature=9000)
 
 
 def match_color(bulb):

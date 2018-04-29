@@ -1,7 +1,8 @@
 from tkinter import *
 from tkinter import ttk
+from tkinter.colorchooser import *
 
-from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD
+from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD, utils
 
 import average_color
 
@@ -80,9 +81,10 @@ class LightFrame(ttk.Labelframe):
         Button(self, text="White", command=lambda: self.set_color(WHITE)).grid(row=5, column=0)
         Button(self, text="Warm White", command=lambda: self.set_color(WARM_WHITE)).grid(row=5, column=1)
         Button(self, text="Cold White", command=lambda: self.set_color(COLD_WHITE)).grid(row=5, column=2)
-        Button(self, text="Gold", command=lambda: self.set_color(GOLD)).grid(row=5, column=3)
+        Button(self, text="Gold", command=lambda: self.set_color(GOLD)).grid(row=6, column=0)
         self.acm = average_color.AverageColorMatcher(self.bulb)
-        Button(self, text="Avg. Color", command=self.acm.start).grid(row=5, column=4)
+        Button(self, text="Avg. Color", command=self.acm.start).grid(row=6, column=1)
+        Button(self, text="Pick Color", command=self.get_color_hbsk).grid(row=6, column=2)
 
         self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
 
@@ -97,6 +99,13 @@ class LightFrame(ttk.Labelframe):
     def set_color(self, color):
         self.acm.stop()
         self.bulb.set_color(color)
+        for key, val in enumerate(self.hsbk):
+            self.hsbk[key].set(color[key])
+
+    def get_color_hbsk(self):
+        color = askcolor()
+        hbsk = [min(c, 65535) for c in utils.RGBtoHSBK(color[0], self.hsbk[3].get())]
+        self.set_color(hbsk)
 
     def update_status_from_bulb(self):
         self.powervar.set(self.bulb.get_power())
