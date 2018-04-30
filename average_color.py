@@ -1,27 +1,19 @@
 #!/usr/bin/env python
 # coding=utf-8
-import colorsys
 import threading
 from time import sleep
+from PIL import ImageGrab, Image
 
-import pyautogui
 from lifxlan import LifxLAN, utils
 
 
-def get_avg_color():
-    screenshot = pyautogui.screenshot()
-    screenshot2 = screenshot.resize((1, 1))
-    color = screenshot2.getpixel((0, 0))
-    """    
-    # print('#{:02x}{:02x}{:02x}'.format(*color))
-    hsv_color = colorsys.rgb_to_hsv(*color)
-    # print(hsv_color)
-    hsv_fixed = [hsv_color[0] * 65535, hsv_color[1] * 65535, hsv_color[2] * (65535 / 255)]
-    return hsv_fixed + [9000]"""
-    return utils.RGBtoHSBK(color, temperature=9000)
+def get_avg_color(temp=9000):
+    im = ImageGrab.grab()
+    color = im.resize((1, 1), Image.ANTIALIAS).getpixel((0, 0))
+    return utils.RGBtoHSBK(color, temperature=temp)
 
 
-def match_color(bulb):
+def match_color_test(bulb):
     duration_secs = 0.25
     transition_time_ms = duration_secs * 1000
     while True:  # Blocking!
@@ -42,8 +34,9 @@ class AverageColorThread(threading.Thread):
 
 
 class AverageColorMatcher:
-    def __init__(self, bulb):
+    def __init__(self, bulb, temp=9000):
         self.bulb = bulb
+        self.temp = temp
         self.t = AverageColorThread(target=self.match_color, args=(self.bulb,))
         self.t.setDaemon(True)
 
@@ -51,7 +44,7 @@ class AverageColorMatcher:
         duration_secs = 0.25
         transition_time_ms = duration_secs * 1000
         while not self.t.stopped():
-            bulb.set_color(get_avg_color(), transition_time_ms, True if duration_secs < 1 else False)
+            bulb.set_color(get_avg_color(temp=self.temp), transition_time_ms, True if duration_secs < 1 else False)
             sleep(duration_secs)
 
     def start(self):
@@ -77,7 +70,7 @@ def main():
     original_color = bulb.get_color()
     bulb.set_power("on")
 
-    match_color(bulb)
+    match_color_test(bulb)
 
 
 if __name__ == "__main__":
