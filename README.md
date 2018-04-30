@@ -1,5 +1,5 @@
 # LIFX-Control-Panel
-As LIFX no longer supports their Windows 10 app, I created an open-source alternative for controlling LIFX-brand smart lights. 
+As LIFX [no longer supports their Windows 10 app](https://www.windowscentral.com/lifx-drops-support-windows-10), I created an open-source alternative for controlling LIFX-brand smart lights. 
 
 ![screenshot](https://i.imgur.com/Ft6RKEj.png)
 
@@ -8,7 +8,8 @@ The application uses [mclarkk](https://github.com/mclarkk)'s [lifxlan](https://g
 It uses the tk framework for the GUI.
 
 # Quick Start
-Go over to [releases](https://github.com/samclane/LIFX-Control-Panel/releases) and download the latest .exe
+Go over to [releases](https://github.com/samclane/LIFX-Control-Panel/releases) and download the latest `.exe` file.
+
 Starting the program takes a moment, as it first must scan your LAN for any LIFX devices. 
 
 # Running the source code
