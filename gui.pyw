@@ -5,7 +5,7 @@ from tkinter.colorchooser import *
 
 from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD, utils
 
-import average_color
+import color_thread
 
 HEARTBEAT_RATE = 3000  # 3 seconds
 
@@ -99,7 +99,7 @@ class LightFrame(ttk.Labelframe):
         Button(self, text="Warm White", command=lambda: self.set_color(WARM_WHITE)).grid(row=5, column=1)
         Button(self, text="Cold White", command=lambda: self.set_color(COLD_WHITE)).grid(row=5, column=2)
         Button(self, text="Gold", command=lambda: self.set_color(GOLD)).grid(row=6, column=0)
-        self.acm = average_color.AverageColorMatcher(self.bulb)
+        self.acm = color_thread.ColorThreadRunner(self.bulb, color_thread.avg_screen_color, k)
         Button(self, text="Avg. Screen Color", command=self.acm.start).grid(row=6, column=1)
         Button(self, text="Pick Color", command=self.get_color_hbsk).grid(row=6, column=2)
 
@@ -141,7 +141,10 @@ class LightFrame(ttk.Labelframe):
             self.set_color(hbsk)
 
     def update_status_from_bulb(self):
-        self.powervar.set(self.bulb.get_power())
+        try:
+            self.powervar.set(self.bulb.get_power())
+        except OSError:
+            pass
         if self.powervar.get() == 0:
             # Light is off
             self.option_off.select()
@@ -149,9 +152,12 @@ class LightFrame(ttk.Labelframe):
         else:
             self.option_on.select()
             self.option_off.selection_clear()
-        hsbk = self.bulb.get_color()
-        for key, val in enumerate(self.hsbk):
-            self.hsbk[key].set(hsbk[key])
+        try:
+            hsbk = self.bulb.get_color()
+            for key, val in enumerate(self.hsbk):
+                self.hsbk[key].set(hsbk[key])
+        except OSError:
+            pass
         self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
 
 
