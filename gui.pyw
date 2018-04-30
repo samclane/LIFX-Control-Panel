@@ -75,14 +75,25 @@ class LightFrame(ttk.Labelframe):
                      IntVar(self, s, "Saturation"),
                      IntVar(self, b, "Brightness"),
                      IntVar(self, k, "Kelvin"))
+        self.hsbk_labels = (
+            Label(self, text='%.3g' % (360 * (self.hsbk[0].get() / 65535))),
+            Label(self, text='%.3g' % (self.hsbk[1].get() / 65535)),
+            Label(self, text='%.3g' % (self.hsbk[2].get() / 65535)),
+            Label(self, text=self.hsbk[3].get())
+        )
         self.hsbk_scale = (
-            Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[0], command=self.update_color),
-            Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[1], command=self.update_color),
-            Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[2], command=self.update_color),
-            Scale(self, from_=2500, to=9000, orient=HORIZONTAL, variable=self.hsbk[3], command=self.update_color))
+            Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[0], command=self.update_color,
+                  showvalue=False),
+            Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[1], command=self.update_color,
+                  showvalue=False),
+            Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[2], command=self.update_color,
+                  showvalue=False),
+            Scale(self, from_=2500, to=9000, orient=HORIZONTAL, variable=self.hsbk[3], command=self.update_color,
+                  showvalue=False))
         for key, scale in enumerate(self.hsbk_scale):
-            Label(self, text=self.hsbk[key]._name).grid(row=key + 1, column=0)
+            Label(self, text=self.hsbk[key]).grid(row=key + 1, column=0)
             scale.grid(row=key + 1, column=1)
+            self.hsbk_labels[key].grid(row=key + 1, column=2)
 
         Button(self, text="White", command=lambda: self.set_color(WHITE)).grid(row=5, column=0)
         Button(self, text="Warm White", command=lambda: self.set_color(WARM_WHITE)).grid(row=5, column=1)
@@ -101,12 +112,26 @@ class LightFrame(ttk.Labelframe):
     def update_color(self, *args):
         self.acm.stop()
         self.bulb.set_color([c.get() for c in self.hsbk], rapid=True)
+        for key, val in enumerate(self.hsbk):
+            self.update_label(key)
 
     def set_color(self, color):
         self.acm.stop()
         self.bulb.set_color(color)
         for key, val in enumerate(self.hsbk):
             self.hsbk[key].set(color[key])
+            self.update_label(key)
+
+    def update_label(self, key):
+        if key == 0:
+            self.hsbk_labels[0].config(text=str('%.3g' % (360 * (self.hsbk[0].get() / 65535))))
+        elif key == 1:
+            self.hsbk_labels[1].config(text=str('%.3g' % (100 * (self.hsbk[1].get() / 65535))) + "%")
+        elif key == 2:
+            self.hsbk_labels[2].config(text=str('%.3g' % (100 * (self.hsbk[2].get() / 65535))) + "%")
+        elif key == 3:
+            self.hsbk_labels[3].config(text=str(self.hsbk[3].get()))
+
 
     def get_color_hbsk(self):
         color = askcolor()[0]
