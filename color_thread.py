@@ -2,15 +2,15 @@
 # coding=utf-8
 import threading
 from time import sleep
-from PIL import ImageGrab, Image
 
+from PIL import ImageGrab, Image
 from lifxlan import LifxLAN, utils
 
 
-def avg_screen_color(temp=9000):
+def avg_screen_color(initial_color):
     im = ImageGrab.grab()
-    color = im.resize((1, 1), Image.ANTIALIAS).getpixel((0, 0))
-    return utils.RGBtoHSBK(color, temperature=temp)
+    color = im.resize((1, 1), Image.HAMMING).getpixel((0, 0))
+    return utils.RGBtoHSBK(color, temperature=initial_color[3])
 
 
 class ColorThread(threading.Thread):
@@ -26,19 +26,19 @@ class ColorThread(threading.Thread):
 
 
 class ColorThreadRunner:
-    def __init__(self, bulb, color_fuction, temp=9000):
+    def __init__(self, bulb, color_function, initial_color):
         self.bulb = bulb
-        self.color_function = color_fuction
-        self.temp = temp
+        self.color_function = color_function
+        self.initial_color = initial_color
         self.t = ColorThread(target=self.match_color, args=(self.bulb,))
         self.t.setDaemon(True)
 
     def match_color(self, bulb):
-        duration_secs = 0.25
+        duration_secs = 1 / 30
         transition_time_ms = duration_secs * 1000
         while not self.t.stopped():
             try:
-                bulb.set_color(self.color_function(temp=self.temp), transition_time_ms,
+                bulb.set_color(self.color_function(initial_color=self.initial_color), transition_time_ms,
                                True if duration_secs < 1 else False)
             except OSError:
                 # This is dirty, but we really don't care, just keep going
@@ -55,12 +55,15 @@ class ColorThreadRunner:
         self.t.stop()
 
 
+### Testing stuff ###
+
 def match_color_test(bulb):
     duration_secs = 0.25
     transition_time_ms = duration_secs * 1000
     while True:  # Blocking!
-        bulb.set_color(avg_screen_color(), transition_time_ms, True if duration_secs < 1 else False)
+        bulb.set_color(avg_screen_color([0, 0, 0, 9000]), transition_time_ms, True if duration_secs < 1 else False)
         sleep(duration_secs)
+
 
 def main():
     num_lights = 1
