@@ -99,10 +99,10 @@ class LightFrame(ttk.Labelframe):
         self.hsbk_display = (
             Canvas(self, background='#%02x%02x%02x' % HueToRGB(360 * (h / 65535)), width=20, height=20),
             Canvas(self, background='#%02x%02x%02x' % (
-            int(255 * (s / 65535)), int(255 * (s / 65535)), int(255 * (s / 65535))),
+                int(255 * (s / 65535)), int(255 * (s / 65535)), int(255 * (s / 65535))),
                    width=20, height=20),
             Canvas(self, background='#%02x%02x%02x' % (
-            int(255 * (b / 65535)), int(255 * (b / 65535)), int(255 * (b / 65535))),
+                int(255 * (b / 65535)), int(255 * (b / 65535)), int(255 * (b / 65535))),
                    width=20, height=20),
             Canvas(self, background='#%02x%02x%02x' % KelvinToRGB(k), width=20, height=20)
         )
@@ -112,24 +112,29 @@ class LightFrame(ttk.Labelframe):
             self.hsbk_labels[key].grid(row=key + 1, column=2)
             self.hsbk_display[key].grid(row=key + 1, column=3)
 
+        self.threads = {}
+
         # Add buttons for pre-made colors and routines
         Button(self, text="White", command=lambda: self.set_color(WHITE)).grid(row=5, column=0)
         Button(self, text="Warm White", command=lambda: self.set_color(WARM_WHITE)).grid(row=5, column=1)
         Button(self, text="Cold White", command=lambda: self.set_color(COLD_WHITE)).grid(row=5, column=2)
         Button(self, text="Gold", command=lambda: self.set_color(GOLD)).grid(row=6, column=0)
-        self.acm = color_thread.ColorThreadRunner(self.bulb, color_thread.avg_screen_color, hsbk)
-        Button(self, text="Avg. Screen Color", command=self.acm.start).grid(row=6, column=1)
+        self.threads['screen'] = color_thread.ColorThreadRunner(self.bulb, color_thread.avg_screen_color, self)
+        Button(self, text="Avg. Screen Color", command=self.threads['screen'].start).grid(row=6, column=1)
         Button(self, text="Pick Color", command=self.get_color_hbsk).grid(row=6, column=2)
-        self.audio_matcher = color_thread.ColorThreadRunner(self.bulb, audio.get_music_color, hsbk)
-        Button(self, text="Music Color*", command=self.audio_matcher.start).grid(row=7, column=0)
+        self.threads['audio'] = color_thread.ColorThreadRunner(self.bulb, audio.get_music_color, self)
+        Button(self, text="Music Color*", command=self.threads['audio'].start).grid(row=7, column=0)
         Label(self, text="*=Work in progress").grid(row=8, column=1)
 
         self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
 
+    def get_color(self):
+        return [v.get() for v in self.hsbk]
+
     def stop_threads(self):
         """ Stop all ColorRunner threads """
-        self.acm.stop()
-        self.audio_matcher.stop()
+        for thread in self.threads.values():
+            thread.stop()
 
     def update_power(self):
         """ Send new power state to bulb when UI is changed. """
@@ -139,7 +144,7 @@ class LightFrame(ttk.Labelframe):
     def update_color(self, *args):
         """ Send new color state to bulb when UI is changed. """
         self.stop_threads()
-        self.bulb.set_color([c.get() for c in self.hsbk], rapid=True)
+        self.bulb.set_color(self.get_color(), rapid=True)
         for key, val in enumerate(self.hsbk):
             self.update_label(key)
             self.update_display(key)
@@ -165,7 +170,7 @@ class LightFrame(ttk.Labelframe):
             self.hsbk_labels[3].config(text=str(self.hsbk[3].get()) + " K")
 
     def update_display(self, key):
-        hsbk = h, s, b, k = [v.get() for v in self.hsbk]
+        hsbk = h, s, b, k = self.get_color()
         if key == 0:
             self.hsbk_display[0].config(background='#%02x%02x%02x' % HueToRGB(360 * (h / 65535)))
         elif key == 1:
@@ -233,7 +238,7 @@ def HSBKtoRGB(hsbk):
         g = hue2rgb(p, q, h)
         b = hue2rgb(p, q, h - 1 / 3)
 
-    return (int(r * 255), int(g * 255), int(b * 255))
+    return int(r * 255), int(g * 255), int(b * 255)
 
 
 def HueToRGB(h, s=1, v=1):
@@ -309,14 +314,5 @@ if __name__ == "__main__":
     root = Tk()
     root.title("LIFX Manager")
     mainframe = LifxFrame(root)
-    '''    
-    # Little test DELETE ME
-    color = (53, 32, 23)
-    hsbk = utils.RGBtoHSBK(color)
-    print(hsbk)
-    rgb = HSBKtoRGB(hsbk)
-    print(rgb)
-    print(hls_to_rgb(hsbk[0]/65535, hsbk[2]/65535, hsbk[1]/65535))
-    # DELETE ME
-    '''
+
     root.mainloop()

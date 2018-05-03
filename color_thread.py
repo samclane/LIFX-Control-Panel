@@ -26,20 +26,23 @@ class ColorThread(threading.Thread):
 
 
 class ColorThreadRunner:
-    def __init__(self, bulb, color_function, initial_color):
+    def __init__(self, bulb, color_function, parent):
         self.bulb = bulb
         self.color_function = color_function
-        self.initial_color = initial_color
+        self.parent = parent  # couple to parent frame
         self.t = ColorThread(target=self.match_color, args=(self.bulb,))
         self.t.setDaemon(True)
 
     def match_color(self, bulb):
-        duration_secs = 1 / 30
+        self.prev_color = self.parent.get_color()  # coupling to LightFrame from gui.py here
+        duration_secs = 1 / 15
         transition_time_ms = duration_secs * 1000
         while not self.t.stopped():
             try:
-                bulb.set_color(self.color_function(initial_color=self.initial_color), transition_time_ms,
+                color = self.color_function(initial_color=self.prev_color)
+                bulb.set_color(color, transition_time_ms,
                                True if duration_secs < 1 else False)
+                self.prev_color = color
             except OSError:
                 # This is dirty, but we really don't care, just keep going
                 continue

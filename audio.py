@@ -8,8 +8,8 @@ CHANNELS = 2
 RATE = 44100
 
 # RMS -> Brightness control constants
-SCALE = 100
-EXPONENT = 2
+SCALE = 15  # Change if too dim/bright
+EXPONENT = 2  # Change if too little/too much difference between loud and quiet sounds
 
 # Init stream on module load
 p = pyaudio.PyAudio()
