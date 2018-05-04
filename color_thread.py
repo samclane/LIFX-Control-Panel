@@ -30,6 +30,7 @@ class ColorThreadRunner:
         self.bulb = bulb
         self.color_function = color_function
         self.parent = parent  # couple to parent frame
+        self.prev_color = parent.get_color()
         self.t = ColorThread(target=self.match_color, args=(self.bulb,))
         self.t.setDaemon(True)
 
