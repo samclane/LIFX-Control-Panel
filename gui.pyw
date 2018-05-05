@@ -4,6 +4,11 @@ from tkinter import *
 from tkinter import ttk
 from tkinter.colorchooser import *
 import base64
+from PIL import ImageGrab
+from win32gui import GetCursorPos, GetCursorInfo
+import win32api
+from time import sleep
+import threading
 
 from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD, utils, errors
 
@@ -2704,6 +2709,8 @@ class LightFrame(ttk.Labelframe):
         self.threads['audio'] = color_thread.ColorThreadRunner(self.bulb, audio.get_music_color, self)
         Button(self, text="Music Color*", command=self.threads['audio'].start,
                state='normal' if audio.initialized else 'disabled').grid(row=7, column=0)
+        self.threads['eyedropper'] = color_thread.ColorThreadRunner(self.bulb, self.eyedropper, self, continuous=False)
+        Button(self, text="Color Eyedropper", command=self.threads['eyedropper'].start).grid(row=7, column=1)
         Label(self, text="*=Work in progress").grid(row=8, column=1)
 
         self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
@@ -2796,6 +2803,24 @@ class LightFrame(ttk.Labelframe):
         except errors.WorkflowException:
             pass
         self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
+
+    def eyedropper(self, initial_color):
+        self.master.master.withdraw()
+        state_left = win32api.GetKeyState(0x01)  # Left button down = 0 or 1. Button up = -127 or -128
+        while True:
+            a = win32api.GetKeyState(0x01)
+            if a != state_left:  # Button state changed
+                state_left = a
+                if a < 0:
+                    pass
+                else:
+                    break
+            sleep(0.001)
+        # Button state changed
+        im = ImageGrab.grab()
+        color = im.getpixel(GetCursorPos())
+        self.master.master.deiconify()
+        return utils.RGBtoHSBK(color, temperature=self.get_color()[3])
 
 
 # Color conversion helper functions

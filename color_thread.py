@@ -26,11 +26,12 @@ class ColorThread(threading.Thread):
 
 
 class ColorThreadRunner:
-    def __init__(self, bulb, color_function, parent):
+    def __init__(self, bulb, color_function, parent, continuous=True):
         self.bulb = bulb
         self.color_function = color_function
         self.parent = parent  # couple to parent frame
         self.prev_color = parent.get_color()
+        self.continuous = continuous
         self.t = ColorThread(target=self.match_color, args=(self.bulb,))
         self.t.setDaemon(True)
 
@@ -48,6 +49,8 @@ class ColorThreadRunner:
                 # This is dirty, but we really don't care, just keep going
                 continue
             sleep(duration_secs)
+            if not self.continuous:
+                self.stop()
 
     def start(self):
         if self.t.stopped():
