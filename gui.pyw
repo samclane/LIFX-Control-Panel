@@ -1,15 +1,14 @@
+import base64
 import os
+import win32api
 from math import log, floor
+from time import sleep
 from tkinter import *
 from tkinter import ttk
 from tkinter.colorchooser import *
-import base64
-from PIL import ImageGrab
-from win32gui import GetCursorPos, GetCursorInfo
-import win32api
-from time import sleep
-import threading
+from win32gui import GetCursorPos
 
+from PIL import ImageGrab
 from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD, utils, errors
 
 import audio
@@ -2596,6 +2595,7 @@ icon = \
     AJw5AACf+QAAn/kAAJ/5AACf+QAAn/kAAM/zAADH4wAA4AcAAPgfAAD//wAA
     """
 
+
 class LifxFrame(ttk.Frame):
     def __init__(self, master):
         ttk.Frame.__init__(self, master, padding="3 3 12 12")
@@ -2632,6 +2632,8 @@ class LifxFrame(ttk.Frame):
         self.current_light = self.lightsdict[self.lightvar.get()]
         if self.lightvar.get() not in self.framesdict.keys():
             self.framesdict[self.lightvar.get()] = LightFrame(self, self.current_light)
+        else:
+            self.framesdict[self.lightvar.get()].grid(column=1, row=0, sticky=(N, W, E, S))  # should bring to front
         self.current_lightframe = self.framesdict[self.lightvar.get()]
 
     def on_closing(self):
@@ -2815,9 +2817,9 @@ class LightFrame(ttk.Labelframe):
             a = win32api.GetKeyState(0x01)
             if a != state_left:  # Button state changed
                 state_left = a
-                if a < 0:
+                if a < 0:  # Button down
                     pass
-                else:
+                else:  # Button up
                     break
             sleep(0.001)
         # Button state changed
@@ -2833,19 +2835,12 @@ def HSBKtoRGB(hsbk):
     if s == 0:
         r = g = b = l  # achromatic
     else:
-        def hue2rgb(p, q, t):
-            if t < 0: t += 1
-            if t > 1: t -= 1
-            if t < 1 / 6: return p + (q - p) * 6.0 * t
-            if t < 1 / 2: return q
-            if t < 2 / 3: return p + (q - p) * (2 / 3 - t) * 6.0
-            return p
 
         q = l * (1.0 + s) if l < 0.5 else l + s - l * s
         p = 2.0 * l - q
-        r = hue2rgb(p, q, h + 1 / 3)
-        g = hue2rgb(p, q, h)
-        b = hue2rgb(p, q, h - 1 / 3)
+        r = HueToRGB(p, q, h + 1 / 3)
+        g = HueToRGB(p, q, h)
+        b = HueToRGB(p, q, h - 1 / 3)
 
     return int(r * 255), int(g * 255), int(b * 255)
 
