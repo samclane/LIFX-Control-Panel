@@ -2610,6 +2610,8 @@ class LifxFrame(ttk.Frame):
         self.lifx = LifxLAN(verbose=False)
         self.lights = self.lifx.get_lights()
         self.lightsdict = {}
+        self.framesdict = {}
+        self.current_lightframe = None
 
         for key, light in enumerate(self.lights):
             self.lightsdict[light.get_label()] = light
@@ -2628,7 +2630,9 @@ class LifxFrame(ttk.Frame):
     def change_dropdown(self, *args):
         """ Change current display frame when dropdown menu is changed. """
         self.current_light = self.lightsdict[self.lightvar.get()]
-        self.lf = LightFrame(self, self.current_light)
+        if self.lightvar.get() not in self.framesdict.keys():
+            self.framesdict[self.lightvar.get()] = LightFrame(self, self.current_light)
+        self.current_lightframe = self.framesdict[self.lightvar.get()]
 
     def on_closing(self):
         self.master.destroy()
