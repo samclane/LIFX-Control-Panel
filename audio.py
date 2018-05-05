@@ -14,12 +14,16 @@ EXPONENT = 2  # Change if too little/too much difference between loud and quiet 
 # Init stream on module load
 p = pyaudio.PyAudio()
 
-stream = p.open(format=FORMAT,
-                channels=CHANNELS,
-                rate=RATE,
-                input=True,
-                frames_per_buffer=CHUNK,
-                input_device_index=2)
+try:
+    stream = p.open(format=FORMAT,
+                    channels=CHANNELS,
+                    rate=RATE,
+                    input=True,
+                    frames_per_buffer=CHUNK,
+                    input_device_index=2)
+    initialized = True
+except OSError:
+    initialized = False
 
 
 def get_music_color(initial_color):

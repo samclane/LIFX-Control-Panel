@@ -2702,7 +2702,8 @@ class LightFrame(ttk.Labelframe):
         Button(self, text="Avg. Screen Color", command=self.threads['screen'].start).grid(row=6, column=1)
         Button(self, text="Pick Color", command=self.get_color_hbsk).grid(row=6, column=2)
         self.threads['audio'] = color_thread.ColorThreadRunner(self.bulb, audio.get_music_color, self)
-        Button(self, text="Music Color*", command=self.threads['audio'].start).grid(row=7, column=0)
+        Button(self, text="Music Color*", command=self.threads['audio'].start,
+               state='normal' if audio.initialized else 'disabled').grid(row=7, column=0)
         Label(self, text="*=Work in progress").grid(row=8, column=1)
 
         self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
