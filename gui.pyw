@@ -7,6 +7,7 @@ from tkinter import *
 from tkinter import ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
+import tkinter.font as font
 
 from PIL import ImageGrab
 from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD, utils, errors
@@ -2620,8 +2621,8 @@ class LifxFrame(ttk.Frame):
         self.current_light = self.lightsdict[self.lightvar.get()]
 
         self.dropdownMenu = OptionMenu(self, self.lightvar, *(light.get_label() for light in self.lights))
-        Label(self, text="Light: ").grid(row=0, column=1)
-        self.dropdownMenu.grid(row=1, column=1)
+        # Label(self, text="Light: ").grid(row=0, column=1)
+        self.dropdownMenu.grid(row=1, column=1, sticky='w')
         self.lightvar.trace('w', self.change_dropdown)  # Keep lightvar in sync with drop-down selection
 
         if len(self.lightsdict):
@@ -2644,7 +2645,10 @@ class LifxFrame(ttk.Frame):
 class LightFrame(ttk.Labelframe):
     def __init__(self, master, bulb):
         # Initialize frame
-        ttk.Labelframe.__init__(self, master, padding="3 3 12 12", text=bulb.get_label())
+        # ttk.Labelframe.__init__(self, master, padding="3 3 12 12", text=bulb.get_label())  # TODO: Change font size larger
+        ttk.Labelframe.__init__(self, master, padding="3 3 12 12",
+                                labelwidget=Label(master, text=bulb.get_label(), font=font.Font(size=12), fg="#0046d5",
+                                                  relief=RIDGE))
         self.grid(column=1, row=0, sticky=(N, W, E, S))
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
@@ -2686,15 +2690,17 @@ class LightFrame(ttk.Labelframe):
                   showvalue=False),
             Scale(self, from_=2500, to=9000, orient=HORIZONTAL, variable=self.hsbk[3], command=self.update_color,
                   showvalue=False))
+        RELIEF = GROOVE
         self.hsbk_display = (
-            Canvas(self, background='#%02x%02x%02x' % HueToRGB(360 * (h / 65535)), width=20, height=20),
+            Canvas(self, background='#%02x%02x%02x' % HueToRGB(360 * (h / 65535)), width=20, height=20, borderwidth=3,
+                   relief=RELIEF),
             Canvas(self, background='#%02x%02x%02x' % (
                 int(255 * (s / 65535)), int(255 * (s / 65535)), int(255 * (s / 65535))),
-                   width=20, height=20),
+                   width=20, height=20, borderwidth=3, relief=RELIEF),
             Canvas(self, background='#%02x%02x%02x' % (
                 int(255 * (b / 65535)), int(255 * (b / 65535)), int(255 * (b / 65535))),
-                   width=20, height=20),
-            Canvas(self, background='#%02x%02x%02x' % KelvinToRGB(k), width=20, height=20)
+                   width=20, height=20, borderwidth=3, relief=RELIEF),
+            Canvas(self, background='#%02x%02x%02x' % KelvinToRGB(k), width=20, height=20, borderwidth=3, relief=RELIEF)
         )
         for key, scale in enumerate(self.hsbk_scale):
             Label(self, text=self.hsbk[key]).grid(row=key + 1, column=0)
@@ -2705,18 +2711,27 @@ class LightFrame(ttk.Labelframe):
         self.threads = {}
 
         # Add buttons for pre-made colors and routines
-        Button(self, text="White", command=lambda: self.set_color(WHITE)).grid(row=5, column=0)
-        Button(self, text="Warm White", command=lambda: self.set_color(WARM_WHITE)).grid(row=5, column=1)
-        Button(self, text="Cold White", command=lambda: self.set_color(COLD_WHITE)).grid(row=5, column=2)
-        Button(self, text="Gold", command=lambda: self.set_color(GOLD)).grid(row=6, column=0)
+        self.preset_colors_lf = ttk.LabelFrame(self, text="Preset Colors", padding="3 3 12 12")
+        Button(self.preset_colors_lf, text="White", command=lambda: self.set_color(WHITE)).grid(row=5, column=0)
+        Button(self.preset_colors_lf, text="Warm White", command=lambda: self.set_color(WARM_WHITE)).grid(row=5,
+                                                                                                          column=1)
+        Button(self.preset_colors_lf, text="Cold White", command=lambda: self.set_color(COLD_WHITE)).grid(row=5,
+                                                                                                          column=2)
+        Button(self.preset_colors_lf, text="Gold", command=lambda: self.set_color(GOLD)).grid(row=5, column=3)
+        self.preset_colors_lf.grid(row=5, columnspan=4)
+
+        self.special_functions_lf = ttk.LabelFrame(self, text="Special Functions", padding="3 3 12 12")
         self.threads['screen'] = color_thread.ColorThreadRunner(self.bulb, color_thread.avg_screen_color, self)
-        Button(self, text="Avg. Screen Color", command=self.threads['screen'].start).grid(row=6, column=1)
-        Button(self, text="Pick Color", command=self.get_color_hbsk).grid(row=6, column=2)
+        Button(self.special_functions_lf, text="Avg. Screen Color", command=self.threads['screen'].start).grid(row=6,
+                                                                                                               column=0)
+        Button(self.special_functions_lf, text="Pick Color", command=self.get_color_hbsk).grid(row=6, column=1)
         self.threads['audio'] = color_thread.ColorThreadRunner(self.bulb, audio.get_music_color, self)
-        Button(self, text="Music Color*", command=self.threads['audio'].start,
+        Button(self.special_functions_lf, text="Music Color*", command=self.threads['audio'].start,
                state='normal' if audio.initialized else 'disabled').grid(row=7, column=0)
         self.threads['eyedropper'] = color_thread.ColorThreadRunner(self.bulb, self.eyedropper, self, continuous=False)
-        Button(self, text="Color Eyedropper", command=self.threads['eyedropper'].start).grid(row=7, column=1)
+        Button(self.special_functions_lf, text="Color Eyedropper", command=self.threads['eyedropper'].start).grid(row=7,
+                                                                                                                  column=1)
+        self.special_functions_lf.grid(row=6, columnspan=4)
         Label(self, text="*=Work in progress").grid(row=8, column=1)
 
         self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
