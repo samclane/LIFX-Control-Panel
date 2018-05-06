@@ -30,13 +30,13 @@ class ColorThreadRunner:
         self.bulb = bulb
         self.color_function = color_function
         self.parent = parent  # couple to parent frame
-        self.prev_color = parent.get_color()
+        self.prev_color = parent.get_color_values_hsbk()
         self.continuous = continuous
         self.t = ColorThread(target=self.match_color, args=(self.bulb,))
         self.t.setDaemon(True)
 
     def match_color(self, bulb):
-        self.prev_color = self.parent.get_color()  # coupling to LightFrame from gui.py here
+        self.prev_color = self.parent.get_color_values_hsbk()  # coupling to LightFrame from gui.py here
         duration_secs = 1 / 15
         transition_time_ms = duration_secs * 1000
         while not self.t.stopped():
@@ -82,7 +82,7 @@ def main():
     print("Selected {}".format(bulb.get_label()))
     # get original state
     original_power = bulb.get_power()
-    original_color = bulb.get_color()
+    original_color = bulb.get_color_values_hsbk()
     bulb.set_power("on")
 
     match_color_test(bulb)
