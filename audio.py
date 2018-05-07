@@ -1,5 +1,6 @@
-import pyaudio
 import audioop
+
+import pyaudio
 
 # Audio processing constants
 CHUNK = 1024

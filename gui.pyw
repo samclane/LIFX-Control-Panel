@@ -46,6 +46,10 @@ class LifxFrame(ttk.Frame):
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
+        sh = logging.StreamHandler()
+        sh.setLevel(logging.ERROR)
+        sh.setFormatter(formatter)
+        self.logger.addHandler(sh)
         self.logger.info('Root logger initialized: {}'.format(self.logger.name))
 
         # Initialize LIFX objects
@@ -411,6 +415,7 @@ def KelvinToRGB(temperature):
     return int(red), int(green), int(blue)
 
 
+
 if __name__ == "__main__":
     root = Tk()
     root.title("LIFX Manager")
@@ -425,5 +430,15 @@ if __name__ == "__main__":
     os.remove(tempfile)
 
     mainframe = LifxFrame(root)
+
+    # Setup exception logging
+    logger = mainframe.logger
+
+
+    def myHandler(type, value, tb):
+        logger.exception("Uncaught exception: {}".format(str(value)))
+
+
+    sys.excepthook = myHandler
 
     root.mainloop()

@@ -2,6 +2,7 @@
 # coding=utf-8
 import logging
 import threading
+from statistics import mode
 from time import sleep
 
 from PIL import ImageGrab, Image
@@ -11,6 +12,14 @@ from lifxlan import LifxLAN, utils
 def avg_screen_color(initial_color):
     im = ImageGrab.grab()
     color = im.resize((1, 1), Image.HAMMING).getpixel((0, 0))
+    return utils.RGBtoHSBK(color, temperature=initial_color[3])
+
+
+def mode_screen_color(initial_color):
+    """ Probably a more accurate way to get screen color, but is incredibly slow. """
+    im = ImageGrab.grab().resize((500, 500))
+    color = mode(im.load()[x, y] for x in range(im.width) for y in range(im.height) if
+                 im.load()[x, y] != (255, 255, 255) and im.load()[x, y] != (0, 0, 0))
     return utils.RGBtoHSBK(color, temperature=initial_color[3])
 
 
@@ -31,7 +40,7 @@ class ColorThreadRunner:
         self.bulb = bulb
         self.color_function = color_function
         self.parent = parent  # couple to parent frame
-        self.logger = logging.getLogger(parent.logger.name + '.{}'.format(color_function.__name__))
+        self.logger = logging.getLogger(parent.logger.name + '.Thread({})'.format(color_function.__name__))
         self.prev_color = parent.get_color_values_hsbk()
         self.continuous = continuous
         self.t = ColorThread(target=self.match_color, args=(self.bulb,))
@@ -59,15 +68,43 @@ class ColorThreadRunner:
         self.logger.debug('Color match finished.')
 
     def start(self):
-        self.logger.debug('Thread started.')
         if self.t.stopped():
             self.t = ColorThread(target=self.match_color, args=(self.bulb,))
             self.t.setDaemon(True)
-        self.t.start()
+        try:
+            self.t.start()
+            self.logger.debug('Thread started.')
+        except RuntimeError:
+            self.logger.error('Tried to start ColorThread again.')
 
     def stop(self):
         self.logger.debug('Thread stopped')
         self.t.stop()
+
+
+def install_thread_excepthook():
+    """
+    Workaround for sys.excepthook thread bug
+    (https://sourceforge.net/tracker/?func=detail&atid=105470&aid=1230540&group_id=5470).
+    Call once from __main__ before creating any threads.
+    If using psyco, call psycho.cannotcompile(threading.Thread.run)
+    since this replaces a new-style class method.
+    """
+    import sys
+    run_old = threading.Thread.run
+
+    def run(*args, **kwargs):
+        try:
+            run_old(*args, **kwargs)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            sys.excepthook(*sys.exc_info())
+
+    threading.Thread.run = run
+
+
+install_thread_excepthook()
 
 
 ### Testing stuff ###
