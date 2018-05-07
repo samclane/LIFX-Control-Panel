@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
+import logging
 import threading
 from time import sleep
 
@@ -30,12 +31,17 @@ class ColorThreadRunner:
         self.bulb = bulb
         self.color_function = color_function
         self.parent = parent  # couple to parent frame
+        self.logger = logging.getLogger(parent.logger.name + '.{}'.format(color_function.__name__))
         self.prev_color = parent.get_color_values_hsbk()
         self.continuous = continuous
         self.t = ColorThread(target=self.match_color, args=(self.bulb,))
         self.t.setDaemon(True)
+        self.logger.info('Initialized Thread: Bulb: {} // Function: {} // Parent: {}'.format(self.bulb.get_label(),
+                                                                                             self.color_function.__name__,
+                                                                                             self.parent.logger.name))
 
     def match_color(self, bulb):
+        self.logger.debug('Starting color match.')
         self.prev_color = self.parent.get_color_values_hsbk()  # coupling to LightFrame from gui.py here
         duration_secs = 1 / 15
         transition_time_ms = duration_secs * 1000
@@ -51,14 +57,17 @@ class ColorThreadRunner:
             sleep(duration_secs)
             if not self.continuous:
                 self.stop()
+        self.logger.debug('Color match finished.')
 
     def start(self):
+        self.logger.debug('Thread started.')
         if self.t.stopped():
             self.t = ColorThread(target=self.match_color, args=(self.bulb,))
             self.t.setDaemon(True)
         self.t.start()
 
     def stop(self):
+        self.logger.debug('Thread stopped')
         self.t.stop()
 
 

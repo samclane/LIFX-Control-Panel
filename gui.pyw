@@ -8,6 +8,7 @@ from tkinter import *
 from tkinter import ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
+import logging
 
 from PIL import ImageGrab
 from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD, utils, errors
@@ -17,10 +18,12 @@ import color_thread
 from resources import main_icon
 
 HEARTBEAT_RATE = 3000  # 3 seconds
+LOGFILE = 'logging.log'
 
 
 class LifxFrame(ttk.Frame):
     def __init__(self, master):
+        # Setup frame and grid
         ttk.Frame.__init__(self, master, padding="3 3 12 12")
         self.master = master
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -28,8 +31,17 @@ class LifxFrame(ttk.Frame):
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
 
-        self.lightvar = StringVar(self)
+        # Setup logger
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.setLevel(logging.DEBUG)
+        fh = logging.FileHandler(LOGFILE, mode='w')
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        self.logger.addHandler(fh)
+        self.logger.info('Root logger initialized: {}'.format(self.logger.name))
 
+        # Initialize LIFX objects
+        self.lightvar = StringVar(self)
         self.lifx = LifxLAN(verbose=False)
         self.lights = self.lifx.get_lights()
         self.lightsdict = {}
@@ -37,7 +49,9 @@ class LifxFrame(ttk.Frame):
         self.current_lightframe = None
 
         for key, light in enumerate(self.lights):
-            self.lightsdict[light.get_label()] = light
+            label = light.get_label()
+            self.lightsdict[label] = light
+            self.logger.info('Light found: {}'.format(label))
 
         self.lightvar.set(self.lights[0].get_label())
         self.current_light = self.lightsdict[self.lightvar.get()]
@@ -53,9 +67,9 @@ class LifxFrame(ttk.Frame):
     def change_dropdown(self, *args):
         """ Change current display frame when dropdown menu is changed. """
         self.current_light = self.lightsdict[self.lightvar.get()]
-        if self.lightvar.get() not in self.framesdict.keys():
+        if self.lightvar.get() not in self.framesdict.keys():  # Build a new frame
             self.framesdict[self.lightvar.get()] = LightFrame(self, self.current_light)
-        else:
+        else:  # Frame was found; bring to front
             self.framesdict[self.lightvar.get()].grid(column=1, row=0, sticky=(N, W, E, S))  # should bring to front
         self.current_lightframe = self.framesdict[self.lightvar.get()]
 
@@ -75,6 +89,13 @@ class LightFrame(ttk.Labelframe):
         self.rowconfigure(0, weight=1)
         self.bulb = bulb
 
+        # Setup logger
+        self.logger = logging.getLogger(
+            self.master.__class__.__name__ + '.' + self.__class__.__name__ + '({})'.format(self.bulb.get_label()))
+        self.logger.setLevel(logging.DEBUG)
+        self.logger.info(
+            'LightFrame logger initialized: {} // Device: {}'.format(self.logger.name, self.bulb.get_label()))
+
         # Initialize vars to hold on/off state
         self.powervar = BooleanVar(self)
         self.powervar.set(bulb.get_power())
@@ -92,6 +113,7 @@ class LightFrame(ttk.Labelframe):
 
         # Initialize vars to hold and display bulb color
         hsbk = h, s, b, k = bulb.get_color()
+        self.logger.info('Initial light color HSBK: {}'.format(hsbk))
         self.current_color = Canvas(self, background='#%02x%02x%02x' % HSBKtoRGB(hsbk), width=40, height=20,
                                     borderwidth=3,
                                     relief=GROOVE)
@@ -150,7 +172,7 @@ class LightFrame(ttk.Labelframe):
         self.threads['screen'] = color_thread.ColorThreadRunner(self.bulb, color_thread.avg_screen_color, self)
         Button(self.special_functions_lf, text="Avg. Screen Color", command=self.threads['screen'].start).grid(row=6,
                                                                                                                column=0)
-        Button(self.special_functions_lf, text="Pick Color", command=self.get_color_hbsk).grid(row=6, column=1)
+        Button(self.special_functions_lf, text="Pick Color", command=self.get_color_from_palette).grid(row=6, column=1)
         self.threads['audio'] = color_thread.ColorThreadRunner(self.bulb, audio.get_music_color, self)
         Button(self.special_functions_lf, text="Music Color*", command=self.threads['audio'].start,
                state='normal' if audio.initialized else 'disabled').grid(row=7, column=0)
@@ -164,7 +186,7 @@ class LightFrame(ttk.Labelframe):
 
     def get_color_values_hsbk(self):
         """ Get color values entered into GUI"""
-        return [v.get() for v in self.hsbk]
+        return tuple(v.get() for v in self.hsbk)
 
     def stop_threads(self):
         """ Stop all ColorRunner threads """
@@ -194,6 +216,7 @@ class LightFrame(ttk.Labelframe):
             self.update_label(key)
             self.update_display(key)
         self.current_color.config(background='#%02x%02x%02x' % HSBKtoRGB(color))
+        self.logger.debug('Color changed to HSBK: {}'.format(color))  # Really verbose. Watch it.
 
     def update_label(self, key):
         """ Update scale labels, formatted accordingly. """
@@ -219,13 +242,14 @@ class LightFrame(ttk.Labelframe):
         elif key == 3:
             self.hsbk_display[3].config(background='#%02x%02x%02x' % KelvinToRGB(k))
 
-    def get_color_hbsk(self):
+    def get_color_from_palette(self):
         """ Asks users for color selection using standard color palette dialog. """
         color = askcolor()[0]
         if color:
             # RGBtoHBSK sometimes returns >65535, so we have to truncate
-            hbsk = [min(c, 65535) for c in utils.RGBtoHSBK(color, self.hsbk[3].get())]
-            self.set_color(hbsk)
+            hsbk = [min(c, 65535) for c in utils.RGBtoHSBK(color, self.hsbk[3].get())]
+            self.set_color(hsbk)
+            self.logger.info("Color set to HSBK {} from palette.".format(hsbk))
 
     def update_status_from_bulb(self):
         """ Periodically update status from the bulb to keep UI in sync. """
@@ -244,6 +268,9 @@ class LightFrame(ttk.Labelframe):
             self.option_off.selection_clear()
         try:
             hsbk = self.bulb.get_color()
+            if hsbk != self.get_color_values_hsbk():
+                self.logger.warning(
+                    'Color sync mismatch. Local: {} // Remote: {}'.format(self.get_color_values_hsbk(), hsbk))
             for key, val in enumerate(self.hsbk):
                 self.hsbk[key].set(hsbk[key])
                 self.update_label(key)
@@ -272,6 +299,7 @@ class LightFrame(ttk.Labelframe):
         im = ImageGrab.grab()
         color = im.getpixel(GetCursorPos())
         self.master.master.deiconify()  # Reshow window
+        self.logger.info("Eyedropper color found RGB {}".format(color))
         return utils.RGBtoHSBK(color, temperature=self.get_color_values_hsbk()[3])
 
 
@@ -298,7 +326,8 @@ def HSBKtoRGB(hsbk):
     """    
     rgb_prime = int(r * 255), int(g * 255), int(b * 255)
     rgb_k = KelvinToRGB(k)
-    return_rgb = tuple(int(min(255, a+b)) for (a, b) in zip(rgb_prime, rgb_k))
+    return_rgb = tuple(int(min(255, a+b)) for (a, b) in zip(rgb_prime, rgb_k))  # Light model
+    return_rgb = tuple(int((a+b)/2) for (a, b) in zip(rgb_prime, rgb_k))  # Gradient model
     return return_rgb
     """
     return int(r * 255), int(g * 255), int(b * 255)
