@@ -19,7 +19,7 @@ import color_thread
 from resources import main_icon
 
 HEARTBEAT_RATE = 3000  # 3 seconds
-LOGFILE = 'logging.log'
+LOGFILE = 'lifx_ctrl.log'
 # determine if application is a script file or frozen exe
 if getattr(sys, 'frozen', False):
     application_path = os.path.dirname(sys.executable)
