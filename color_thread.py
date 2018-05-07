@@ -36,9 +36,8 @@ class ColorThreadRunner:
         self.continuous = continuous
         self.t = ColorThread(target=self.match_color, args=(self.bulb,))
         self.t.setDaemon(True)
-        self.logger.info('Initialized Thread: Bulb: {} // Function: {} // Parent: {}'.format(self.bulb.get_label(),
-                                                                                             self.color_function.__name__,
-                                                                                             self.parent.logger.name))
+        self.logger.info(
+            'Initialized Thread: Function: {} // Continuous: {}'.format(self.bulb.get_label(), self.continuous))
 
     def match_color(self, bulb):
         self.logger.debug('Starting color match.')

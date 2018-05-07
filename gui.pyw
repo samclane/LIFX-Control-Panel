@@ -9,6 +9,7 @@ from tkinter import ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
 import logging
+import sys
 
 from PIL import ImageGrab
 from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD, utils, errors
@@ -19,6 +20,13 @@ from resources import main_icon
 
 HEARTBEAT_RATE = 3000  # 3 seconds
 LOGFILE = 'logging.log'
+# determine if application is a script file or frozen exe
+if getattr(sys, 'frozen', False):
+    application_path = os.path.dirname(sys.executable)
+elif __file__:
+    application_path = os.path.dirname(__file__)
+
+LOGFILE = os.path.join(application_path, LOGFILE)
 
 
 class LifxFrame(ttk.Frame):
@@ -74,6 +82,7 @@ class LifxFrame(ttk.Frame):
         self.current_lightframe = self.framesdict[self.lightvar.get()]
 
     def on_closing(self):
+        self.logger.info('Shutting down.')
         self.master.destroy()
         os._exit(1)
 
