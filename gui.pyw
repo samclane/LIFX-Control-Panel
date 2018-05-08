@@ -29,7 +29,7 @@ LOGFILE = os.path.join(application_path, LOGFILE)
 
 
 class LifxFrame(ttk.Frame):
-    def __init__(self, master, lifx_instance):
+    def __init__(self, master, lifx_instance):  # We take a lifx instance so we can theoretically inject our own.
         # Setup frame and grid
         ttk.Frame.__init__(self, master, padding="3 3 12 12")
         self.master = master
