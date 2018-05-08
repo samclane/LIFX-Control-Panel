@@ -83,6 +83,8 @@ class LifxFrame(ttk.Frame):
             self.framesdict[self.lightvar.get()] = LightFrame(self, self.current_light)
         else:  # Frame was found; bring to front
             self.framesdict[self.lightvar.get()].grid(column=1, row=0, sticky=(N, W, E, S))  # should bring to front
+        if self.current_lightframe is not None:
+            self.current_lightframe.after_cancel(self.current_lightframe.heartbeat_id)
         self.current_lightframe = self.framesdict[self.lightvar.get()]
 
     def on_closing(self):
@@ -195,7 +197,7 @@ class LightFrame(ttk.Labelframe):
         self.special_functions_lf.grid(row=6, columnspan=4)
         Label(self, text="*=Work in progress").grid(row=8, column=1)
 
-        self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
+        self.heartbeat_id = self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
 
     def get_color_values_hsbk(self):
         """ Get color values entered into GUI"""
@@ -214,11 +216,7 @@ class LightFrame(ttk.Labelframe):
     def update_color_from_ui(self, *args):
         """ Send new color state to bulb when UI is changed. """
         self.stop_threads()
-        # self.bulb.set_color(self.get_color_values_hsbk(), rapid=True)
         self.set_color(self.get_color_values_hsbk(), rapid=True)
-        # for key, val in enumerate(self.hsbk):
-        #    self.update_label(key)
-        #    self.update_display(key)
 
     def set_color(self, color, rapid=False):
         """ Should be called whenever the bulb wants to change color. Sends bulb command and updates UI accordingly. """
@@ -293,7 +291,7 @@ class LightFrame(ttk.Labelframe):
             pass
         except errors.WorkflowException:
             pass
-        self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
+        self.heartbeat_id = self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
 
     def eyedropper(self, initial_color):
         """ Allows user to select a color pixel from the screen. """
