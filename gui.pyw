@@ -12,7 +12,6 @@ from win32gui import GetCursorPos
 
 from PIL import ImageGrab
 from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD, utils, errors
-# from dummy_lifx import LifxLANDummy, DummyBulb
 
 import audio
 import color_thread
@@ -30,7 +29,7 @@ LOGFILE = os.path.join(application_path, LOGFILE)
 
 
 class LifxFrame(ttk.Frame):
-    def __init__(self, master):
+    def __init__(self, master, lifx_instance):
         # Setup frame and grid
         ttk.Frame.__init__(self, master, padding="3 3 12 12")
         self.master = master
@@ -38,11 +37,12 @@ class LifxFrame(ttk.Frame):
         self.grid(column=0, row=0, sticky=(N, W, E, S))
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
+        self.lifx = lifx_instance
 
         # Setup logger
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.DEBUG)
-        fh = logging.FileHandler(LOGFILE, mode='a')  # TODO: Change this from 'w' to 'a'
+        fh = logging.FileHandler(LOGFILE, mode='w')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
@@ -54,15 +54,6 @@ class LifxFrame(ttk.Frame):
 
         # Initialize LIFX objects
         self.lightvar = StringVar(self)
-        self.lifx = LifxLAN(verbose=False)
-        # TODO CHECK TO MAKE SURE TESTS ARE TURNED OFF
-        """
-        self.lifx = LifxLANDummy()
-        self.lifx.add_dummy_light(DummyBulb(label="A Light"))
-        self.lifx.add_dummy_light(DummyBulb(label="B Light"))
-        self.lifx.add_dummy_light(LifxLAN().get_lights()[0])
-        """
-
         self.lights = self.lifx.get_lights()
         self.lightsdict = {}
         self.framesdict = {}
@@ -87,7 +78,7 @@ class LifxFrame(ttk.Frame):
     def change_dropdown(self, *args):
         """ Change current display frame when dropdown menu is changed. """
         if self.current_lightframe is not None:
-            self.current_lightframe.alive = False
+            self.current_lightframe.stop()
         self.current_light = self.lightsdict[self.lightvar.get()]
         if self.lightvar.get() not in self.framesdict.keys():  # Build a new frame
             self.framesdict[self.lightvar.get()] = LightFrame(self, self.current_light)
@@ -214,6 +205,11 @@ class LightFrame(ttk.Labelframe):
     def restart(self):
         self.alive = True
         self.update_status_from_bulb()
+        self.logger.info("Light frame Restarted.")
+
+    def stop(self):
+        self.alive = False
+        self.logger.info("Light frame Stopped.")
 
     def get_color_values_hsbk(self):
         """ Get color values entered into GUI"""
@@ -445,7 +441,7 @@ if __name__ == "__main__":
     root.wm_iconbitmap(tempfile)
     os.remove(tempfile)
 
-    mainframe = LifxFrame(root)
+    mainframe = LifxFrame(root, LifxLAN())
 
     # Setup exception logging
     logger = mainframe.logger

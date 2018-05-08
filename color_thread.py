@@ -65,7 +65,7 @@ class ColorThreadRunner:
             sleep(duration_secs)
             if not self.continuous:
                 self.stop()
-        self.logger.debug('DummyColor match finished.')
+        self.logger.debug('Color match finished.')
 
     def start(self):
         if self.t.stopped():
