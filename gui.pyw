@@ -1,4 +1,5 @@
 import base64
+import logging
 import os
 import tkinter.font as font
 import win32api
@@ -8,11 +9,10 @@ from tkinter import *
 from tkinter import ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
-import logging
-import sys
 
 from PIL import ImageGrab
 from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD, utils, errors
+# from dummy_lifx import LifxLANDummy, DummyBulb
 
 import audio
 import color_thread
@@ -42,7 +42,7 @@ class LifxFrame(ttk.Frame):
         # Setup logger
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.DEBUG)
-        fh = logging.FileHandler(LOGFILE, mode='w')
+        fh = logging.FileHandler(LOGFILE, mode='a')  # TODO: Change this from 'w' to 'a'
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
@@ -55,6 +55,14 @@ class LifxFrame(ttk.Frame):
         # Initialize LIFX objects
         self.lightvar = StringVar(self)
         self.lifx = LifxLAN(verbose=False)
+        # TODO CHECK TO MAKE SURE TESTS ARE TURNED OFF
+        """
+        self.lifx = LifxLANDummy()
+        self.lifx.add_dummy_light(DummyBulb(label="A Light"))
+        self.lifx.add_dummy_light(DummyBulb(label="B Light"))
+        self.lifx.add_dummy_light(LifxLAN().get_lights()[0])
+        """
+
         self.lights = self.lifx.get_lights()
         self.lightsdict = {}
         self.framesdict = {}
@@ -78,14 +86,16 @@ class LifxFrame(ttk.Frame):
 
     def change_dropdown(self, *args):
         """ Change current display frame when dropdown menu is changed. """
+        if self.current_lightframe is not None:
+            self.current_lightframe.alive = False
         self.current_light = self.lightsdict[self.lightvar.get()]
         if self.lightvar.get() not in self.framesdict.keys():  # Build a new frame
             self.framesdict[self.lightvar.get()] = LightFrame(self, self.current_light)
         else:  # Frame was found; bring to front
+            self.current_lightframe.grid_forget()
             self.framesdict[self.lightvar.get()].grid(column=1, row=0, sticky=(N, W, E, S))  # should bring to front
-        if self.current_lightframe is not None:
-            self.current_lightframe.after_cancel(self.current_lightframe.heartbeat_id)
         self.current_lightframe = self.framesdict[self.lightvar.get()]
+        self.current_lightframe.restart()
 
     def on_closing(self):
         self.logger.info('Shutting down.')
@@ -197,7 +207,13 @@ class LightFrame(ttk.Labelframe):
         self.special_functions_lf.grid(row=6, columnspan=4)
         Label(self, text="*=Work in progress").grid(row=8, column=1)
 
-        self.heartbeat_id = self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
+        # Start update loop
+        self.alive = True
+        self.update_status_from_bulb()
+
+    def restart(self):
+        self.alive = True
+        self.update_status_from_bulb()
 
     def get_color_values_hsbk(self):
         """ Get color values entered into GUI"""
@@ -264,6 +280,8 @@ class LightFrame(ttk.Labelframe):
 
     def update_status_from_bulb(self):
         """ Periodically update status from the bulb to keep UI in sync. """
+        if not self.alive:
+            return
         try:
             self.powervar.set(self.bulb.get_power())
         except OSError:
@@ -291,7 +309,8 @@ class LightFrame(ttk.Labelframe):
             pass
         except errors.WorkflowException:
             pass
-        self.heartbeat_id = self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
+        if self.alive:
+            self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
 
     def eyedropper(self, initial_color):
         """ Allows user to select a color pixel from the screen. """
@@ -413,7 +432,6 @@ def KelvinToRGB(temperature):
     return int(red), int(green), int(blue)
 
 
-
 if __name__ == "__main__":
     root = Tk()
     root.title("LIFX Manager")
@@ -439,4 +457,5 @@ if __name__ == "__main__":
 
     sys.excepthook = myHandler
 
+    # Run main app
     root.mainloop()
