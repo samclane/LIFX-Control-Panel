@@ -1,7 +1,13 @@
-# LIFX-Control-Panel
+# LIFX-Control-Panel 
+
+<img align="right" width="120" height="120"
+     title="LIFX-Control-Panel Logo" src="https://i.imgur.com/pm4Lzgx.png">
+     
 As LIFX [no longer supports their Windows 10 app](https://www.windowscentral.com/lifx-drops-support-windows-10), I created an open-source alternative for controlling LIFX-brand smart lights. 
 
-![screenshot](https://i.imgur.com/iTdwmSi.png)
+<p align="center">
+  <img src="https://i.imgur.com/iTdwmSi.png" alt="Screenshot" width="285" height="438">
+</p>
 
 The application uses [mclarkk](https://github.com/mclarkk)'s [lifxlan](https://github.com/mclarkk/lifxlan) module to discover and send commands to the lights.
 
