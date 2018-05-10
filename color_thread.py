@@ -12,6 +12,8 @@ from lifxlan import LifxLAN, utils
 def avg_screen_color(initial_color):
     im = ImageGrab.grab()
     color = im.resize((1, 1), Image.HAMMING).getpixel((0, 0))
+    color_hsbk = utils.RGBtoHSBK(color, temperature=initial_color[3])
+    # return tuple((val1+val2)/2 for (val1, val2) in zip(initial_color, color_hsbk))
     return utils.RGBtoHSBK(color, temperature=initial_color[3])
 
 

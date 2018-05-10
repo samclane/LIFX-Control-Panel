@@ -89,7 +89,7 @@ class LifxFrame(ttk.Frame):
         self.current_lightframe.restart()
 
     def on_closing(self):
-        self.logger.info('Shutting down.')
+        self.logger.info('Shutting down.\n')
         self.master.destroy()
         os._exit(1)
 
@@ -199,16 +199,16 @@ class LightFrame(ttk.Labelframe):
         Label(self, text="*=Work in progress").grid(row=8, column=1)
 
         # Start update loop
-        self.alive = True
+        self.started = True
         self.update_status_from_bulb()
 
     def restart(self):
-        self.alive = True
+        self.started = True
         self.update_status_from_bulb()
         self.logger.info("Light frame Restarted.")
 
     def stop(self):
-        self.alive = False
+        self.started = False
         self.logger.info("Light frame Stopped.")
 
     def get_color_values_hsbk(self):
@@ -276,7 +276,7 @@ class LightFrame(ttk.Labelframe):
 
     def update_status_from_bulb(self):
         """ Periodically update status from the bulb to keep UI in sync. """
-        if not self.alive:
+        if not self.started:
             return
         try:
             self.powervar.set(self.bulb.get_power())
@@ -305,7 +305,7 @@ class LightFrame(ttk.Labelframe):
             pass
         except errors.WorkflowException:
             pass
-        if self.alive:
+        if self.started:
             self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
 
     def eyedropper(self, initial_color):
