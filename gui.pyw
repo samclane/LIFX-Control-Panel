@@ -250,8 +250,7 @@ class LightFrame(ttk.Labelframe):
         self.stop_threads()
         self.bulb.set_color(color, rapid)
         self.update_status_from_bulb(run_once=True)  # Force UI to update from bulb
-        if not rapid:
-            self.logger.debug('Color changed to HSBK: {}'.format(color))  # Don't pollute log with rapid color changes
+        self.logger.debug('Color changed to HSBK: {}'.format(color))  # Don't pollute log with rapid color changes
 
     def update_label(self, key):
         """ Update scale labels, formatted accordingly. """
@@ -287,7 +286,10 @@ class LightFrame(ttk.Labelframe):
             self.logger.info("Color set to HSBK {} from palette.".format(hsbk))
 
     def update_status_from_bulb(self, run_once=False):
-        """ Periodically update status from the bulb to keep UI in sync. """
+        """
+        Periodically update status from the bulb to keep UI in sync.
+        :param run_once: Don't call `after` statement at end. Keeps a million workers from being instanced.
+        """
         if not self.started:
             return
         try:
