@@ -2,10 +2,8 @@
 
 import random
 import time
-from collections import namedtuple
 from threading import Timer
-
-DummyColor = namedtuple('hsbk_color', 'hue saturation brightness kelvin')
+from gui import Color as DummyColor
 
 
 def randomMAC():
@@ -433,7 +431,7 @@ if __name__ == "__main__":
         lifx.add_dummy_light(light)
 
     root = Tk()
-    root.title("LIFX Manager")
+    root.title("LIFX-Control-Panel")
 
     # Setup main_icon
     icondata = base64.b64decode(main_icon)

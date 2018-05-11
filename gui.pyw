@@ -9,6 +9,7 @@ from tkinter import *
 from tkinter import ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
+from collections import namedtuple
 
 from PIL import ImageGrab
 from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD, utils, errors
@@ -26,6 +27,8 @@ elif __file__:
     application_path = os.path.dirname(__file__)
 
 LOGFILE = os.path.join(application_path, LOGFILE)
+
+Color = namedtuple('hsbk_color', 'hue saturation brightness kelvin')
 
 
 class LifxFrame(ttk.Frame):
@@ -79,12 +82,16 @@ class LifxFrame(ttk.Frame):
         """ Change current display frame when dropdown menu is changed. """
         if self.current_lightframe is not None:
             self.current_lightframe.stop()
+            self.logger.debug('Stopping current frame: {}'.format(self.current_lightframe.get_label()))
         self.current_light = self.lightsdict[self.lightvar.get()]
         if self.lightvar.get() not in self.framesdict.keys():  # Build a new frame
             self.framesdict[self.lightvar.get()] = LightFrame(self, self.current_light)
+            self.logger.info("Building new frame: {}".format(self.framesdict[self.lightvar.get()].get_label()))
         else:  # Frame was found; bring to front
             self.current_lightframe.grid_forget()
             self.framesdict[self.lightvar.get()].grid(column=1, row=0, sticky=(N, W, E, S))  # should bring to front
+            self.logger.info(
+                "Brought existing frame to front: {}".format(self.framesdict[self.lightvar.get()].get_label()))
         self.current_lightframe = self.framesdict[self.lightvar.get()]
         self.current_lightframe.restart()
 
@@ -97,8 +104,9 @@ class LifxFrame(ttk.Frame):
 class LightFrame(ttk.Labelframe):
     def __init__(self, master, bulb):
         # Initialize frame
+        self.label = bulb.get_label()
         ttk.Labelframe.__init__(self, master, padding="3 3 12 12",
-                                labelwidget=Label(master, text=bulb.get_label(), font=font.Font(size=12), fg="#0046d5",
+                                labelwidget=Label(master, text=self.label, font=font.Font(size=12), fg="#0046d5",
                                                   relief=RIDGE))
         self.grid(column=1, row=0, sticky=(N, W, E, S))
         self.columnconfigure(0, weight=1)
@@ -128,16 +136,16 @@ class LightFrame(ttk.Labelframe):
         self.option_off.grid(row=0, column=1)
 
         # Initialize vars to hold and display bulb color
-        hsbk = h, s, b, k = bulb.get_color()
-        self.logger.info('Initial light color HSBK: {}'.format(hsbk))
-        self.current_color = Canvas(self, background='#%02x%02x%02x' % HSBKtoRGB(hsbk), width=40, height=20,
+        init_color = Color(*bulb.get_color())
+        self.logger.info('Initial light color HSBK: {}'.format(init_color))
+        self.current_color = Canvas(self, background='#%02x%02x%02x' % HSBKtoRGB(init_color), width=40, height=20,
                                     borderwidth=3,
                                     relief=GROOVE)
         self.current_color.grid(row=0, column=2)
-        self.hsbk = (IntVar(self, h, "Hue"),
-                     IntVar(self, s, "Saturation"),
-                     IntVar(self, b, "Brightness"),
-                     IntVar(self, k, "Kelvin"))
+        self.hsbk = (IntVar(self, init_color.hue, "Hue"),
+                     IntVar(self, init_color.saturation, "Saturation"),
+                     IntVar(self, init_color.brightness, "Brightness"),
+                     IntVar(self, init_color.kelvin, "Kelvin"))
         self.hsbk_labels = (
             Label(self, text='%.3g' % (360 * (self.hsbk[0].get() / 65535))),
             Label(self, text=str('%.3g' % (100 * self.hsbk[1].get() / 65535)) + "%"),
@@ -156,15 +164,19 @@ class LightFrame(ttk.Labelframe):
                   showvalue=False))
         RELIEF = GROOVE
         self.hsbk_display = (
-            Canvas(self, background='#%02x%02x%02x' % HueToRGB(360 * (h / 65535)), width=20, height=20, borderwidth=3,
+            Canvas(self, background='#%02x%02x%02x' % HueToRGB(360 * (init_color.hue / 65535)), width=20, height=20,
+                   borderwidth=3,
                    relief=RELIEF),
             Canvas(self, background='#%02x%02x%02x' % (
-                int(255 * (s / 65535)), int(255 * (s / 65535)), int(255 * (s / 65535))),
+                int(255 * (init_color.saturation / 65535)), int(255 * (init_color.saturation / 65535)),
+                int(255 * (init_color.saturation / 65535))),
                    width=20, height=20, borderwidth=3, relief=RELIEF),
             Canvas(self, background='#%02x%02x%02x' % (
-                int(255 * (b / 65535)), int(255 * (b / 65535)), int(255 * (b / 65535))),
+                int(255 * (init_color.brightness / 65535)), int(255 * (init_color.brightness / 65535)),
+                int(255 * (init_color.brightness / 65535))),
                    width=20, height=20, borderwidth=3, relief=RELIEF),
-            Canvas(self, background='#%02x%02x%02x' % KelvinToRGB(k), width=20, height=20, borderwidth=3, relief=RELIEF)
+            Canvas(self, background='#%02x%02x%02x' % KelvinToRGB(init_color.kelvin), width=20, height=20,
+                   borderwidth=3, relief=RELIEF)
         )
         for key, scale in enumerate(self.hsbk_scale):
             Label(self, text=self.hsbk[key]).grid(row=key + 1, column=0)
@@ -211,9 +223,12 @@ class LightFrame(ttk.Labelframe):
         self.started = False
         self.logger.info("Light frame Stopped.")
 
+    def get_label(self):
+        return self.label
+
     def get_color_values_hsbk(self):
         """ Get color values entered into GUI"""
-        return tuple(v.get() for v in self.hsbk)
+        return Color(*tuple(v.get() for v in self.hsbk))
 
     def stop_threads(self):
         """ Stop all ColorRunner threads """
@@ -234,12 +249,9 @@ class LightFrame(ttk.Labelframe):
         """ Should be called whenever the bulb wants to change color. Sends bulb command and updates UI accordingly. """
         self.stop_threads()
         self.bulb.set_color(color, rapid)
-        for key, val in enumerate(self.hsbk):
-            self.hsbk[key].set(color[key])
-            self.update_label(key)
-            self.update_display(key)
-        self.current_color.config(background='#%02x%02x%02x' % HSBKtoRGB(color))
-        self.logger.debug('Color changed to HSBK: {}'.format(color))  # Really verbose. Watch it.
+        self.update_status_from_bulb()  # Force UI to update from bulb
+        if not rapid:
+            self.logger.debug('Color changed to HSBK: {}'.format(color))  # Don't pollute log with rapid color changes
 
     def update_label(self, key):
         """ Update scale labels, formatted accordingly. """
@@ -294,8 +306,8 @@ class LightFrame(ttk.Labelframe):
         try:
             hsbk = self.bulb.get_color()
             if hsbk != self.get_color_values_hsbk():
-                self.logger.warning(
-                    'Color sync mismatch. Local: {} // Remote: {}'.format(self.get_color_values_hsbk(), hsbk))
+                self.logger.info(
+                    'Color sync mismatch. Updating. Local: {} // Remote: {}'.format(self.get_color_values_hsbk(), hsbk))
             for key, val in enumerate(self.hsbk):
                 self.hsbk[key].set(hsbk[key])
                 self.update_label(key)
@@ -326,7 +338,7 @@ class LightFrame(ttk.Labelframe):
         color = im.getpixel(GetCursorPos())
         self.master.master.deiconify()  # Reshow window
         self.logger.info("Eyedropper color found RGB {}".format(color))
-        return utils.RGBtoHSBK(color, temperature=self.get_color_values_hsbk()[3])
+        return utils.RGBtoHSBK(color, temperature=self.get_color_values_hsbk().kelvin)
 
 
 # Color conversion helper functions
@@ -430,7 +442,7 @@ def KelvinToRGB(temperature):
 
 if __name__ == "__main__":
     root = Tk()
-    root.title("LIFX Manager")
+    root.title("LIFX-Control-Panel")
 
     # Setup main_icon
     icondata = base64.b64decode(main_icon)
