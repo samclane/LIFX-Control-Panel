@@ -249,7 +249,7 @@ class LightFrame(ttk.Labelframe):
         """ Should be called whenever the bulb wants to change color. Sends bulb command and updates UI accordingly. """
         self.stop_threads()
         self.bulb.set_color(color, rapid)
-        self.update_status_from_bulb()  # Force UI to update from bulb
+        self.update_status_from_bulb(run_once=True)  # Force UI to update from bulb
         if not rapid:
             self.logger.debug('Color changed to HSBK: {}'.format(color))  # Don't pollute log with rapid color changes
 
@@ -286,7 +286,7 @@ class LightFrame(ttk.Labelframe):
             self.set_color(hsbk)
             self.logger.info("Color set to HSBK {} from palette.".format(hsbk))
 
-    def update_status_from_bulb(self):
+    def update_status_from_bulb(self, run_once=False):
         """ Periodically update status from the bulb to keep UI in sync. """
         if not self.started:
             return
@@ -317,7 +317,7 @@ class LightFrame(ttk.Labelframe):
             pass
         except errors.WorkflowException:
             pass
-        if self.started:
+        if self.started and not run_once:
             self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
 
     def eyedropper(self, initial_color):
