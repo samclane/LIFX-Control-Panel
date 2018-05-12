@@ -91,8 +91,8 @@ class LifxFrame(ttk.Frame):
             self.logger.info("Building new frame: {}".format(self.framesdict[new_light_label].get_label()))
         else:  # Frame was found; bring to front
             for frame in self.framesdict.values():
-                frame.grid_forget()  # remove all other frames; not just the current one (this fixes sync bugs for some reason
-            self.framesdict[new_light_label].grid(column=1, row=0, sticky=(N, W, E, S))  # should bring to front
+                frame.grid_remove()  # remove all other frames; not just the current one (this fixes sync bugs for some reason
+            self.framesdict[new_light_label].grid()  # should bring to front
             self.logger.info(
                 "Brought existing frame to front: {}".format(self.framesdict[new_light_label].get_label()))
         self.current_lightframe = self.framesdict[new_light_label]
