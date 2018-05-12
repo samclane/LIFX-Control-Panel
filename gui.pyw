@@ -3,13 +3,13 @@ import logging
 import os
 import tkinter.font as font
 import win32api
+from collections import namedtuple
 from math import log, floor
 from time import sleep
 from tkinter import *
 from tkinter import ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
-from collections import namedtuple
 
 from PIL import ImageGrab
 from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD, utils, errors
@@ -58,42 +58,48 @@ class LifxFrame(ttk.Frame):
         # Initialize LIFX objects
         self.lightvar = StringVar(self)
         self.lights = self.lifx.get_lights()
-        self.lightsdict = {}
-        self.framesdict = {}
-        self.current_lightframe = None
+        self.lightsdict = {}  # LifxLight objects
+        self.framesdict = {}  # corresponding LightFrame GUI
+        self.current_lightframe = None  # currently selected and visible LightFrame
 
-        for key, light in enumerate(self.lights):
+        for light in self.lights:
             label = light.get_label()
             self.lightsdict[label] = light
             self.logger.info('Light found: {}'.format(label))
 
-        self.lightvar.set(self.lights[0].get_label())
-        self.current_light = self.lightsdict[self.lightvar.get()]
+        if len(self.lightsdict):  # if any lights are found
+            self.lightvar.set(self.lights[0].get_label())
+            self.current_light = self.lightsdict[self.lightvar.get()]
 
         self.dropdownMenu = OptionMenu(self, self.lightvar, *(light.get_label() for light in self.lights))
         # Label(self, text="Light: ").grid(row=0, column=1)
         self.dropdownMenu.grid(row=1, column=1, sticky='w')
         self.lightvar.trace('w', self.change_dropdown)  # Keep lightvar in sync with drop-down selection
 
-        if len(self.lightsdict):
+        if len(self.lightsdict):  # if any lights are found, show the first display
             self.change_dropdown()
 
     def change_dropdown(self, *args):
         """ Change current display frame when dropdown menu is changed. """
+        new_light_label = self.lightvar.get()
         if self.current_lightframe is not None:
             self.current_lightframe.stop()
             self.logger.debug('Stopping current frame: {}'.format(self.current_lightframe.get_label()))
-        self.current_light = self.lightsdict[self.lightvar.get()]
-        if self.lightvar.get() not in self.framesdict.keys():  # Build a new frame
-            self.framesdict[self.lightvar.get()] = LightFrame(self, self.current_light)
-            self.logger.info("Building new frame: {}".format(self.framesdict[self.lightvar.get()].get_label()))
+        self.current_light = self.lightsdict[new_light_label]
+        if new_light_label not in self.framesdict.keys():  # Build a new frame
+            self.framesdict[new_light_label] = LightFrame(self, self.current_light)
+            self.logger.info("Building new frame: {}".format(self.framesdict[new_light_label].get_label()))
         else:  # Frame was found; bring to front
-            self.current_lightframe.grid_forget()
-            self.framesdict[self.lightvar.get()].grid(column=1, row=0, sticky=(N, W, E, S))  # should bring to front
+            for frame in self.framesdict.values():
+                frame.grid_forget()  # remove all other frames; not just the current one (this fixes sync bugs for some reason
+            self.framesdict[new_light_label].grid(column=1, row=0, sticky=(N, W, E, S))  # should bring to front
             self.logger.info(
-                "Brought existing frame to front: {}".format(self.framesdict[self.lightvar.get()].get_label()))
-        self.current_lightframe = self.framesdict[self.lightvar.get()]
+                "Brought existing frame to front: {}".format(self.framesdict[new_light_label].get_label()))
+        self.current_lightframe = self.framesdict[new_light_label]
         self.current_lightframe.restart()
+        if not self.current_light.get_label() == self.current_lightframe.get_label() == self.lightvar.get():
+            self.logger.error("Mismatch between Current Light ({}), LightFrame ({}) and Dropdown ({})".format(
+                self.current_light.get_label(), self.current_lightframe.get_label(), self.lightvar.get()))
 
     def on_closing(self):
         self.logger.info('Shutting down.\n')
