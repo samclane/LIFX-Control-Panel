@@ -1,11 +1,9 @@
 import base64
 import logging
-import os
 import tkinter.font as font
 import win32api
 from collections import namedtuple
 from math import log, floor
-from time import sleep
 from tkinter import *
 from tkinter import ttk
 from tkinter.colorchooser import *
@@ -21,6 +19,7 @@ from resources import main_icon
 
 HEARTBEAT_RATE = 3000  # 3 seconds
 LOGFILE = 'lifx_ctrl.log'
+
 # determine if application is a script file or frozen exe
 if getattr(sys, 'frozen', False):
     application_path = os.path.dirname(sys.executable)
@@ -29,11 +28,27 @@ elif __file__:
 
 LOGFILE = os.path.join(application_path, LOGFILE)
 
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+
+SPLASHFILE = resource_path('splash_vector_png.png')
+
 Color = namedtuple('hsbk_color', 'hue saturation brightness kelvin')
 
 
 class LifxFrame(ttk.Frame):
     def __init__(self, master, lifx_instance):  # We take a lifx instance so we can theoretically inject our own.
+        self.splashscreen = Splash(master, SPLASHFILE)
+        self.splashscreen.__enter__()
         # Setup frame and grid
         ttk.Frame.__init__(self, master, padding="3 3 12 12")
         self.master = master
@@ -76,7 +91,7 @@ class LifxFrame(ttk.Frame):
         # Label(self, text="Light: ").grid(row=0, column=1)
         self.dropdownMenu.grid(row=1, column=1, sticky='w')
         self.lightvar.trace('w', self.change_dropdown)  # Keep lightvar in sync with drop-down selection
-
+        self.splashscreen.__exit__(None, None, None)
         if len(self.lightsdict):  # if any lights are found, show the first display
             self.change_dropdown()
 
@@ -372,6 +387,52 @@ class LightFrame(ttk.Labelframe):
         color = Color(*eval(self.colorVar.get()))
         self.set_color(color, False)
 
+
+class Splash:
+    """ From http://code.activestate.com/recipes/576936/ """
+
+    def __init__(self, root, file):
+        self.__root = root
+        self.__file = file
+
+    def __enter__(self):
+        # Hide the root while it is built.
+        self.__root.withdraw()
+        # Create components of splash screen.
+        window = Toplevel(self.__root)
+        canvas = Canvas(window)
+        splash = PhotoImage(master=window, file=self.__file)
+        # Get the screen's width and height.
+        scrW = window.winfo_screenwidth()
+        scrH = window.winfo_screenheight()
+        # Get the images's width and height.
+        imgW = splash.width()
+        imgH = splash.height()
+        # Compute positioning for splash screen.
+        Xpos = (scrW - imgW) // 2
+        Ypos = (scrH - imgH) // 2
+        # Configure the window showing the logo.
+        window.overrideredirect(True)
+        window.geometry('+{}+{}'.format(Xpos, Ypos))
+        # Setup canvas on which image is drawn.
+        canvas.configure(width=imgW, height=imgH, highlightthickness=0)
+        canvas.grid()
+        # Show the splash screen on the monitor.
+        canvas.create_image(imgW // 2, imgH // 2, image=splash)
+        window.update()
+        # Save the variables for later cleanup.
+        self.__window = window
+        self.__canvas = canvas
+        self.__splash = splash
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Free used resources in reverse order.
+        del self.__splash
+        self.__canvas.destroy()
+        self.__window.destroy()
+        # Give control back to the root program.
+        self.__root.update_idletasks()
+        self.__root.deiconify()
 
 
 # Color conversion helper functions
