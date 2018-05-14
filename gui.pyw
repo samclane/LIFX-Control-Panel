@@ -12,7 +12,8 @@ from tkinter.colorchooser import *
 from win32gui import GetCursorPos
 
 from PIL import ImageGrab
-from lifxlan import LifxLAN, WHITE, WARM_WHITE, COLD_WHITE, GOLD, utils, errors
+from lifxlan import *
+from lifxlan import errors
 
 import audio
 import color_thread
@@ -192,16 +193,35 @@ class LightFrame(ttk.Labelframe):
 
         self.threads = {}
 
-        # Add buttons for pre-made colors and routines
+        # Add buttons for pre-made colors
         self.preset_colors_lf = ttk.LabelFrame(self, text="Preset Colors", padding="3 3 12 12")
+        """        
         Button(self.preset_colors_lf, text="White", command=lambda: self.set_color(WHITE)).grid(row=5, column=0)
         Button(self.preset_colors_lf, text="Warm White", command=lambda: self.set_color(WARM_WHITE)).grid(row=5,
                                                                                                           column=1)
         Button(self.preset_colors_lf, text="Cold White", command=lambda: self.set_color(COLD_WHITE)).grid(row=5,
                                                                                                           column=2)
         Button(self.preset_colors_lf, text="Gold", command=lambda: self.set_color(GOLD)).grid(row=5, column=3)
+        """
+        self.colorVar = StringVar(self, value="RED")
+        preset_dropdown = OptionMenu(self.preset_colors_lf, self.colorVar, *["RED",
+                                                                             "ORANGE",
+                                                                             "YELLOW",
+                                                                             "GREEN",
+                                                                             "CYAN",
+                                                                             "BLUE",
+                                                                             "PURPLE",
+                                                                             "PINK",
+                                                                             "WHITE",
+                                                                             "COLD_WHITE",
+                                                                             "WARM_WHITE",
+                                                                             "GOLD"])
+        preset_dropdown.grid(row=0, column=0)
+        preset_dropdown.configure(width=13)
         self.preset_colors_lf.grid(row=5, columnspan=4)
+        self.colorVar.trace('w', self.change_preset_dropdown)
 
+        # Add buttons for special routines
         self.special_functions_lf = ttk.LabelFrame(self, text="Special Functions", padding="3 3 12 12")
         self.threads['screen'] = color_thread.ColorThreadRunner(self.bulb, color_thread.avg_screen_color, self)
         Button(self.special_functions_lf, text="Avg. Screen Color", command=self.threads['screen'].start).grid(row=6,
@@ -347,6 +367,11 @@ class LightFrame(ttk.Labelframe):
         self.master.master.deiconify()  # Reshow window
         self.logger.info("Eyedropper color found RGB {}".format(color))
         return utils.RGBtoHSBK(color, temperature=self.get_color_values_hsbk().kelvin)
+
+    def change_preset_dropdown(self, *args):
+        color = Color(*eval(self.colorVar.get()))
+        self.set_color(color, False)
+
 
 
 # Color conversion helper functions
