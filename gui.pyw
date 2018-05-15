@@ -40,7 +40,7 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-SPLASHFILE = resource_path('splash_vector_png.png')
+SPLASHFILE = resource_path('res//splash_vector_png.png')
 
 Color = namedtuple('hsbk_color', 'hue saturation brightness kelvin')
 
@@ -78,7 +78,7 @@ class LifxFrame(ttk.Frame):
         self.framesdict = {}  # corresponding LightFrame GUI
         self.current_lightframe = None  # currently selected and visible LightFrame
 
-        for light in self.lights:
+        for x, light in enumerate(self.lights):
             label = light.get_label()
             self.lightsdict[label] = light
             self.logger.info('Light found: {}'.format(label))
@@ -160,7 +160,7 @@ class LightFrame(ttk.Labelframe):
         # Initialize vars to hold and display bulb color
         init_color = Color(*bulb.get_color())
         self.logger.info('Initial light color HSBK: {}'.format(init_color))
-        self.current_color = Canvas(self, background='#%02x%02x%02x' % HSBKtoRGB(init_color), width=40, height=20,
+        self.current_color = Canvas(self, background=tuple2hex(HSBKtoRGB(init_color)), width=40, height=20,
                                     borderwidth=3,
                                     relief=GROOVE)
         self.current_color.grid(row=0, column=2)
@@ -186,18 +186,18 @@ class LightFrame(ttk.Labelframe):
                   showvalue=False))
         RELIEF = GROOVE
         self.hsbk_display = (
-            Canvas(self, background='#%02x%02x%02x' % HueToRGB(360 * (init_color.hue / 65535)), width=20, height=20,
+            Canvas(self, background=tuple2hex(HueToRGB(360 * (init_color.hue / 65535))), width=20, height=20,
                    borderwidth=3,
                    relief=RELIEF),
-            Canvas(self, background='#%02x%02x%02x' % (
+            Canvas(self, background=tuple2hex((
                 int(255 * (init_color.saturation / 65535)), int(255 * (init_color.saturation / 65535)),
-                int(255 * (init_color.saturation / 65535))),
+                int(255 * (init_color.saturation / 65535)))),
                    width=20, height=20, borderwidth=3, relief=RELIEF),
-            Canvas(self, background='#%02x%02x%02x' % (
+            Canvas(self, background=tuple2hex((
                 int(255 * (init_color.brightness / 65535)), int(255 * (init_color.brightness / 65535)),
-                int(255 * (init_color.brightness / 65535))),
+                int(255 * (init_color.brightness / 65535)))),
                    width=20, height=20, borderwidth=3, relief=RELIEF),
-            Canvas(self, background='#%02x%02x%02x' % KelvinToRGB(init_color.kelvin), width=20, height=20,
+            Canvas(self, background=tuple2hex(KelvinToRGB(init_color.kelvin)), width=20, height=20,
                    borderwidth=3, relief=RELIEF)
         )
         for key, scale in enumerate(self.hsbk_scale):
@@ -210,14 +210,6 @@ class LightFrame(ttk.Labelframe):
 
         # Add buttons for pre-made colors
         self.preset_colors_lf = ttk.LabelFrame(self, text="Preset Colors", padding="3 3 12 12")
-        """        
-        Button(self.preset_colors_lf, text="White", command=lambda: self.set_color(WHITE)).grid(row=5, column=0)
-        Button(self.preset_colors_lf, text="Warm White", command=lambda: self.set_color(WARM_WHITE)).grid(row=5,
-                                                                                                          column=1)
-        Button(self.preset_colors_lf, text="Cold White", command=lambda: self.set_color(COLD_WHITE)).grid(row=5,
-                                                                                                          column=2)
-        Button(self.preset_colors_lf, text="Gold", command=lambda: self.set_color(GOLD)).grid(row=5, column=3)
-        """
         self.colorVar = StringVar(self, value="RED")
         preset_dropdown = OptionMenu(self.preset_colors_lf, self.colorVar, *["RED",
                                                                              "ORANGE",
@@ -250,6 +242,7 @@ class LightFrame(ttk.Labelframe):
                                                                                                                   column=1)
         self.special_functions_lf.grid(row=6, columnspan=4)
         Label(self, text="*=Work in progress").grid(row=8, column=1)
+
 
         # Start update loop
         self.started = True
@@ -307,15 +300,15 @@ class LightFrame(ttk.Labelframe):
     def update_display(self, key):
         hsbk = h, s, b, k = self.get_color_values_hsbk()
         if key == 0:
-            self.hsbk_display[0].config(background='#%02x%02x%02x' % HueToRGB(360 * (h / 65535)))
+            self.hsbk_display[0].config(background=tuple2hex(HueToRGB(360 * (h / 65535))))
         elif key == 1:
             self.hsbk_display[1].config(
-                background='#%02x%02x%02x' % (int(255 * (s / 65535)), int(255 * (s / 65535)), int(255 * (s / 65535))))
+                background=tuple2hex((int(255 * (s / 65535)), int(255 * (s / 65535)), int(255 * (s / 65535)))))
         elif key == 2:
             self.hsbk_display[2].config(
-                background='#%02x%02x%02x' % (int(255 * (b / 65535)), int(255 * (b / 65535)), int(255 * (b / 65535))))
+                background=tuple2hex((int(255 * (b / 65535)), int(255 * (b / 65535)), int(255 * (b / 65535)))))
         elif key == 3:
-            self.hsbk_display[3].config(background='#%02x%02x%02x' % KelvinToRGB(k))
+            self.hsbk_display[3].config(background=tuple2hex(KelvinToRGB(k)))
 
     def get_color_from_palette(self):
         """ Asks users for color selection using standard color palette dialog. """
@@ -355,7 +348,7 @@ class LightFrame(ttk.Labelframe):
                 self.hsbk[key].set(hsbk[key])
                 self.update_label(key)
                 self.update_display(key)
-            self.current_color.config(background='#%02x%02x%02x' % HSBKtoRGB(hsbk))
+            self.current_color.config(background=tuple2hex(HSBKtoRGB(hsbk)))
         except OSError:
             pass
         except errors.WorkflowException:
@@ -386,6 +379,33 @@ class LightFrame(ttk.Labelframe):
     def change_preset_dropdown(self, *args):
         color = Color(*eval(self.colorVar.get()))
         self.set_color(color, False)
+
+
+class BulbIcon(Canvas):
+    def __init__(self, *args, bulb):
+        super().__init__(*args)
+        self.bulb = bulb
+        self.label = self.bulb.get_label()
+        self.width = 50
+        self.height = 75
+        self.config(width=self.width, height=self.height)
+        self.pad = 5
+
+        # Build icon
+        self.circle = self.create_arc(self.pad, self.pad, self.width - self.pad, self.height / 2 - self.pad,
+                                      outline=tuple2hex(HSBKtoRGB(Color(*self.bulb.get_color()))), style=ARC,
+                                      extent=360 * self.bulb.get_color()[2] / 65535, width=5)
+        self.oval = self.create_oval(self.pad, self.pad, self.width - self.pad, (self.height / 2) - self.pad,
+                                     fill=tuple2hex(HSBKtoRGB(Color(*self.bulb.get_color()))), width=1)
+        self.rect = self.create_rectangle(self.width / 4 + self.pad, self.height / 2 + self.pad,
+                                          3 * self.width / 4 - self.pad, self.height / 2 - self.pad, fill='grey',
+                                          width=0)
+        self.text = self.create_text(self.pad, self.height / 2 + self.pad, text=self.bulb.get_label(), anchor=NW)
+
+    def update(self):
+        self.oval.configure(fill=tuple2hex(HSBKtoRGB(Color(*self.bulb.get_color()))))
+        self.circle.configure(outline=tuple2hex(HSBKtoRGB(Color(*self.bulb.get_color()))),
+                              extent=360 * self.bulb.get_color()[2] / 65535)
 
 
 class Splash:
@@ -532,6 +552,10 @@ def KelvinToRGB(temperature):
             if blue > 255:
                 blue = 255
     return int(red), int(green), int(blue)
+
+
+def tuple2hex(tuple):
+    return '#%02x%02x%02x' % tuple
 
 
 if __name__ == "__main__":

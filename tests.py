@@ -428,6 +428,10 @@ if __name__ == "__main__":
     lifx.add_dummy_light(DummyBulb(label="A Light"))
     lifx.add_dummy_light(DummyBulb(label="B Light"))
     lifx.add_dummy_light(TileChainDummy(label="C Tilechain"))
+    lifx.add_dummy_light(DummyBulb(label="D Light"))
+    lifx.add_dummy_light(DummyBulb(label="E Light"))
+    lifx.add_dummy_light(DummyBulb(label="F Light"))
+    lifx.add_dummy_light(DummyBulb(label="G Light"))
     for light in LifxLAN().get_lights():
         lifx.add_dummy_light(light)
 
