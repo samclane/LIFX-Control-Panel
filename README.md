@@ -25,3 +25,8 @@ I have currently only tested on the following operating systems:
 
 and on the following LIFX devices:
 * LIFX A19 Firmware v2.75
+
+# Donate
+LIFX-Control-Panel will always be free and open source. However, if you appriciate the work I'm doing and would like to contribute financially, you can donate below. Thanks for your support!
+
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.me/sawyermclane)
