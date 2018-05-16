@@ -77,23 +77,27 @@ class LifxFrame(ttk.Frame):
         self.lightsdict = {}  # LifxLight objects
         self.framesdict = {}  # corresponding LightFrame GUI
         self.current_lightframe = None  # currently selected and visible LightFrame
+        self.bulb_icons = BulbIconList(self)
 
         for x, light in enumerate(self.lights):
             label = light.get_label()
             self.lightsdict[label] = light
             self.logger.info('Light found: {}'.format(label))
+            self.bulb_icons.draw_bulb_icon(light)
 
         if len(self.lightsdict):  # if any lights are found
             self.lightvar.set(self.lights[0].get_label())
             self.current_light = self.lightsdict[self.lightvar.get()]
 
-        self.dropdownMenu = OptionMenu(self, self.lightvar, *(light.get_label() for light in self.lights))
-        # Label(self, text="Light: ").grid(row=0, column=1)
-        self.dropdownMenu.grid(row=1, column=1, sticky='w')
+        # self.dropdownMenu = OptionMenu(self, self.lightvar, *(light.get_label() for light in self.lights))
+        # self.dropdownMenu.grid(row=1, column=1, sticky='w')
+        self.bulb_icons.grid(row=1, column=1, sticky='w')
+        self.bulb_icons.canvas.bind('<Button-1>', self.on_canvas_click)
         self.lightvar.trace('w', self.change_dropdown)  # Keep lightvar in sync with drop-down selection
         self.splashscreen.__exit__(None, None, None)
         if len(self.lightsdict):  # if any lights are found, show the first display
             self.change_dropdown()
+        self.after(HEARTBEAT_RATE, self.update_icons)
 
     def change_dropdown(self, *args):
         """ Change current display frame when dropdown menu is changed. """
@@ -116,6 +120,18 @@ class LifxFrame(ttk.Frame):
         if not self.current_light.get_label() == self.current_lightframe.get_label() == self.lightvar.get():
             self.logger.error("Mismatch between Current Light ({}), LightFrame ({}) and Dropdown ({})".format(
                 self.current_light.get_label(), self.current_lightframe.get_label(), self.lightvar.get()))
+
+    def on_canvas_click(self, event):
+        canvas = self.bulb_icons.canvas
+        x = canvas.canvasx(event.x)
+        y = canvas.canvasy(event.y)
+        item = canvas.find_closest(x, y)
+        self.lightvar.set(canvas.gettags(item)[0])
+
+    def update_icons(self):
+        for bulb in self.lightsdict.values():
+            self.bulb_icons.update_icon(bulb)
+        self.after(HEARTBEAT_RATE, self.update_icons)
 
     def on_closing(self):
         self.logger.info('Shutting down.\n')
@@ -242,7 +258,6 @@ class LightFrame(ttk.Labelframe):
                                                                                                                   column=1)
         self.special_functions_lf.grid(row=6, columnspan=4)
         Label(self, text="*=Work in progress").grid(row=8, column=1)
-
 
         # Start update loop
         self.started = True
@@ -381,31 +396,63 @@ class LightFrame(ttk.Labelframe):
         self.set_color(color, False)
 
 
-class BulbIcon(Canvas):
-    def __init__(self, *args, bulb):
-        super().__init__(*args)
-        self.bulb = bulb
-        self.label = self.bulb.get_label()
-        self.width = 50
-        self.height = 75
-        self.config(width=self.width, height=self.height)
+BulbIcon = namedtuple('BulbIcon', 'circle oval rect text')
+
+
+class BulbIconList(Frame):
+    def __init__(self, *args):
+        self.window_width = 285
+        self.icon_width = 50
+        self.icon_height = 75
+        super().__init__(*args, width=self.window_width, height=self.icon_height)
         self.pad = 5
+        self.scrollx = 0
+        self.scrolly = 0
+        self.bulb_dict = {}
+        self.canvas = Canvas(self, width=self.window_width, height=self.icon_height,
+                             scrollregion=(0, 0, self.scrollx, self.scrolly))
+        hbar = Scrollbar(self, orient=HORIZONTAL)
+        hbar.pack(side=BOTTOM, fill=X)
+        hbar.config(command=self.canvas.xview)
+        self.canvas.config(width=self.window_width, height=self.icon_height)
+        self.canvas.config(xscrollcommand=hbar.set)
+        self.canvas.pack(side=LEFT, expand=True, fill=BOTH)
+        self.current_icon_width = 0
 
+    def draw_bulb_icon(self, bulb):
+        # Get label
+        label = bulb.get_label()
+        # Make room
+        self.scrollx += self.icon_width
+        self.canvas.configure(scrollregion=(0, 0, self.scrollx, self.scrolly))
         # Build icon
-        self.circle = self.create_arc(self.pad, self.pad, self.width - self.pad, self.height / 2 - self.pad,
-                                      outline=tuple2hex(HSBKtoRGB(Color(*self.bulb.get_color()))), style=ARC,
-                                      extent=360 * self.bulb.get_color()[2] / 65535, width=5)
-        self.oval = self.create_oval(self.pad, self.pad, self.width - self.pad, (self.height / 2) - self.pad,
-                                     fill=tuple2hex(HSBKtoRGB(Color(*self.bulb.get_color()))), width=1)
-        self.rect = self.create_rectangle(self.width / 4 + self.pad, self.height / 2 + self.pad,
-                                          3 * self.width / 4 - self.pad, self.height / 2 - self.pad, fill='grey',
-                                          width=0)
-        self.text = self.create_text(self.pad, self.height / 2 + self.pad, text=self.bulb.get_label(), anchor=NW)
+        circle = self.canvas.create_arc(self.current_icon_width + self.pad, self.pad,
+                                        self.current_icon_width + self.icon_width - self.pad,
+                                        self.icon_height / 2 - self.pad,
+                                        outline=tuple2hex(HSBKtoRGB(Color(*bulb.get_color()))), style=ARC,
+                                        extent=360 * bulb.get_color()[2] / 65535, width=5, tags=[label])
+        oval = self.canvas.create_oval(self.current_icon_width + self.pad, self.pad,
+                                       self.current_icon_width + self.icon_width - self.pad,
+                                       (self.icon_height / 2) - self.pad,
+                                       fill=tuple2hex(HSBKtoRGB(Color(*bulb.get_color()))), width=1, tags=[label])
+        rect = self.canvas.create_rectangle(self.current_icon_width + (self.icon_width / 4) + self.pad,
+                                            self.icon_height / 2 + self.pad,
+                                            self.current_icon_width + (3 * self.icon_width / 4) - self.pad,
+                                            self.icon_height / 2 - self.pad, fill='grey',
+                                            width=0, tags=[label])
+        text = self.canvas.create_text(self.current_icon_width + self.pad, self.icon_height / 2 + self.pad,
+                                       text=label[:8], anchor=NW, tags=[label])
+        self.bulb_dict[label] = BulbIcon(circle, oval, rect, text)
 
-    def update(self):
-        self.oval.configure(fill=tuple2hex(HSBKtoRGB(Color(*self.bulb.get_color()))))
-        self.circle.configure(outline=tuple2hex(HSBKtoRGB(Color(*self.bulb.get_color()))),
-                              extent=360 * self.bulb.get_color()[2] / 65535)
+        # update sizing info
+        self.current_icon_width += self.icon_width
+
+    def update_icon(self, bulb):
+        icon = self.bulb_dict[bulb.get_label()]
+        self.canvas.itemconfig(icon.oval, fill=tuple2hex(HSBKtoRGB(Color(*bulb.get_color()))))
+        self.canvas.itemconfig(icon.circle, outline=tuple2hex(HSBKtoRGB(Color(*bulb.get_color()))),
+                               extent=360 * bulb.get_color()[2] / 65535)
+
 
 
 class Splash:
@@ -555,6 +602,7 @@ def KelvinToRGB(temperature):
 
 
 def tuple2hex(tuple):
+    """ Takes a color in tuple form an converts it to hex. """
     return '#%02x%02x%02x' % tuple
 
 
