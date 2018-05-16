@@ -501,33 +501,63 @@ class Splash:
 
 
 # Color conversion helper functions
-def HSBKtoRGB(hsbk):
-    h, s, l, k = [x / 65535 for x in hsbk]
-    if s == 0:
-        r = g = b = l  # achromatic
-    else:
-        def hue2rgb(p, q, t):
-            if t < 0: t += 1
-            if t > 1: t -= 1
-            if t < 1 / 6: return p + (q - p) * 6.0 * t
-            if t < 1 / 2: return q
-            if t < 2 / 3: return p + (q - p) * (2 / 3 - t) * 6.0
-            return p
+def HSBKtoRGB(hsvk):
+    iH, iS, iV, iK = hsvk
+    dS = (100 * iS / 65535) / 100.0
+    dV = (100 * iV / 65535) / 100.0
+    dC = dV * dS
+    dH = (360 * iH / 65535) / 60.0
+    dT = dH
 
-        q = l * (1.0 + s) if l < 0.5 else l + s - l * s
-        p = 2.0 * l - q
-        r = hue2rgb(p, q, h + 1 / 3)
-        g = hue2rgb(p, q, h)
-        b = hue2rgb(p, q, h - 1 / 3)
+    while dT >= 2.0:
+        dT -= 2.0
+    dX = dC * (1 - abs(dT - 1))
+
+    dHf = floor(dH)
+    if dHf == 0:
+        dR = dC
+        dG = dX
+        dB = 0.0
+    elif dHf == 1:
+        dR = dX
+        dG = dC
+        dB = 0.0
+    elif dHf == 2:
+        dR = 0.0
+        dG = dC
+        dB = dX
+    elif dHf == 3:
+        dR = 0.0
+        dG = dX
+        dB = dC
+    elif dHf == 4:
+        dR = dX
+        dG = 0.0
+        dB = dC
+    elif dHf == 5:
+        dR = dC
+        dG = 0.0
+        dB = dX
+    else:
+        dR = 0.0
+        dG = 0.0
+        dB = 0.0
+
+    dM = dV - dC
+    dR += dM
+    dG += dM
+    dB += dM
 
     """    
-    rgb_prime = int(r * 255), int(g * 255), int(b * 255)
-    rgb_k = KelvinToRGB(k)
+    rgb_prime = int(dR * 255), int(dG * 255), int(dB * 255)
+    rgb_k = KelvinToRGB(iK)
     return_rgb = tuple(int(min(255, a+b)) for (a, b) in zip(rgb_prime, rgb_k))  # Light model
     return_rgb = tuple(int((a+b)/2) for (a, b) in zip(rgb_prime, rgb_k))  # Gradient model
     return return_rgb
     """
-    return int(r * 255), int(g * 255), int(b * 255)
+
+    return int(dR * 255), int(dG * 255), int(dB * 255)
+
 
 
 def HueToRGB(h, s=1, v=1):
