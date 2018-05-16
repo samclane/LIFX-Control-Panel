@@ -422,24 +422,24 @@ class BulbIconList(Frame):
     def draw_bulb_icon(self, bulb):
         # Get label
         label = bulb.get_label()
-        # Make room
+        # Make room on canvas
         self.scrollx += self.icon_width
         self.canvas.configure(scrollregion=(0, 0, self.scrollx, self.scrolly))
         # Build icon
-        circle = self.canvas.create_arc(self.current_icon_width + self.pad, self.pad,
-                                        self.current_icon_width + self.icon_width - self.pad,
-                                        self.icon_height / 2 - self.pad,
-                                        outline=tuple2hex(HSBKtoRGB(Color(*bulb.get_color()))), style=ARC,
-                                        extent=360 * bulb.get_color()[2] / 65535, width=5, tags=[label])
-        oval = self.canvas.create_oval(self.current_icon_width + self.pad, self.pad,
-                                       self.current_icon_width + self.icon_width - self.pad,
-                                       (self.icon_height / 2) - self.pad,
-                                       fill=tuple2hex(HSBKtoRGB(Color(*bulb.get_color()))), width=1, tags=[label])
         rect = self.canvas.create_rectangle(self.current_icon_width + (self.icon_width / 4) + self.pad,
                                             self.icon_height / 2 + self.pad,
                                             self.current_icon_width + (3 * self.icon_width / 4) - self.pad,
                                             self.icon_height / 2 - self.pad, fill='grey',
                                             width=0, tags=[label])
+        circle = self.canvas.create_oval(self.current_icon_width + self.pad, self.pad,
+                                         self.current_icon_width + self.icon_width - self.pad,
+                                         self.icon_height / 2 - self.pad, outline='black', fill='black', width=3,
+                                         tags=[label])
+        oval = self.canvas.create_arc(self.current_icon_width + self.pad, self.pad,
+                                      self.current_icon_width + self.icon_width - self.pad,
+                                      (self.icon_height / 2) - self.pad,
+                                      fill=tuple2hex(HSBKtoRGB(Color(*bulb.get_color()))), style=PIESLICE,
+                                      extent=359 * bulb.get_color()[2] / 65535, width=0, tags=[label])
         text = self.canvas.create_text(self.current_icon_width + self.pad, self.icon_height / 2 + self.pad,
                                        text=label[:8], anchor=NW, tags=[label])
         self.bulb_dict[label] = BulbIcon(circle, oval, rect, text)
@@ -449,10 +449,8 @@ class BulbIconList(Frame):
 
     def update_icon(self, bulb):
         icon = self.bulb_dict[bulb.get_label()]
-        self.canvas.itemconfig(icon.oval, fill=tuple2hex(HSBKtoRGB(Color(*bulb.get_color()))))
-        self.canvas.itemconfig(icon.circle, outline=tuple2hex(HSBKtoRGB(Color(*bulb.get_color()))),
-                               extent=360 * bulb.get_color()[2] / 65535)
-
+        self.canvas.itemconfig(icon.oval, fill=tuple2hex(HSBKtoRGB(Color(*bulb.get_color()))),
+                               extent=359 * bulb.get_color()[2] / 65535)
 
 
 class Splash:
