@@ -507,6 +507,7 @@ class Splash:
 if __name__ == "__main__":
     root = Tk()
     root.title("LIFX-Control-Panel")
+    root.resizable(False, False)
 
     # Setup main_icon
     icondata = base64.b64decode(main_icon)

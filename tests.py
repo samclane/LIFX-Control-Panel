@@ -6,6 +6,7 @@ import time
 from gui import Color as DummyColor
 
 
+# Helpers
 def randomMAC():
     return [0x00, 0x16, 0x3e,
             random.randint(0x00, 0x7f),
@@ -17,6 +18,7 @@ def randomIP():
     return ".".join(map(str, (random.randint(0, 255) for _ in range(4))))
 
 
+# Dummy classes
 class DummyDevice:
     def __init__(self, label="No label"):
         self.label = label
@@ -427,7 +429,7 @@ if __name__ == "__main__":
     lifx = LifxLANDummy()
     lifx.add_dummy_light(DummyBulb(label="A Light"))
     lifx.add_dummy_light(DummyBulb(label="B Light"))
-    lifx.add_dummy_light(TileChainDummy(label="C Tilechain"))
+    lifx.add_dummy_light(TileChainDummy(label="C Tile"))
     lifx.add_dummy_light(DummyBulb(label="D Light"))
     lifx.add_dummy_light(DummyBulb(label="E Light"))
     lifx.add_dummy_light(DummyBulb(label="F Light"))
