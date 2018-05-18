@@ -2,7 +2,7 @@
 
 import random
 import time
-from threading import Timer
+
 from gui import Color as DummyColor
 
 
@@ -172,13 +172,13 @@ class DummyBulb(DummyDevice):
     def set_power(self, val: bool, duration: int = 0, rapid: bool = False):
         if duration:
             prev_power = self.power
-            Timer(duration, self.set_power, args=[prev_power, 0, rapid]).start()
+            # Timer(duration, self.set_power, args=[prev_power, 0, rapid]).start()
         self.power = val
 
     def set_color(self, val: DummyColor, duration: int = 0, rapid: bool = False):
         if duration:
             prev_color = self.color
-            Timer(duration, self.set_color, args=[prev_color, 0, rapid]).start()
+            # Timer(duration, self.set_color, args=[prev_color, 0, rapid]).start()
         self.color = val
         return self.get_color()
 
@@ -200,25 +200,25 @@ class DummyBulb(DummyDevice):
     def set_hue(self, hue, duration=0, rapid=False):
         if duration:
             prev_hue = self.color.hue
-            Timer(duration, self.set_hue, args=[prev_hue, 0, rapid]).start()
+            # Timer(duration, self.set_hue, args=[prev_hue, 0, rapid]).start()
         self.color.hue = hue
 
     def set_brightness(self, brightness, duration=0, rapid=False):
         if duration:
             prev_brightness = self.color.brightness
-            Timer(duration, self.set_brightness, args=[prev_brightness, 0, rapid]).start()
+            # Timer(duration, self.set_brightness, args=[prev_brightness, 0, rapid]).start()
         self.color.brightness = brightness
 
     def set_saturation(self, saturation, duration=0, rapid=False):
         if duration:
             prev_saturation = self.color.saturation
-            Timer(duration, self.set_saturation, args=[prev_saturation, 0, rapid]).start()
+            # Timer(duration, self.set_saturation, args=[prev_saturation, 0, rapid]).start()
         self.color.saturation = saturation
 
     def set_colortemp(self, kelvin, duration=0, rapid=False):
         if duration:
             prev_kelvin = self.color.kelvin
-            Timer(duration, self.set_colortemp, args=[prev_kelvin, 0, rapid]).start()
+            # Timer(duration, self.set_colortemp, args=[prev_kelvin, 0, rapid]).start()
         self.color.kelvin = kelvin
 
 
@@ -268,8 +268,8 @@ class TileChainDummy(DummyBulb):
     def set_tile_colors(self, start_index, colors, duration=0, tile_count=0, x=0, y=0, width=0, rapid=False):
         if duration:
             prev_colors = self.get_tile_colors(start_index, tile_count, x, y, width)
-            Timer(duration, self.set_tile_colors,
-                  args=[start_index, prev_colors, 0, tile_count, x, y, width, rapid]).start()
+            # Timer(duration, self.set_tile_colors,
+            # args=[start_index, prev_colors, 0, tile_count, x, y, width, rapid]).start()
         for index, tile in enumerate(self.tiles[start_index:start_index + tile_count]):
             tile.set_color(colors[index])
 
@@ -279,7 +279,7 @@ class TileChainDummy(DummyBulb):
     def set_tilechain_colors(self, tilechain_colors, duration=0, rapid=False):
         if duration:
             prev_colors = self.get_tile_colors(0, len(self.tiles))
-            Timer(duration, self.set_tile_colors, args=[0, prev_colors, 0, len(self.tiles)]).start()
+            # Timer(duration, self.set_tile_colors, args=[0, prev_colors, 0, len(self.tiles)]).start()
         for index, tile in enumerate(self.tiles):
             tile.set_color(tilechain_colors[index])
 
@@ -338,13 +338,13 @@ class LifxLANDummy:
     def set_power_all_lights(self, power, duration=0, rapid=False):
         for light in self.devices:
             prev_power = light.power
-            Timer(duration, self.set_power_all_lights, args=[prev_power, 0, rapid]).start()
+            # Timer(duration, self.set_power_all_lights, args=[prev_power, 0, rapid]).start()
             light.set_power(power)
 
     def set_color_all_lights(self, color, duration=0, rapid=False):
         for light in self.devices:
             prev_color = light.color
-            Timer(duration, self.set_color_all_lights, args=[prev_color, 0, rapid]).start()
+            # Timer(duration, self.set_color_all_lights, args=[prev_color, 0, rapid]).start()
             light.set_color(color)
 
     def set_waveform_all_lights(self, is_transient, color, period, cycles, duty_cycle, wavform, rapid=False):

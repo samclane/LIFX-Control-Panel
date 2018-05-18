@@ -5,12 +5,15 @@ import threading
 from statistics import mode
 from time import sleep
 
-from PIL import ImageGrab, Image
+from PIL import Image
+from desktopmagic.screengrab_win32 import *
 from lifxlan import LifxLAN, utils
+
+from helpers import get_primary_monitor
 
 
 def avg_screen_color(initial_color):
-    im = ImageGrab.grab()
+    im = getRectAsImage(get_primary_monitor())
     color = im.resize((1, 1), Image.HAMMING).getpixel((0, 0))
     color_hsbk = utils.RGBtoHSBK(color, temperature=initial_color[3])
     # return tuple((val1+val2)/2 for (val1, val2) in zip(initial_color, color_hsbk))
@@ -19,7 +22,7 @@ def avg_screen_color(initial_color):
 
 def mode_screen_color(initial_color):
     """ Probably a more accurate way to get screen color, but is incredibly slow. """
-    im = ImageGrab.grab().resize((500, 500))
+    im = getRectAsImage(getDisplayRects()[1]).resize((500, 500))
     color = mode(im.load()[x, y] for x in range(im.width) for y in range(im.height) if
                  im.load()[x, y] != (255, 255, 255) and im.load()[x, y] != (0, 0, 0))
     return utils.RGBtoHSBK(color, temperature=initial_color[3])
@@ -27,7 +30,7 @@ def mode_screen_color(initial_color):
 
 class ColorThread(threading.Thread):
     def __init__(self, *args, **kwargs):
-        super(ColorThread, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._stop = threading.Event()
 
     def stop(self):
@@ -46,9 +49,9 @@ class ColorThreadRunner:
         self.prev_color = parent.get_color_values_hsbk()
         self.continuous = continuous
         self.t = ColorThread(target=self.match_color, args=(self.bulb,))
-        self.t.setDaemon(True)
+        # self.t.setDaemon(True)
         self.logger.info(
-            'Initialized Thread: Function: {} // Continuous: {}'.format(self.bulb.get_label(), self.continuous))
+            'Initialized Thread: Bulb: {} // Continuous: {}'.format(self.bulb.get_label(), self.continuous))
 
     def match_color(self, bulb):
         self.logger.debug('Starting color match.')
@@ -63,6 +66,7 @@ class ColorThreadRunner:
                 self.prev_color = color
             except OSError:
                 # This is dirty, but we really don't care, just keep going
+                self.logger.info("Hit an os error")
                 continue
             sleep(duration_secs)
             if not self.continuous:
