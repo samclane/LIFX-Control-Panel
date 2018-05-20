@@ -387,8 +387,11 @@ class LightFrame(ttk.Labelframe):
                     break
             sleep(0.001)
         # Button state changed
-        im = getRectAsImage(color_thread.get_primary_monitor())
-        color = im.getpixel(GetCursorPos())
+        im = getScreenAsImage()
+        cursorpos = GetCursorPos()
+        cursorpos = normalizeRects(getDisplayRects() + [(cursorpos[0], cursorpos[1], 0, 0)])[-1][
+                    :2]  # Convert display coords to image coords
+        color = im.getpixel(cursorpos)
         self.master.master.deiconify()  # Reshow window
         self.logger.info("Eyedropper color found RGB {}".format(color))
         return utils.RGBtoHSBK(color, temperature=self.get_color_values_hsbk().kelvin)
