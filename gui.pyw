@@ -81,17 +81,16 @@ class LifxFrame(ttk.Frame):
         self.bulb_icons = BulbIconList(self)
 
         for x, light in enumerate(self.lights):
+            product = product_map[light.get_product()]
             label = light.get_label()
             self.lightsdict[label] = light
-            self.logger.info('Light found: {}'.format(label))
+            self.logger.info('Light found: {}:({})'.format(product, label))
             self.bulb_icons.draw_bulb_icon(light)
 
         if len(self.lightsdict):  # if any lights are found
             self.lightvar.set(self.lights[0].get_label())
             self.current_light = self.lightsdict[self.lightvar.get()]
 
-        # self.dropdownMenu = OptionMenu(self, self.lightvar, *(light.get_label() for light in self.lights))
-        # self.dropdownMenu.grid(row=1, column=1, sticky='w')
         self.bulb_icons.grid(row=1, column=1, sticky='w')
         self.bulb_icons.canvas.bind('<Button-1>', self.on_canvas_click)
         self.lightvar.trace('w', self.change_dropdown)  # Keep lightvar in sync with drop-down selection

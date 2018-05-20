@@ -1,21 +1,22 @@
 """ This is not a standard test file (yet), but used to simulate a multi-device environment. """
 
-import random
 import time
+from random import randint, sample, randrange, choice
 
 from gui import Color as DummyColor
+from lifxlan import product_map
 
 
 # Helpers
 def randomMAC():
     return [0x00, 0x16, 0x3e,
-            random.randint(0x00, 0x7f),
-            random.randint(0x00, 0xff),
-            random.randint(0x00, 0xff)]
+            randint(0x00, 0x7f),
+            randint(0x00, 0xff),
+            randint(0x00, 0xff)]
 
 
 def randomIP():
-    return ".".join(map(str, (random.randint(0, 255) for _ in range(4))))
+    return ".".join(map(str, (randint(0, 255) for _ in range(4))))
 
 
 # Dummy classes
@@ -33,12 +34,12 @@ class DummyDevice:
         self.wifi_build_timestamp = 0
         self.wifi_version = 0.0
         self.vendor = 1
-        self.product = 27
+        self.product = choice([int(key) for key in product_map.keys()])
         self.location_label = "My Home"
-        self.location_tuple = random.sample(range(255), 16)
+        self.location_tuple = sample(range(255), 16)
         self.location_updated_at = 1516997252637000000
         self.group_label = "Room 1"
-        self.group_tuple = random.sample(range(255), 16)
+        self.group_tuple = sample(range(255), 16)
         self.group_updated_at = 1516997252642000000
         self.is_light = True
 
@@ -164,9 +165,15 @@ class DummyDevice:
 
 
 class DummyBulb(DummyDevice):
-    def __init__(self, color=DummyColor(0, 0, 0, 2500), label="N/A"):
+    def __init__(self,
+                 color=None,
+                 label="N/A"):
         super().__init__(label)
-        self.color = color
+        if color:
+            self.color = color
+        else:
+            self.color = DummyColor(randrange(0, 65535), randrange(0, 65535), randrange(0, 65535),
+                                    randrange(2500, 9000))
         self.power: int = 0
 
     # Official api
