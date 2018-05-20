@@ -1,5 +1,7 @@
 from functools import lru_cache
 from math import log, floor
+import os
+import sys
 
 from desktopmagic.screengrab_win32 import *
 
@@ -140,3 +142,14 @@ def tuple2hex(tuple):
 @lru_cache(maxsize=None)
 def get_primary_monitor():
     return [rect for rect in getDisplayRects() if rect[:2] == (0, 0)][0]  # primary monitor has top left as 0, 0
+
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)

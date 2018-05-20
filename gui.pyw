@@ -4,6 +4,7 @@ import tkinter.font as font
 import win32api
 from collections import namedtuple
 from tkinter import *
+from tkinter import messagebox
 from tkinter import ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
@@ -11,10 +12,12 @@ from win32gui import GetCursorPos
 from lifxlan import *
 from lifxlan import errors
 
+import settings
 import audio
 import color_thread
 from resources import main_icon
 from helpers import *
+
 
 
 
@@ -28,17 +31,6 @@ elif __file__:
     application_path = os.path.dirname(__file__)
 
 LOGFILE = os.path.join(application_path, LOGFILE)
-
-
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
 
 
 SPLASHFILE = resource_path('res//splash_vector_png.png')
@@ -71,6 +63,12 @@ class LifxFrame(ttk.Frame):
         sh.setFormatter(formatter)
         self.logger.addHandler(sh)
         self.logger.info('Root logger initialized: {}'.format(self.logger.name))
+
+        # Setup menu
+        self.menubar = Menu(master)
+        self.menubar.add_command(label="Settings", command=lambda: settings.SettingsDisplay(self, "Settings"))
+        self.menubar.add_command(label="About", command=self.show_about)
+        self.master.config(menu=self.menubar)
 
         # Initialize LIFX objects
         self.lightvar = StringVar(self)
@@ -133,6 +131,11 @@ class LifxFrame(ttk.Frame):
         for bulb in self.lightsdict.values():
             self.bulb_icons.update_icon(bulb)
         self.after(HEARTBEAT_RATE, self.update_icons)
+
+    def show_about(self):
+        messagebox.showinfo("About", "LIFX-Control-Panel\n"
+                                     "Version 1.2.6\n"
+                                     "Sawyer McLane, 2018")
 
     def on_closing(self):
         self.logger.info('Shutting down.\n')
