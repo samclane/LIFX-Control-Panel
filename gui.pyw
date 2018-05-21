@@ -253,7 +253,8 @@ class LightFrame(ttk.Labelframe):
         self.colorVar.trace('w', self.change_preset_dropdown)
 
         self.uservar = StringVar(self, value="User Presets")
-        self.user_dropdown = OptionMenu(self.preset_colors_lf, self.uservar, *config["PresetColors"].keys())
+        self.user_dropdown = OptionMenu(self.preset_colors_lf, self.uservar, *(
+            [*config["PresetColors"].keys()] if len(config["PresetColors"].keys()) else [None]))
         self.user_dropdown.grid(row=0, column=1)
         self.user_dropdown.config(width=13)
         self.uservar.trace('w', self.change_user_dropdown)
