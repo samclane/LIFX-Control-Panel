@@ -8,6 +8,7 @@ from tkinter import messagebox
 from tkinter import ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
+from tkinter import _setit
 
 from lifxlan import *
 from lifxlan import errors
@@ -17,7 +18,7 @@ import audio
 import color_thread
 from resources import main_icon
 from helpers import *
-
+from settings import config
 
 
 
@@ -66,7 +67,7 @@ class LifxFrame(ttk.Frame):
 
         # Setup menu
         self.menubar = Menu(master)
-        self.menubar.add_command(label="Settings", command=lambda: settings.SettingsDisplay(self, "Settings"))
+        self.menubar.add_command(label="Settings", command=self.show_settings)
         self.menubar.add_command(label="About", command=self.show_about)
         self.master.config(menu=self.menubar)
 
@@ -131,6 +132,10 @@ class LifxFrame(ttk.Frame):
         for bulb in self.lightsdict.values():
             self.bulb_icons.update_icon(bulb)
         self.after(HEARTBEAT_RATE, self.update_icons)
+
+    def show_settings(self):
+        s = settings.SettingsDisplay(self, "Settings")
+        self.current_lightframe.update_user_dropdown()
 
     def show_about(self):
         messagebox.showinfo("About", "LIFX-Control-Panel\n"
@@ -230,7 +235,7 @@ class LightFrame(ttk.Labelframe):
 
         # Add buttons for pre-made colors
         self.preset_colors_lf = ttk.LabelFrame(self, text="Preset Colors", padding="3 3 12 12")
-        self.colorVar = StringVar(self, value="RED")
+        self.colorVar = StringVar(self, value="Presets")
         preset_dropdown = OptionMenu(self.preset_colors_lf, self.colorVar, *["RED",
                                                                              "ORANGE",
                                                                              "YELLOW",
@@ -245,8 +250,15 @@ class LightFrame(ttk.Labelframe):
                                                                              "GOLD"])
         preset_dropdown.grid(row=0, column=0)
         preset_dropdown.configure(width=13)
-        self.preset_colors_lf.grid(row=5, columnspan=4)
         self.colorVar.trace('w', self.change_preset_dropdown)
+
+        self.uservar = StringVar(self, value="User Presets")
+        self.user_dropdown = OptionMenu(self.preset_colors_lf, self.uservar, *config["PresetColors"].keys())
+        self.user_dropdown.grid(row=0, column=1)
+        self.user_dropdown.config(width=13)
+        self.uservar.trace('w', self.change_user_dropdown)
+
+        self.preset_colors_lf.grid(row=5, columnspan=4)
 
         # Add buttons for special routines
         self.special_functions_lf = ttk.LabelFrame(self, text="Special Functions", padding="3 3 12 12")
@@ -332,7 +344,7 @@ class LightFrame(ttk.Labelframe):
 
     def get_color_from_palette(self):
         """ Asks users for color selection using standard color palette dialog. """
-        color = askcolor()[0]
+        color = askcolor(initialcolor=HSBKtoRGB(self.get_color_values_hsbk()))[0]
         if color:
             # RGBtoHBSK sometimes returns >65535, so we have to truncate
             hsbk = [min(c, 65535) for c in utils.RGBtoHSBK(color, self.hsbk[3].get())]
@@ -402,6 +414,18 @@ class LightFrame(ttk.Labelframe):
     def change_preset_dropdown(self, *args):
         color = Color(*eval(self.colorVar.get()))
         self.set_color(color, False)
+
+    def change_user_dropdown(self, *args):
+        color = Color(*eval(config["PresetColors"][self.uservar.get()]))
+        self.set_color(color, False)
+
+    def update_user_dropdown(self):
+        # self.uservar.set('')
+        self.user_dropdown["menu"].delete(0, 'end')
+
+        new_choices = [key for key in config['PresetColors']]
+        for choice in new_choices:
+            self.user_dropdown["menu"].add_command(label=choice, command=_setit(self.uservar, choice))
 
 
 BulbIcon = namedtuple('BulbIcon', 'circle oval rect text')
