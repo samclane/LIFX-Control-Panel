@@ -138,9 +138,12 @@ class LifxFrame(ttk.Frame):
         self.current_lightframe.update_user_dropdown()
 
     def show_about(self):
+        version = config["Info"]["Version"]
+        author = config["Info"]["Author"]
+        builddate = config["Info"]["BuildDate"]
         messagebox.showinfo("About", "LIFX-Control-Panel\n"
-                                     "Version 1.2.6\n"
-                                     "Sawyer McLane, 2018")
+                                     "Version {}\n"
+                                     "{}, {}".format(version, author, builddate))
 
     def on_closing(self):
         self.logger.info('Shutting down.\n')
