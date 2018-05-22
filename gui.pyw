@@ -18,6 +18,7 @@ import color_thread
 import settings
 from helpers import *
 from settings import config
+from keypress import Keystroke_Watcher
 
 HEARTBEAT_RATE = 3000  # 3 seconds
 LOGFILE = 'lifx_ctrl.log'
@@ -108,6 +109,7 @@ class LifxFrame(ttk.Frame):
 
     def change_dropdown(self, *args):
         """ Change current display frame when dropdown menu is changed. """
+        self.master.unbind('<Unmap>')
         new_light_label = self.lightvar.get()
         if self.current_lightframe is not None:
             self.current_lightframe.stop()
@@ -127,6 +129,7 @@ class LifxFrame(ttk.Frame):
         if not self.current_light.get_label() == self.current_lightframe.get_label() == self.lightvar.get():
             self.logger.error("Mismatch between Current Light ({}), LightFrame ({}) and Dropdown ({})".format(
                 self.current_light.get_label(), self.current_lightframe.get_label(), self.lightvar.get()))
+        self.master.bind('<Unmap>', lambda *args: self.master.withdraw())
 
     def on_canvas_click(self, event):
         canvas = self.bulb_icons.canvas
@@ -288,6 +291,10 @@ class LightFrame(ttk.Labelframe):
         self.special_functions_lf.grid(row=6, columnspan=4)
         Label(self, text="*=Work in progress").grid(row=8, column=1)
 
+        # Register Keystrokes
+        self.keylogger = Keystroke_Watcher(self)
+        # self.keylogger.register_function('Lcontrol+B', lambda *args: self.set_color(BLUE))
+
         # Start update loop
         self.started = True
         self.update_status_from_bulb()
@@ -373,9 +380,9 @@ class LightFrame(ttk.Labelframe):
         try:
             self.powervar.set(self.bulb.get_power())
         except OSError:
-            pass
+            self.logger.warning("Error updating bulb power: OS")
         except errors.WorkflowException:
-            pass
+            self.logger.warning("Error updating bulb power: Workflow")
         if self.powervar.get() == 0:
             # Light is off
             self.option_off.select()
@@ -394,9 +401,9 @@ class LightFrame(ttk.Labelframe):
                 self.update_display(key)
             self.current_color.config(background=tuple2hex(HSBKtoRGB(hsbk)))
         except OSError:
-            pass
+            self.logger.warning("Error updating bulb color: OS")
         except errors.WorkflowException:
-            pass
+            self.logger.warning("Error updating bulb color: Workflow")
         if self.started and not run_once:
             self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
 

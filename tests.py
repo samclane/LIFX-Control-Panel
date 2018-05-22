@@ -457,7 +457,7 @@ if __name__ == "__main__":
         logger.exception("Uncaught exception: {}:{}:{}".format(repr(type), str(value), repr(tb)))
 
 
-    sys.excepthook = myHandler
+    # sys.excepthook = myHandler  # dont' want to log exceptions when we're testing
 
     # Run main app
     root.mainloop()
