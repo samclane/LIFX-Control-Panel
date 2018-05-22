@@ -1,7 +1,5 @@
-import base64
 import logging
 import tkinter.font as font
-import win32api
 from collections import namedtuple
 from tkinter import *
 from tkinter import messagebox
@@ -16,7 +14,6 @@ from lifxlan import errors
 import settings
 import audio
 import color_thread
-from resources import main_icon
 from helpers import *
 from settings import config
 
@@ -543,13 +540,7 @@ if __name__ == "__main__":
     root.resizable(False, False)
 
     # Setup main_icon
-    icondata = base64.b64decode(main_icon)
-    tempfile = "main_icon.ico"
-    iconfile = open(tempfile, 'wb')
-    iconfile.write(icondata)
-    iconfile.close()
-    root.wm_iconbitmap(tempfile)
-    os.remove(tempfile)
+    root.iconbitmap(resource_path('res/icon_vector_9fv_icon.ico'))
 
     mainframe = LifxFrame(root, LifxLAN())
 

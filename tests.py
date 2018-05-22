@@ -5,7 +5,7 @@ from random import randint, sample, randrange, choice
 
 from gui import Color as DummyColor
 from lifxlan import product_map
-
+from helpers import resource_path
 
 # Helpers
 def randomMAC():
@@ -428,9 +428,6 @@ if __name__ == "__main__":
     from lifxlan import LifxLAN
     from gui import LifxFrame
     from tkinter import *
-    from resources import main_icon
-    import base64
-    import os
 
     # Build mixed list of fake and real lights
     lifx = LifxLANDummy()
@@ -448,13 +445,7 @@ if __name__ == "__main__":
     root.title("LIFX-Control-Panel")
 
     # Setup main_icon
-    icondata = base64.b64decode(main_icon)
-    tempfile = "main_icon.ico"
-    iconfile = open(tempfile, 'wb')
-    iconfile.write(icondata)
-    iconfile.close()
-    root.wm_iconbitmap(tempfile)
-    os.remove(tempfile)
+    root.iconbitmap(resource_path('res//icon_vector_9fv_icon.ico'))
 
     mainframe = LifxFrame(root, lifx)
 
