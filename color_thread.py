@@ -116,33 +116,3 @@ def install_thread_excepthook():
 
 
 install_thread_excepthook()
-
-
-### Testing stuff ###
-
-def match_color_test(bulb):
-    duration_secs = 0.25
-    transition_time_ms = duration_secs * 1000
-    while True:  # Blocking!
-        bulb.set_color(avg_screen_color([0, 0, 0, 9000]), transition_time_ms, True if duration_secs < 1 else False)
-        sleep(duration_secs)
-
-
-def main():
-    num_lights = 1
-    print("Discovering lights...")
-    lifx = LifxLAN(num_lights)
-    # get devices
-    devices = lifx.get_lights()
-    bulb = devices[0]
-    print("Selected {}".format(bulb.get_label()))
-    # get original state
-    original_power = bulb.get_power()
-    original_color = bulb.get_color_values_hsbk()
-    bulb.set_power("on")
-
-    match_color_test(bulb)
-
-
-if __name__ == "__main__":
-    main()

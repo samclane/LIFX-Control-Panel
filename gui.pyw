@@ -1,23 +1,23 @@
 import logging
+import threading
 import tkinter.font as font
 from collections import namedtuple
 from tkinter import *
+from tkinter import _setit
 from tkinter import messagebox
 from tkinter import ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
-from tkinter import _setit
 
 from lifxlan import *
 from lifxlan import errors
 
-import settings
+import SysTrayIcon
 import audio
 import color_thread
+import settings
 from helpers import *
 from settings import config
-
-
 
 HEARTBEAT_RATE = 3000  # 3 seconds
 LOGFILE = 'lifx_ctrl.log'
@@ -29,7 +29,6 @@ elif __file__:
     application_path = os.path.dirname(__file__)
 
 LOGFILE = os.path.join(application_path, LOGFILE)
-
 
 SPLASHFILE = resource_path('res//splash_vector_png.png')
 
@@ -90,6 +89,18 @@ class LifxFrame(ttk.Frame):
         self.bulb_icons.grid(row=1, column=1, sticky='w')
         self.bulb_icons.canvas.bind('<Button-1>', self.on_canvas_click)
         self.lightvar.trace('w', self.change_dropdown)  # Keep lightvar in sync with drop-down selection
+
+        tray_options = (('Adjust Lights', None, lambda *args: self.master.deiconify()),)
+
+        def run_tray_icon():
+            SysTrayIcon.SysTrayIcon(resource_path('res/icon_vector_9fv_icon.ico'), "LIFX-Control-Panel", tray_options,
+                                    on_quit=lambda *args: os._exit(1))
+
+        self.systray_thread = threading.Thread(target=run_tray_icon)
+        self.systray_thread.start()
+        self.master.bind('<Unmap>', lambda *args: self.master.withdraw())  # Minimize to taskbar
+
+        # Stop splashscreen and start main function
         self.splashscreen.__exit__(None, None, None)
         if len(self.lightsdict):  # if any lights are found, show the first display
             self.change_dropdown()
@@ -107,7 +118,7 @@ class LifxFrame(ttk.Frame):
             self.logger.info("Building new frame: {}".format(self.framesdict[new_light_label].get_label()))
         else:  # Frame was found; bring to front
             for frame in self.framesdict.values():
-                frame.grid_remove()  # remove all other frames; not just the current one (this fixes sync bugs for some reason
+                frame.grid_remove()  # remove all other frames; not just the current one (this fixes sync bugs for some reason)
             self.framesdict[new_light_label].grid()  # should bring to front
             self.logger.info(
                 "Brought existing frame to front: {}".format(self.framesdict[new_light_label].get_label()))
@@ -533,7 +544,6 @@ class Splash:
         self.__root.deiconify()
 
 
-
 if __name__ == "__main__":
     root = Tk()
     root.title("LIFX-Control-Panel")
@@ -549,7 +559,7 @@ if __name__ == "__main__":
 
 
     def myHandler(type, value, tb):
-        logger.exception("Uncaught exception: {}".format(str(value)))
+        logger.exception("Uncaught exception: {}:{}:{}".format(repr(type), str(value), repr(tb)))
 
 
     sys.excepthook = myHandler

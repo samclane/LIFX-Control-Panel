@@ -454,7 +454,7 @@ if __name__ == "__main__":
 
 
     def myHandler(type, value, tb):
-        logger.exception("Uncaught exception: {}".format(str(value)))
+        logger.exception("Uncaught exception: {}:{}:{}".format(repr(type), str(value), repr(tb)))
 
 
     sys.excepthook = myHandler
