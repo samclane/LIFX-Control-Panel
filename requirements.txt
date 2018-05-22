@@ -1,3 +1,4 @@
+desktopmagic
 win32gui
 pyaudio
 Pillow
