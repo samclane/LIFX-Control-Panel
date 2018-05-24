@@ -18,11 +18,9 @@ import color_thread
 import settings
 from helpers import *
 from keypress import Keystroke_Watcher
-from settings import config
+from settings import config, VERSION, AUTHOR, BUILD_DATE
 
-VERSION = '1.2.6'
-AUTHOR = 'Sawyer McLane'
-BUILD_DATE = '5/20/2018'
+
 
 HEARTBEAT_RATE = 3000  # 3 seconds
 LOGFILE = 'lifx_ctrl.log'

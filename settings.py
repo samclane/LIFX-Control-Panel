@@ -3,6 +3,7 @@ import itertools
 import logging
 from shutil import copyfile
 from tkinter import *
+from tkinter import messagebox
 from tkinter.colorchooser import *
 import tkinter.ttk as ttk
 
@@ -13,11 +14,23 @@ from lifxlan.utils import RGBtoHSBK
 from helpers import resource_path
 from keypress import Keystroke_Watcher
 
+VERSION = '1.2.6'
+AUTHOR = 'Sawyer McLane'
+BUILD_DATE = '5/20/2018'
+
 config = configparser.ConfigParser()
 if not os.path.isfile("config.ini"):
     copyfile(resource_path("default.ini"), "config.ini")
 config.read("config.ini")
-
+if int(config["Info"]["Version"].replace('.', '')) < int(VERSION.replace('.', '')):  # check version number
+    root = Tk()  # temp root window
+    root.withdraw()
+    messagebox.showerror("Old config detected", "Your old config file is old. Replacing with newer.")
+    root.destroy()
+    # reread new config (don't keep old data)
+    copyfile(resource_path("default.ini"), "config.ini")
+    config.clear()
+    config.read("config.ini")
 
 # boilerplate code from http://effbot.org/tkinterbook/tkinter-dialog-windows.htm
 class Dialog(Toplevel):
