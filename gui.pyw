@@ -16,7 +16,7 @@ import SysTrayIcon
 import audio
 import color_thread
 import settings
-from helpers import *
+from utils import *
 from keypress import Keystroke_Watcher
 from settings import config, VERSION, AUTHOR, BUILD_DATE
 
@@ -301,14 +301,13 @@ class LightFrame(ttk.Labelframe):
                                                                                                                column=0)
         Button(self.special_functions_lf, text="Pick Color", command=self.get_color_from_palette).grid(row=6, column=1)
         self.threads['audio'] = color_thread.ColorThreadRunner(self.bulb, audio.get_music_color, self)
-        Button(self.special_functions_lf, text="Music Color*", command=self.threads['audio'].start,
+        Button(self.special_functions_lf, text="Music Color", command=self.threads['audio'].start,
                state='normal' if audio.initialized else 'disabled').grid(row=7, column=0)
         self.threads['eyedropper'] = color_thread.ColorThreadRunner(self.bulb, self.eyedropper, self, continuous=False)
         Button(self.special_functions_lf, text="Color Eyedropper", command=self.threads['eyedropper'].start).grid(row=7,
                                                                                                                   column=1)
         Button(self.special_functions_lf, text="Stop effects", command=self.stop_threads).grid(row=8, column=0)
         self.special_functions_lf.grid(row=6, columnspan=4)
-        Label(self, text="*=Work in progress").grid(row=8, column=1)
 
         # Start update loop
         self.started = True

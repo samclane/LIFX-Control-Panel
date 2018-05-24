@@ -11,7 +11,7 @@ from desktopmagic.screengrab_win32 import getDisplayRects
 from lifxlan import *
 from lifxlan.utils import RGBtoHSBK
 
-from helpers import resource_path
+from utils import resource_path
 from keypress import Keystroke_Watcher
 
 VERSION = '1.2.6'

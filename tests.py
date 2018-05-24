@@ -5,7 +5,7 @@ from random import randint, sample, randrange, choice
 
 from gui import Color as DummyColor
 from lifxlan import product_map
-from helpers import resource_path
+from utils import resource_path
 
 # Helpers
 def randomMAC():

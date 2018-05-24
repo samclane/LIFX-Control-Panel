@@ -9,7 +9,7 @@ from PIL import Image
 from desktopmagic.screengrab_win32 import *
 from lifxlan import LifxLAN, utils
 
-from helpers import get_primary_monitor
+from utils import get_primary_monitor
 from settings import config
 
 
