@@ -20,6 +20,10 @@ from helpers import *
 from keypress import Keystroke_Watcher
 from settings import config
 
+VERSION = '1.2.6'
+AUTHOR = 'Sawyer McLane'
+BUILD_DATE = '5/20/2018'
+
 HEARTBEAT_RATE = 3000  # 3 seconds
 LOGFILE = 'lifx_ctrl.log'
 
@@ -92,15 +96,15 @@ class LifxFrame(ttk.Frame):
         self.lightvar.trace('w', self.change_dropdown)  # Keep lightvar in sync with drop-down selection
 
         # Setup tray icon
-        tray_options = (('Adjust Lights', None, lambda *args: self.master.deiconify()),)
+        tray_options = (('Adjust Lights', None, lambda *_: self.master.deiconify()),)
 
         def run_tray_icon():
             SysTrayIcon.SysTrayIcon(resource_path('res/icon_vector_9fv_icon.ico'), "LIFX-Control-Panel", tray_options,
-                                    on_quit=lambda *args: os._exit(1))
+                                    on_quit=lambda *_: os._exit(1))
 
         self.systray_thread = threading.Thread(target=run_tray_icon)
         self.systray_thread.start()
-        self.master.bind('<Unmap>', lambda *args: self.master.withdraw())  # Minimize to taskbar
+        self.master.bind('<Unmap>', lambda *_: self.master.withdraw())  # Minimize to taskbar
 
         # Setup keybinding listener
         self.keylogger = Keystroke_Watcher(self)
@@ -138,7 +142,7 @@ class LifxFrame(ttk.Frame):
         if not self.current_light.get_label() == self.current_lightframe.get_label() == self.lightvar.get():
             self.logger.error("Mismatch between Current Light ({}), LightFrame ({}) and Dropdown ({})".format(
                 self.current_light.get_label(), self.current_lightframe.get_label(), self.lightvar.get()))
-        self.master.bind('<Unmap>', lambda *args: self.master.withdraw())  # reregister callback
+        self.master.bind('<Unmap>', lambda *_: self.master.withdraw())  # reregister callback
 
     def on_canvas_click(self, event):
         canvas = self.bulb_icons.canvas
@@ -156,7 +160,7 @@ class LifxFrame(ttk.Frame):
     def save_keybind(self, light, keypress, color):
         def lambda_factory(self, light, color):
             """ https://stackoverflow.com/questions/938429/scope-of-lambda-functions-and-their-parameters """
-            return lambda *args: self.lightsdict[light].set_color(color)
+            return lambda *_: self.lightsdict[light].set_color(color)
 
         func = lambda_factory(self, light, color)
         self.keylogger.register_function(keypress, func)
@@ -168,12 +172,9 @@ class LifxFrame(ttk.Frame):
         self.keylogger.restart()
 
     def show_about(self):
-        version = config["Info"]["Version"]
-        author = config["Info"]["Author"]
-        builddate = config["Info"]["BuildDate"]
         messagebox.showinfo("About", "LIFX-Control-Panel\n"
                                      "Version {}\n"
-                                     "{}, {}".format(version, author, builddate))
+                                     "{}, {}".format(VERSION, AUTHOR, BUILD_DATE))
 
     def on_closing(self):
         self.logger.info('Shutting down.\n')

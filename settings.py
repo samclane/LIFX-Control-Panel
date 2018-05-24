@@ -208,12 +208,13 @@ class SettingsDisplay(Dialog):
         self.keybind_keys_select.insert(END, "Add key-combo...")
         self.keybind_keys_select.config(state='readonly')
         self.keybind_keys_select.bind('<FocusIn>', self.on_keybind_keys_click)
+        self.keybind_keys_select.bind('<FocusOut>', lambda *_: self.keybind_keys_select.config(state='readonly'))
         self.keybind_color_selection = StringVar(master)
         self.keybind_color_dropdown = OptionMenu(master, self.keybind_color_selection,
                                                  *self.root_window.framesdict[
                                                      self.keybind_bulb_selection.get()].default_colors)
         self.keybind_add_button = Button(master, text="Add keybind",
-                                         command=lambda *args: self.register_keybinding(
+                                         command=lambda *_: self.register_keybinding(
                                              self.keybind_bulb_selection.get(), self.keybind_keys_select.get(),
                                              self.keybind_color_selection.get()))
 
@@ -261,18 +262,11 @@ class SettingsDisplay(Dialog):
         self.update()
         self.update_idletasks()
         self.k.restart()
-        try:
-            self.keybind_keys_select.config(state='normal')
+        self.keybind_keys_select.config(state='normal')
+        self.update()
+        self.update_idletasks()
+        while self.focus_get() == self.keybind_keys_select:
+            self.keybind_keys_select.delete(0, 'end')
+            self.keybind_keys_select.insert(END, self.k.get_key_combo_code())
             self.update()
             self.update_idletasks()
-            while self.focus_get() == self.keybind_keys_select:
-                self.keybind_keys_select.delete(0, 'end')
-                self.keybind_keys_select.insert(END, self.k.get_key_combo_code())
-                self.update()
-                self.update_idletasks()
-        finally:
-            try:  # Might try and change this if next press is OK button, which will throw an error
-                self.keybind_keys_select.config(state='readonly')
-            except TclError:
-                pass
-            self.k.shutdown()
