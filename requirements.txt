@@ -1,3 +1,4 @@
+pyHook
 desktopmagic
 win32gui
 pyaudio

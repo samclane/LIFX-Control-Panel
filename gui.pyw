@@ -17,8 +17,8 @@ import audio
 import color_thread
 import settings
 from helpers import *
-from settings import config
 from keypress import Keystroke_Watcher
+from settings import config
 
 HEARTBEAT_RATE = 3000  # 3 seconds
 LOGFILE = 'lifx_ctrl.log'
@@ -91,6 +91,7 @@ class LifxFrame(ttk.Frame):
         self.bulb_icons.canvas.bind('<Button-1>', self.on_canvas_click)
         self.lightvar.trace('w', self.change_dropdown)  # Keep lightvar in sync with drop-down selection
 
+        # Setup tray icon
         tray_options = (('Adjust Lights', None, lambda *args: self.master.deiconify()),)
 
         def run_tray_icon():
@@ -101,6 +102,14 @@ class LifxFrame(ttk.Frame):
         self.systray_thread.start()
         self.master.bind('<Unmap>', lambda *args: self.master.withdraw())  # Minimize to taskbar
 
+        # Setup keybinding listener
+        self.keylogger = Keystroke_Watcher(self)
+        for keypress, function in dict(config['Keybinds']).items():
+            light, color = function.split(':')
+            color = Color(*eval(color))
+            self.save_keybind(light, keypress, color)
+
+
         # Stop splashscreen and start main function
         self.splashscreen.__exit__(None, None, None)
         if len(self.lightsdict):  # if any lights are found, show the first display
@@ -109,7 +118,7 @@ class LifxFrame(ttk.Frame):
 
     def change_dropdown(self, *args):
         """ Change current display frame when dropdown menu is changed. """
-        self.master.unbind('<Unmap>')
+        self.master.unbind('<Unmap>')  # unregister unmap so grid_remove doesn't trip it
         new_light_label = self.lightvar.get()
         if self.current_lightframe is not None:
             self.current_lightframe.stop()
@@ -129,7 +138,7 @@ class LifxFrame(ttk.Frame):
         if not self.current_light.get_label() == self.current_lightframe.get_label() == self.lightvar.get():
             self.logger.error("Mismatch between Current Light ({}), LightFrame ({}) and Dropdown ({})".format(
                 self.current_light.get_label(), self.current_lightframe.get_label(), self.lightvar.get()))
-        self.master.bind('<Unmap>', lambda *args: self.master.withdraw())
+        self.master.bind('<Unmap>', lambda *args: self.master.withdraw())  # reregister callback
 
     def on_canvas_click(self, event):
         canvas = self.bulb_icons.canvas
@@ -144,9 +153,19 @@ class LifxFrame(ttk.Frame):
             self.bulb_icons.update_icon(bulb)
         self.after(HEARTBEAT_RATE, self.update_icons)
 
+    def save_keybind(self, light, keypress, color):
+        def lambda_factory(self, light, color):
+            """ https://stackoverflow.com/questions/938429/scope-of-lambda-functions-and-their-parameters """
+            return lambda *args: self.lightsdict[light].set_color(color)
+
+        func = lambda_factory(self, light, color)
+        self.keylogger.register_function(keypress, func)
+
     def show_settings(self):
+        self.keylogger.shutdown()
         s = settings.SettingsDisplay(self, "Settings")
         self.current_lightframe.update_user_dropdown()
+        self.keylogger.restart()
 
     def show_about(self):
         version = config["Info"]["Version"]
@@ -250,18 +269,19 @@ class LightFrame(ttk.Labelframe):
         # Add buttons for pre-made colors
         self.preset_colors_lf = ttk.LabelFrame(self, text="Preset Colors", padding="3 3 12 12")
         self.colorVar = StringVar(self, value="Presets")
-        preset_dropdown = OptionMenu(self.preset_colors_lf, self.colorVar, *["RED",
-                                                                             "ORANGE",
-                                                                             "YELLOW",
-                                                                             "GREEN",
-                                                                             "CYAN",
-                                                                             "BLUE",
-                                                                             "PURPLE",
-                                                                             "PINK",
-                                                                             "WHITE",
-                                                                             "COLD_WHITE",
-                                                                             "WARM_WHITE",
-                                                                             "GOLD"])
+        self.default_colors = ["RED",
+                               "ORANGE",
+                               "YELLOW",
+                               "GREEN",
+                               "CYAN",
+                               "BLUE",
+                               "PURPLE",
+                               "PINK",
+                               "WHITE",
+                               "COLD_WHITE",
+                               "WARM_WHITE",
+                               "GOLD"]
+        preset_dropdown = OptionMenu(self.preset_colors_lf, self.colorVar, *self.default_colors)
         preset_dropdown.grid(row=0, column=0)
         preset_dropdown.configure(width=13)
         self.colorVar.trace('w', self.change_preset_dropdown)
@@ -290,10 +310,6 @@ class LightFrame(ttk.Labelframe):
         Button(self.special_functions_lf, text="Stop effects", command=self.stop_threads).grid(row=8, column=0)
         self.special_functions_lf.grid(row=6, columnspan=4)
         Label(self, text="*=Work in progress").grid(row=8, column=1)
-
-        # Register Keystrokes
-        # self.keylogger = Keystroke_Watcher(self)
-        # self.keylogger.register_function('Lcontrol+B', lambda *args: self.set_color(BLUE))
 
         # Start update loop
         self.started = True
