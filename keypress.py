@@ -1,7 +1,8 @@
+import logging
+
 from pyHook import HookManager
 from pyHook.HookManager import HookConstants
-import logging
-import inspect
+
 
 class Keystroke_Watcher:
     def __init__(self, master, sticky=False):
@@ -18,7 +19,7 @@ class Keystroke_Watcher:
     def register_function(self, key_combo, function):
         self.function_map[key_combo.lower()] = function
         self.logger.info(
-            "Registered function <{}> to keycombo <{}>.".format(inspect.getsource(function).strip(), key_combo.lower()))
+            "Registered function <{}> to keycombo <{}>.".format(function.__name__, key_combo.lower()))
 
     def on_key_down(self, event):
         try:
@@ -35,8 +36,8 @@ class Keystroke_Watcher:
         try:
             if keycombo in self.function_map.keys():
                 self.logger.info(
-                    "Shortcut <{}> pressed. Calling function <{}>.".format(keycombo, inspect.getsource(
-                        self.function_map[keycombo]).strip()))
+                    "Shortcut <{}> pressed. Calling function <{}>.".format(keycombo,
+                                                                           self.function_map[keycombo].__name__))
                 self.function_map[keycombo]()
         finally:
             if not self.sticky:
