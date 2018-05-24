@@ -32,7 +32,6 @@ class Keystroke_Watcher:
 
     def on_key_up(self, event):
         keycombo = self.get_key_combo_code().lower()
-        print(keycombo)
         try:
             if keycombo in self.function_map.keys():
                 self.logger.info(

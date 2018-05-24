@@ -4,6 +4,7 @@ import logging
 from shutil import copyfile
 from tkinter import *
 from tkinter.colorchooser import *
+import tkinter.ttk as ttk
 
 from desktopmagic.screengrab_win32 import getDisplayRects
 from lifxlan import *
@@ -82,10 +83,102 @@ class Dialog(Toplevel):
         pass  # override
 
 
+class MultiListbox(Frame):
+    """ https://www.safaribooksonline.com/library/view/python-cookbook/0596001673/ch09s05.html """
+
+    def __init__(self, master, lists):
+        Frame.__init__(self, master)
+        self.lists = []
+        for l, w in lists:
+            frame = Frame(self);
+            frame.pack(side=LEFT, expand=YES, fill=BOTH)
+            Label(frame, text=l, borderwidth=1, relief=RAISED).pack(fill=X)
+            lb = Listbox(frame, width=w, borderwidth=0, selectborderwidth=0,
+                         relief=FLAT, exportselection=FALSE)
+            lb.pack(expand=YES, fill=BOTH)
+            self.lists.append(lb)
+            lb.bind('<B1-Motion>', lambda e, s=self: s._select(e.y))
+            lb.bind('<Button-1>', lambda e, s=self: s._select(e.y))
+            lb.bind('<Leave>', lambda e: 'break')
+            lb.bind('<B2-Motion>', lambda e, s=self: s._b2motion(e.x, e.y))
+            lb.bind('<Button-2>', lambda e, s=self: s._button2(e.x, e.y))
+        frame = Frame(self);
+        frame.pack(side=LEFT, fill=Y)
+        Label(frame, borderwidth=1, relief=RAISED).pack(fill=X)
+        sb = Scrollbar(frame, orient=VERTICAL, command=self._scroll)
+        sb.pack(expand=YES, fill=Y)
+        self.lists[0]['yscrollcommand'] = sb.set
+
+    def _select(self, y):
+        row = self.lists[0].nearest(y)
+        self.selection_clear(0, END)
+        self.selection_set(row)
+        return 'break'
+
+    def _button2(self, x, y):
+        for l in self.lists: l.scan_mark(x, y)
+        return 'break'
+
+    def _b2motion(self, x, y):
+        for l in self.lists: l.scan_dragto(x, y)
+        return 'break'
+
+    def _scroll(self, *args):
+        for l in self.lists:
+            l.yview(*args)
+
+    def curselection(self):
+        return self.lists[0].curselection()
+
+    def delete(self, first, last=None):
+        for l in self.lists:
+            l.delete(first, last)
+
+    def get(self, first, last=None):
+        result = []
+        for l in self.lists:
+            result.append(l.get(first, last))
+        if last: return map(*([None] + result))
+        return result
+
+    def index(self, index):
+        self.lists[0].index(index)
+
+    def insert(self, index, *elements):
+        for e in elements:
+            i = 0
+            for l in self.lists:
+                l.insert(index, e[i])
+                i = i + 1
+
+    def size(self):
+        return self.lists[0].size()
+
+    def see(self, index):
+        for l in self.lists:
+            l.see(index)
+
+    def selection_anchor(self, index):
+        for l in self.lists:
+            l.selection_anchor(index)
+
+    def selection_clear(self, first, last=None):
+        for l in self.lists:
+            l.selection_clear(first, last)
+
+    def selection_includes(self, index):
+        return self.lists[0].selection_includes(index)
+
+    def selection_set(self, first, last=None):
+        for l in self.lists:
+            l.selection_set(first, last)
+
+
 class SettingsDisplay(Dialog):
     def body(self, master):
         self.root_window = master.master.master
         self.logger = logging.getLogger(self.root_window.logger.name + '.SettingsDisplay')
+        self.k = Keystroke_Watcher(self, sticky=True)
         # Labels
         Label(master, text="Avg. Monitor Default: ").grid(row=0, column=0)
         Label(master, text="Add Preset Color: ").grid(row=1, column=0)
@@ -126,12 +219,19 @@ class SettingsDisplay(Dialog):
 
         # Insert
         self.avg_monitor_dropdown.grid(row=0, column=1)
+        ttk.Separator(master, orient=HORIZONTAL).grid(row=0, sticky='esw', columnspan=100)
         self.preset_color_name.grid(row=1, column=1)
         self.preset_color_button.grid(row=1, column=2)
+        ttk.Separator(master, orient=HORIZONTAL).grid(row=1, sticky='esw', columnspan=100)
         self.keybind_bulb_dropdown.grid(row=2, column=1)
         self.keybind_keys_select.grid(row=2, column=2)
         self.keybind_color_dropdown.grid(row=2, column=3)
         self.keybind_add_button.grid(row=2, column=4)
+        self.mlb = MultiListbox(master, (('Bulb', 5), ('Keybind', 5), ('Color', 5)))
+        for keypress, fnx in dict(config['Keybinds']).items():
+            label, color = fnx.split(':')
+            self.mlb.insert(END, (label, keypress, color))
+        self.mlb.grid(row=3, columnspan=100, sticky='esw')
 
     def validate(self):
         config["AverageColor"]["DefaultMonitor"] = str(self.avg_monitor.get())
@@ -153,14 +253,14 @@ class SettingsDisplay(Dialog):
 
     def register_keybinding(self, bulb: str, keys: str, color: str):
         color = eval(color)  # should match color to variable w/ same name
-        # self.root_window.keylogger.register_function(keys, lambda *args: self.root_window.lightsdict[bulb].set_color(color))
         self.root_window.save_keybind(bulb, keys, color)
         config["Keybinds"][str(keys)] = str(bulb + ":" + str(color))
+        self.mlb.insert(END, (bulb, keys, color))
 
     def on_keybind_keys_click(self, event):
         self.update()
         self.update_idletasks()
-        self.k = Keystroke_Watcher(self, sticky=True)
+        self.k.restart()
         try:
             self.keybind_keys_select.config(state='normal')
             self.update()
