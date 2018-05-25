@@ -163,6 +163,9 @@ class LifxFrame(ttk.Frame):
         func = lambda_factory(self, light, color)
         self.keylogger.register_function(keypress, func)
 
+    def delete_keybind(self, keycombo):
+        self.keylogger.unregister_function(keycombo)
+
     def show_settings(self):
         self.keylogger.shutdown()
         s = settings.SettingsDisplay(self, "Settings")

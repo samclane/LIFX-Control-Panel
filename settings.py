@@ -222,7 +222,7 @@ class SettingsDisplay(Dialog):
         self.keybind_keys_select.config(state='readonly')
         self.keybind_keys_select.bind('<FocusIn>', self.on_keybind_keys_click)
         self.keybind_keys_select.bind('<FocusOut>', lambda *_: self.keybind_keys_select.config(state='readonly'))
-        self.keybind_color_selection = StringVar(master)
+        self.keybind_color_selection = StringVar(master, value="Color")
         self.keybind_color_dropdown = OptionMenu(master, self.keybind_color_selection,
                                                  *self.root_window.framesdict[
                                                      self.keybind_bulb_selection.get()].default_colors)
@@ -230,6 +230,7 @@ class SettingsDisplay(Dialog):
                                          command=lambda *_: self.register_keybinding(
                                              self.keybind_bulb_selection.get(), self.keybind_keys_select.get(),
                                              self.keybind_color_selection.get()))
+        self.keybind_delete_button = Button(master, text="Delete keybind", command=self.delete_keybind)
 
         # Insert
         self.avg_monitor_dropdown.grid(row=0, column=1)
@@ -246,6 +247,7 @@ class SettingsDisplay(Dialog):
             label, color = fnx.split(':')
             self.mlb.insert(END, (label, keypress, color))
         self.mlb.grid(row=3, columnspan=100, sticky='esw')
+        self.keybind_delete_button.grid(row=4, column=0)
 
     def validate(self):
         config["AverageColor"]["DefaultMonitor"] = str(self.avg_monitor.get())
@@ -270,8 +272,12 @@ class SettingsDisplay(Dialog):
         self.root_window.save_keybind(bulb, keys, color)
         config["Keybinds"][str(keys)] = str(bulb + ":" + str(color))
         self.mlb.insert(END, (bulb, keys, color))
+        self.keybind_keys_select.config(state='normal')
+        self.keybind_keys_select.delete(0, 'end')
+        self.keybind_keys_select.config(state='readonly')
 
     def on_keybind_keys_click(self, event):
+        """ Call when cursor is in key-combo entry """
         self.update()
         self.update_idletasks()
         self.k.restart()
@@ -283,3 +289,9 @@ class SettingsDisplay(Dialog):
             self.keybind_keys_select.insert(END, self.k.get_key_combo_code())
             self.update()
             self.update_idletasks()
+
+    def delete_keybind(self):
+        _, keybind, _ = self.mlb.get(ACTIVE)
+        self.mlb.delete(ACTIVE)
+        self.root_window.delete_keybind(keybind)
+        config.remove_option("Keybinds", keybind)

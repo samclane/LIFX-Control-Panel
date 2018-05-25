@@ -21,6 +21,12 @@ class Keystroke_Watcher:
         self.logger.info(
             "Registered function <{}> to keycombo <{}>.".format(function.__name__, key_combo.lower()))
 
+    def unregister_function(self, key_combo):
+        self.logger.info(
+            "Unregistered function <{}> at keycombo <{}>".format(self.function_map[key_combo.lower()].__name__,
+                                                                 key_combo.lower()))
+        del self.function_map[key_combo.lower()]
+
     def on_key_down(self, event):
         try:
             self.keys_held.add(event.KeyID)
