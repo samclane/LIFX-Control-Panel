@@ -14,9 +14,9 @@ from lifxlan.utils import RGBtoHSBK
 from utils import resource_path
 from keypress import Keystroke_Watcher
 
-VERSION = '1.2.6'
+VERSION = '1.3.0'
 AUTHOR = 'Sawyer McLane'
-BUILD_DATE = '5/20/2018'
+BUILD_DATE = '5/26/2018'
 
 config = configparser.ConfigParser()
 if not os.path.isfile("config.ini"):
@@ -271,7 +271,7 @@ class SettingsDisplay(Dialog):
         color = eval(color)  # should match color to variable w/ same name
         self.root_window.save_keybind(bulb, keys, color)
         config["Keybinds"][str(keys)] = str(bulb + ":" + str(color))
-        self.mlb.insert(END, (bulb, keys, color))
+        self.mlb.insert(END, (str(bulb), str(keys), str(color)))
         self.keybind_keys_select.config(state='normal')
         self.keybind_keys_select.delete(0, 'end')
         self.keybind_keys_select.config(state='readonly')
