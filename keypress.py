@@ -1,7 +1,7 @@
 import logging
 
-from pyHook import HookManager
-from pyHook.HookManager import HookConstants
+from PyHook3 import HookManager
+from PyHook3.HookManager import HookConstants
 
 
 class Keystroke_Watcher:
