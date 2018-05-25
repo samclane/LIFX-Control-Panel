@@ -3,7 +3,8 @@
 <img align="right" width="120" height="120"
      title="LIFX-Control-Panel Logo" src="https://i.imgur.com/pm4Lzgx.png">
      
-As LIFX [no longer supports their Windows 10 app](https://www.windowscentral.com/lifx-drops-support-windows-10), I created an open-source alternative for controlling LIFX-brand smart lights. 
+LIFX-Control-Panel is an open source application for controlling your LIFX brand lights. It integrates simple features, 
+such as monitoring and changing bulb color, with more advanced ones, like Average Screen Color, Color Eyedropper, and more.
 
 <p align="center">
   <img src="https://i.imgur.com/A98UMAg.png" alt="Screenshot" width="306" height="533">
