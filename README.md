@@ -6,7 +6,7 @@
 As LIFX [no longer supports their Windows 10 app](https://www.windowscentral.com/lifx-drops-support-windows-10), I created an open-source alternative for controlling LIFX-brand smart lights. 
 
 <p align="center">
-  <img src="https://i.imgur.com/aUgn8B3.png" alt="Screenshot" width="306" height="508">
+  <img src="https://i.imgur.com/A98UMAg.png" alt="Screenshot" width="306" height="533">
 </p>
 
 The application uses [mclarkk](https://github.com/mclarkk)'s [lifxlan](https://github.com/mclarkk/lifxlan) module to discover and send commands to the lights.
