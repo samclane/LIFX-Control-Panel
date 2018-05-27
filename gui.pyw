@@ -572,7 +572,7 @@ class Splash:
         self.__root.deiconify()
 
 
-if __name__ == "__main__":
+def main():
     root = Tk()
     root.title("LIFX-Control-Panel")
     root.resizable(False, False)
@@ -585,12 +585,19 @@ if __name__ == "__main__":
     # Setup exception logging
     logger = mainframe.logger
 
-
     def myHandler(type, value, tb):
         logger.exception("Uncaught exception: {}:{}:{}".format(repr(type), str(value), repr(tb)))
-
 
     sys.excepthook = myHandler
 
     # Run main app
     root.mainloop()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        messagebox.showerror("Unhandled Exception", "Unhandled runtime exception: {}\n\n"
+                                                    "Please report this at: {}".format(e,
+                                                                                       r"https://github.com/samclane/LIFX-Control-Panel/issues"))
