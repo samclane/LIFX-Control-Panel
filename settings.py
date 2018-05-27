@@ -22,7 +22,8 @@ config = configparser.ConfigParser()
 if not os.path.isfile("config.ini"):
     copyfile(resource_path("default.ini"), "config.ini")
 config.read("config.ini")
-if int(config["Info"]["Version"].replace('.', '')) < int(VERSION.replace('.', '')):  # check version number
+if not config.has_section("Info") or int(config["Info"]["Version"].replace('.', '')) < int(
+        VERSION.replace('.', '')):  # check version number
     root = Tk()  # temp root window
     root.withdraw()
     messagebox.showerror("Old config detected", "Your old config file is old. Replacing with newer.")
