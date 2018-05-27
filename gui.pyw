@@ -16,11 +16,9 @@ import SysTrayIcon
 import audio
 import color_thread
 import settings
-from utils import *
 from keypress import Keystroke_Watcher
 from settings import config, VERSION, AUTHOR, BUILD_DATE
-
-
+from utils import *
 
 HEARTBEAT_RATE = 3000  # 3 seconds
 LOGFILE = 'lifx_ctrl.log'
@@ -63,6 +61,8 @@ class LifxFrame(ttk.Frame):
         sh.setFormatter(formatter)
         self.logger.addHandler(sh)
         self.logger.info('Root logger initialized: {}'.format(self.logger.name))
+        self.logger.info('Binary Version: {}'.format(VERSION))
+        self.logger.info('Config Version: {}'.format(config["Info"]["Version"]))
 
         # Setup menu
         self.menubar = Menu(master)
@@ -110,7 +110,6 @@ class LifxFrame(ttk.Frame):
             light, color = function.split(':')
             color = Color(*eval(color))
             self.save_keybind(light, keypress, color)
-
 
         # Stop splashscreen and start main function
         self.splashscreen.__exit__(None, None, None)
@@ -409,9 +408,6 @@ class LightFrame(ttk.Labelframe):
             self.option_off.selection_clear()
         try:
             hsbk = self.bulb.get_color()
-            if hsbk != self.get_color_values_hsbk():
-                self.logger.info(
-                    'Color sync mismatch. Updating. Local: {} // Remote: {}'.format(self.get_color_values_hsbk(), hsbk))
             for key, val in enumerate(self.hsbk):
                 self.hsbk[key].set(hsbk[key])
                 self.update_label(key)
@@ -517,8 +513,11 @@ class BulbIconList(Frame):
 
     def update_icon(self, bulb):
         icon = self.bulb_dict[bulb.get_label()]
-        self.canvas.itemconfig(icon.oval, fill=tuple2hex(HSBKtoRGB(Color(*bulb.get_color()))),
-                               extent=359 * bulb.get_color()[2] / 65535)
+        try:
+            self.canvas.itemconfig(icon.oval, fill=tuple2hex(HSBKtoRGB(Color(*bulb.get_color()))),
+                                   extent=359 * bulb.get_color()[2] / 65535)
+        except WorkflowException:
+            print("Workflow Exception Caught")
 
 
 class Splash:
