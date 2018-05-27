@@ -66,7 +66,7 @@ class ColorThreadRunner:
         while not self.t.stopped():
             try:
                 color = self.color_function(initial_color=self.prev_color)
-                bulb.set_color(color, transition_time_ms,
+                bulb.set_color(color, 0,
                                True if duration_secs < 1 else False)
                 self.prev_color = color
             except OSError:
