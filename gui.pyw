@@ -72,11 +72,16 @@ class LifxFrame(ttk.Frame):
 
         # Initialize LIFX objects
         self.lightvar = StringVar(self)
-        self.lights = self.lifx.get_lights()
+        self.lights = []
         self.lightsdict = {}  # LifxLight objects
         self.framesdict = {}  # corresponding LightFrame GUI
         self.current_lightframe = None  # currently selected and visible LightFrame
         self.bulb_icons = BulbIconList(self)
+
+        self.lights = self.lifx.get_lights()
+        if len(self.lights) == 0:
+            messagebox.showerror("No lights found.", "No LIFX devices were found on your LAN. Exiting.")
+            self.on_closing()
 
         for x, light in enumerate(self.lights):
             product = product_map[light.get_product()]
