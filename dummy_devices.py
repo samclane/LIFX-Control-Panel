@@ -2,11 +2,15 @@
 
 import time
 from random import randint, sample, randrange, choice
+from tkinter import messagebox
+from tkinter import *
 
 from gui import Color as DummyColor
 from lifxlan import product_map
 from utils import resource_path
 from threading import Timer
+import logging
+import os
 
 
 # Helpers
@@ -431,10 +435,9 @@ class Group:
             device.set_color(colors[index], duration, rapid)
 
 
-if __name__ == "__main__":
+def main():
     from lifxlan import LifxLAN
     from gui import LifxFrame
-    from tkinter import *
 
     # Build mixed list of fake and real lights
     lifx = LifxLANDummy()
@@ -454,17 +457,34 @@ if __name__ == "__main__":
     # Setup main_icon
     root.iconbitmap(resource_path('res//icon_vector_9fv_icon.ico'))
 
+    root.logger = logging.getLogger('root')
+    root.logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    sh = logging.StreamHandler()
+    sh.setLevel(logging.DEBUG)
+    sh.setFormatter(formatter)
+    root.logger.addHandler(sh)
+    root.logger.info('Logger initialized.')
+
     mainframe = LifxFrame(root, lifx)
 
     # Setup exception logging
     logger = mainframe.logger
 
-
     def myHandler(type, value, tb):
         logger.exception("Uncaught exception: {}:{}:{}".format(repr(type), str(value), repr(tb)))
-
 
     # sys.excepthook = myHandler  # dont' want to log exceptions when we're testing
 
     # Run main app
     root.mainloop()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        messagebox.showerror("Unhandled Exception", "Unhandled runtime exception: {}\n\n"
+                                                    "Please report this at: {}".format(e,
+                                                                                       r"https://github.com/samclane/LIFX-Control-Panel/issues"))
+        os._exit(1)

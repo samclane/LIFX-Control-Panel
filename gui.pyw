@@ -50,16 +50,7 @@ class LifxFrame(ttk.Frame):
         self.lifx = lifx_instance
 
         # Setup logger
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(logging.DEBUG)
-        fh = logging.FileHandler(LOGFILE, mode='w')
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        fh.setFormatter(formatter)
-        self.logger.addHandler(fh)
-        sh = logging.StreamHandler()
-        sh.setLevel(logging.ERROR)
-        sh.setFormatter(formatter)
-        self.logger.addHandler(sh)
+        self.logger = logging.getLogger(master.logger.name + '.' + self.__class__.__name__)
         self.logger.info('Root logger initialized: {}'.format(self.logger.name))
         self.logger.info('Binary Version: {}'.format(VERSION))
         self.logger.info('Config Version: {}'.format(config["Info"]["Version"]))
@@ -181,6 +172,7 @@ class LifxFrame(ttk.Frame):
                                      "Version {}\n"
                                      "{}, {}".format(VERSION, AUTHOR, BUILD_DATE))
 
+
     def on_closing(self):
         self.logger.info('Shutting down.\n')
         self.master.destroy()
@@ -201,7 +193,7 @@ class LightFrame(ttk.Labelframe):
 
         # Setup logger
         self.logger = logging.getLogger(
-            self.master.__class__.__name__ + '.' + self.__class__.__name__ + '({})'.format(self.bulb.get_label()))
+            self.master.logger.name + '.' + self.__class__.__name__ + '({})'.format(self.bulb.get_label()))
         self.logger.setLevel(logging.DEBUG)
         self.logger.info(
             'LightFrame logger initialized: {} // Device: {}'.format(self.logger.name, self.bulb.get_label()))
@@ -572,7 +564,9 @@ class Splash:
         self.__root.deiconify()
 
 
+root = None
 def main():
+    global root
     root = Tk()
     root.title("LIFX-Control-Panel")
     root.resizable(False, False)
@@ -580,15 +574,25 @@ def main():
     # Setup main_icon
     root.iconbitmap(resource_path('res/icon_vector_9fv_icon.ico'))
 
-    mainframe = LifxFrame(root, LifxLAN())
-
-    # Setup exception logging
-    logger = mainframe.logger
+    root.logger = logging.getLogger('root')
+    root.logger.setLevel(logging.DEBUG)
+    fh = logging.FileHandler(LOGFILE, mode='w')
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    root.logger.addHandler(fh)
+    sh = logging.StreamHandler()
+    sh.setLevel(logging.DEBUG)
+    sh.setFormatter(formatter)
+    root.logger.addHandler(sh)
+    root.logger.info('Logger initialized.')
 
     def myHandler(type, value, tb):
-        logger.exception("Uncaught exception: {}:{}:{}".format(repr(type), str(value), repr(tb)))
+        global root
+        root.logger.exception("Uncaught exception: {}:{}:{}".format(repr(type), str(value), repr(tb)))
 
     sys.excepthook = myHandler
+
+    mainframe = LifxFrame(root, LifxLAN())
 
     # Run main app
     root.mainloop()
@@ -598,6 +602,8 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
+        root.logger.exception(e)
         messagebox.showerror("Unhandled Exception", "Unhandled runtime exception: {}\n\n"
                                                     "Please report this at: {}".format(e,
                                                                                        r"https://github.com/samclane/LIFX-Control-Panel/issues"))
+        os._exit(1)
