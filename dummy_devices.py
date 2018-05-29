@@ -487,4 +487,4 @@ if __name__ == "__main__":
         messagebox.showerror("Unhandled Exception", "Unhandled runtime exception: {}\n\n"
                                                     "Please report this at: {}".format(e,
                                                                                        r"https://github.com/samclane/LIFX-Control-Panel/issues"))
-        os._exit(1)
+        raise e

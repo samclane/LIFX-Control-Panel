@@ -9,6 +9,7 @@ from tkinter import ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
 
+from PIL import Image as pImage
 from lifxlan import *
 from lifxlan import errors
 
@@ -171,7 +172,6 @@ class LifxFrame(ttk.Frame):
         messagebox.showinfo("About", "LIFX-Control-Panel\n"
                                      "Version {}\n"
                                      "{}, {}".format(VERSION, AUTHOR, BUILD_DATE))
-
 
     def on_closing(self):
         self.logger.info('Shutting down.\n')
@@ -457,9 +457,9 @@ class LightFrame(ttk.Labelframe):
             self.user_dropdown["menu"].add_command(label=choice, command=_setit(self.uservar, choice))
 
 
-BulbIcon = namedtuple('BulbIcon', 'circle oval rect text')
+# BulbIcon = namedtuple('BulbIcon', 'circle oval rect text')
 
-
+"""
 class BulbIconList(Frame):
     def __init__(self, *args):
         self.window_width = 285
@@ -515,6 +515,69 @@ class BulbIconList(Frame):
                                    extent=359 * bulb.get_color()[2] / 65535)
         except WorkflowException:
             print("Workflow Exception Caught")
+"""
+
+
+class BulbIconList(Frame):
+    def __init__(self, *args):
+        self.window_width = 285
+        self.icon_width = 50
+        self.icon_height = 75
+        super().__init__(*args, width=self.window_width, height=self.icon_height)
+        self.pad = 5
+        self.scrollx = 0
+        self.scrolly = 0
+        self.bulb_dict = {}
+        self.canvas = Canvas(self, width=self.window_width, height=self.icon_height,
+                             scrollregion=(0, 0, self.scrollx, self.scrolly))
+        hbar = Scrollbar(self, orient=HORIZONTAL)
+        hbar.pack(side=BOTTOM, fill=X)
+        hbar.config(command=self.canvas.xview)
+        self.canvas.config(width=self.window_width, height=self.icon_height)
+        self.canvas.config(xscrollcommand=hbar.set)
+        self.canvas.pack(side=LEFT, expand=True, fill=BOTH)
+        self.current_icon_width = 0
+
+    def draw_bulb_icon(self, bulb):
+        # Get label
+        label = bulb.get_label()
+        # Make room on canvas
+        self.scrollx += self.icon_width
+        self.canvas.configure(scrollregion=(0, 0, self.scrollx, self.scrolly))
+        # Build icon
+        sprite = PhotoImage(file=resource_path("res/lightbulb.png"), master=self.master)
+        image = self.canvas.create_image(
+            (self.current_icon_width + self.icon_width - self.pad, self.icon_height / 2 + 2 * self.pad), image=sprite,
+            anchor=SE, tags=[label])
+        text = self.canvas.create_text(self.current_icon_width + self.pad, self.icon_height / 2 + self.pad,
+                                       text=label[:8], anchor=NW, tags=[label])
+        self.bulb_dict[label] = (sprite, image, text)
+        self.update_icon(bulb)
+        # update sizing info
+        self.current_icon_width += self.icon_width
+
+    def update_icon(self, bulb):
+        try:
+            bulb_color = bulb.get_color()
+            bulb_brightness = bulb_color[2]
+            sprite, image, text = self.bulb_dict[bulb.get_label()]
+        except WorkflowException:
+            return
+        icon = pImage.open(resource_path("res/lightbulb.png"))
+        icon = icon.load()
+        brightness_scale = (bulb_brightness / 65535) * sprite.height()
+        for y in range(sprite.height()):
+            for x in range(sprite.width()):
+                value = 1 - (icon[x, y][0] / 255)
+                if all([v == 0 for v in icon[x, y][:3]]) and icon[x, y][3] == 255 and y < brightness_scale:
+                    bulb_color = bulb_color[0], value * bulb_color[1], bulb_color[2], bulb_color[3]
+                    color = HSBKtoRGB(bulb_color)
+                elif any([v > 0 for v in icon[x, y]]):
+                    color = icon[x, y][:3]
+                else:
+                    continue
+                sprite.put(tuple2hex(color), (x, y))
+                self.canvas.itemconfig(image, image=sprite)
 
 
 class Splash:
@@ -565,6 +628,8 @@ class Splash:
 
 
 root = None
+
+
 def main():
     global root
     root = Tk()
