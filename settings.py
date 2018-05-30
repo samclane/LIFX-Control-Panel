@@ -14,9 +14,9 @@ from lifxlan.utils import RGBtoHSBK
 from utils import resource_path
 from keypress import Keystroke_Watcher
 
-VERSION = '1.3.2'
+VERSION = '1.3.3'
 AUTHOR = 'Sawyer McLane'
-BUILD_DATE = '5/28/2018'
+BUILD_DATE = '5/30/2018'
 
 config = configparser.ConfigParser()
 if not os.path.isfile("config.ini"):

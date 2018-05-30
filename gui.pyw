@@ -80,7 +80,7 @@ class LifxFrame(ttk.Frame):
             label = light.get_label()
             self.lightsdict[label] = light
             self.logger.info('Light found: {}:({})'.format(product, label))
-            self.bulb_icons.draw_bulb_icon(light)
+            self.bulb_icons.draw_bulb_icon(light, label)
 
         if len(self.lightsdict):  # if any lights are found
             self.lightvar.set(self.lights[0].get_label())
@@ -182,7 +182,14 @@ class LifxFrame(ttk.Frame):
 class LightFrame(ttk.Labelframe):
     def __init__(self, master, bulb):
         # Initialize frame
-        self.label = bulb.get_label()
+        try:
+            self.label = bulb.get_label()
+            bulb_power = bulb.get_power()
+            init_color = Color(*bulb.get_color())
+        except WorkflowException as e:
+            messagebox.showerror("Error building lightframe",
+                                 "Error thrown when trying to get label from bulb:\n{}".format(e))
+            return
         ttk.Labelframe.__init__(self, master, padding="3 3 12 12",
                                 labelwidget=Label(master, text=self.label, font=font.Font(size=12), fg="#0046d5",
                                                   relief=RIDGE))
@@ -193,14 +200,14 @@ class LightFrame(ttk.Labelframe):
 
         # Setup logger
         self.logger = logging.getLogger(
-            self.master.logger.name + '.' + self.__class__.__name__ + '({})'.format(self.bulb.get_label()))
+            self.master.logger.name + '.' + self.__class__.__name__ + '({})'.format(self.label))
         self.logger.setLevel(logging.DEBUG)
         self.logger.info(
-            'LightFrame logger initialized: {} // Device: {}'.format(self.logger.name, self.bulb.get_label()))
+            'LightFrame logger initialized: {} // Device: {}'.format(self.logger.name, self.label))
 
         # Initialize vars to hold on/off state
         self.powervar = BooleanVar(self)
-        self.powervar.set(bulb.get_power())
+        self.powervar.set(bulb_power)
         self.option_on = Radiobutton(self, text="On", variable=self.powervar, value=65535, command=self.update_power)
         self.option_off = Radiobutton(self, text="Off", variable=self.powervar, value=0, command=self.update_power)
         if self.powervar.get() == 0:
@@ -214,7 +221,6 @@ class LightFrame(ttk.Labelframe):
         self.option_off.grid(row=0, column=1)
 
         # Initialize vars to hold and display bulb color
-        init_color = Color(*bulb.get_color())
         self.logger.info('Initial light color HSBK: {}'.format(init_color))
         self.current_color = Canvas(self, background=tuple2hex(HSBKtoRGB(init_color)), width=40, height=20,
                                     borderwidth=3,
@@ -456,10 +462,6 @@ class LightFrame(ttk.Labelframe):
         for choice in new_choices:
             self.user_dropdown["menu"].add_command(label=choice, command=_setit(self.uservar, choice))
 
-
-# BulbIcon = namedtuple('BulbIcon', 'circle oval rect text')
-
-"""
 class BulbIconList(Frame):
     def __init__(self, *args):
         self.window_width = 285
@@ -480,67 +482,7 @@ class BulbIconList(Frame):
         self.canvas.pack(side=LEFT, expand=True, fill=BOTH)
         self.current_icon_width = 0
 
-    def draw_bulb_icon(self, bulb):
-        # Get label
-        label = bulb.get_label()
-        # Make room on canvas
-        self.scrollx += self.icon_width
-        self.canvas.configure(scrollregion=(0, 0, self.scrollx, self.scrolly))
-        # Build icon
-        rect = self.canvas.create_rectangle(self.current_icon_width + (self.icon_width / 4) + self.pad,
-                                            self.icon_height / 2 + self.pad,
-                                            self.current_icon_width + (3 * self.icon_width / 4) - self.pad,
-                                            self.icon_height / 2 - self.pad, fill='grey',
-                                            width=0, tags=[label])
-        circle = self.canvas.create_oval(self.current_icon_width + self.pad, self.pad,
-                                         self.current_icon_width + self.icon_width - self.pad,
-                                         self.icon_height / 2 - self.pad, outline='black', fill='black', width=3,
-                                         tags=[label])
-        oval = self.canvas.create_arc(self.current_icon_width + self.pad, self.pad,
-                                      self.current_icon_width + self.icon_width - self.pad,
-                                      (self.icon_height / 2) - self.pad,
-                                      fill=tuple2hex(HSBKtoRGB(Color(*bulb.get_color()))), style=PIESLICE,
-                                      extent=359 * bulb.get_color()[2] / 65535, width=0, tags=[label])
-        text = self.canvas.create_text(self.current_icon_width + self.pad, self.icon_height / 2 + self.pad,
-                                       text=label[:8], anchor=NW, tags=[label])
-        self.bulb_dict[label] = BulbIcon(circle, oval, rect, text)
-
-        # update sizing info
-        self.current_icon_width += self.icon_width
-
-    def update_icon(self, bulb):
-        icon = self.bulb_dict[bulb.get_label()]
-        try:
-            self.canvas.itemconfig(icon.oval, fill=tuple2hex(HSBKtoRGB(Color(*bulb.get_color()))),
-                                   extent=359 * bulb.get_color()[2] / 65535)
-        except WorkflowException:
-            print("Workflow Exception Caught")
-"""
-
-
-class BulbIconList(Frame):
-    def __init__(self, *args):
-        self.window_width = 285
-        self.icon_width = 50
-        self.icon_height = 75
-        super().__init__(*args, width=self.window_width, height=self.icon_height)
-        self.pad = 5
-        self.scrollx = 0
-        self.scrolly = 0
-        self.bulb_dict = {}
-        self.canvas = Canvas(self, width=self.window_width, height=self.icon_height,
-                             scrollregion=(0, 0, self.scrollx, self.scrolly))
-        hbar = Scrollbar(self, orient=HORIZONTAL)
-        hbar.pack(side=BOTTOM, fill=X)
-        hbar.config(command=self.canvas.xview)
-        self.canvas.config(width=self.window_width, height=self.icon_height)
-        self.canvas.config(xscrollcommand=hbar.set)
-        self.canvas.pack(side=LEFT, expand=True, fill=BOTH)
-        self.current_icon_width = 0
-
-    def draw_bulb_icon(self, bulb):
-        # Get label
-        label = bulb.get_label()
+    def draw_bulb_icon(self, bulb, label):
         # Make room on canvas
         self.scrollx += self.icon_width
         self.canvas.configure(scrollregion=(0, 0, self.scrollx, self.scrolly))
