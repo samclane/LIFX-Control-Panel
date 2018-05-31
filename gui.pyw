@@ -18,8 +18,9 @@ import audio
 import color_thread
 import settings
 from keypress import Keystroke_Watcher
-from settings import config, VERSION, AUTHOR, BUILD_DATE
+from settings import config
 from utils import *
+from _constants import *
 
 HEARTBEAT_RATE = 3000  # 3 seconds
 LOGFILE = 'lifx_ctrl.log'
@@ -602,7 +603,7 @@ def main():
 
     sys.excepthook = myHandler
 
-    mainframe = LifxFrame(root, LifxLAN(verbose=True))
+    mainframe = LifxFrame(root, LifxLAN(verbose=DEBUGGING))
 
     # Run main app
     root.mainloop()
