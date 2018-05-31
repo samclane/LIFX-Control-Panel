@@ -76,11 +76,14 @@ class LifxFrame(ttk.Frame):
             self.on_closing()
 
         for x, light in enumerate(self.lights):
-            product = product_map[light.get_product()]
-            label = light.get_label()
-            self.lightsdict[label] = light
-            self.logger.info('Light found: {}:({})'.format(product, label))
-            self.bulb_icons.draw_bulb_icon(light, label)
+            try:
+                product = product_map[light.get_product()]
+                label = light.get_label()
+                self.lightsdict[label] = light
+                self.logger.info('Light found: {}:({})'.format(product, label))
+                self.bulb_icons.draw_bulb_icon(light, label)
+            except WorkflowException as e:
+                self.logger.warning("Error when communicating with LIFX device: {}".format(e))
 
         if len(self.lightsdict):  # if any lights are found
             self.lightvar.set(self.lights[0].get_label())
@@ -481,6 +484,7 @@ class BulbIconList(Frame):
         self.canvas.config(xscrollcommand=hbar.set)
         self.canvas.pack(side=LEFT, expand=True, fill=BOTH)
         self.current_icon_width = 0
+        self.original_icon = pImage.open(resource_path("res/lightbulb.png")).load()
 
     def draw_bulb_icon(self, bulb, label):
         # Make room on canvas
@@ -505,17 +509,16 @@ class BulbIconList(Frame):
             sprite, image, text = self.bulb_dict[bulb.get_label()]
         except WorkflowException:
             return
-        icon = pImage.open(resource_path("res/lightbulb.png"))
-        icon = icon.load()
         brightness_scale = (bulb_brightness / 65535) * sprite.height()
         for y in range(sprite.height()):
             for x in range(sprite.width()):
-                value = 1 - (icon[x, y][0] / 255)
-                if all([v == 0 for v in icon[x, y][:3]]) and icon[x, y][3] == 255 and y < brightness_scale:
+                value = 1 - (self.original_icon[x, y][0] / 255)
+                if all([v == 0 for v in self.original_icon[x, y][:3]]) and self.original_icon[x, y][
+                    3] == 255 and y < brightness_scale:
                     bulb_color = bulb_color[0], value * bulb_color[1], bulb_color[2], bulb_color[3]
                     color = HSBKtoRGB(bulb_color)
-                elif any([v > 0 for v in icon[x, y]]):
-                    color = icon[x, y][:3]
+                elif any([v > 0 for v in self.original_icon[x, y]]):
+                    color = self.original_icon[x, y][:3]
                 else:
                     continue
                 sprite.put(tuple2hex(color), (x, y))

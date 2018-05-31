@@ -443,11 +443,14 @@ def main():
     lifx = LifxLANDummy()
     lifx.add_dummy_light(DummyBulb(label="A Light"))
     lifx.add_dummy_light(DummyBulb(label="B Light"))
-    lifx.add_dummy_light(TileChainDummy(label="C Tile"))
+    lifx.add_dummy_light(DummyBulb(label="C Light"))
     lifx.add_dummy_light(DummyBulb(label="D Light"))
     lifx.add_dummy_light(DummyBulb(label="E Light"))
     lifx.add_dummy_light(DummyBulb(label="F Light"))
     lifx.add_dummy_light(DummyBulb(label="G Light"))
+    lifx.add_dummy_light(DummyBulb(label="H Light"))
+    lifx.add_dummy_light(DummyBulb(label="I Light"))
+    lifx.add_dummy_light(DummyBulb(label="J Light"))
     for light in LifxLAN().get_lights():
         lifx.add_dummy_light(light)
 
