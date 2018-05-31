@@ -1,13 +1,13 @@
 # LIFX-Control-Panel 
 
 <img align="right" width="120" height="120"
-     title="LIFX-Control-Panel Logo" src="https://i.imgur.com/pm4Lzgx.png">
+     title="LIFX-Control-Panel Logo" src="https://raw.githubusercontent.com/samclane/LIFX-Control-Panel/master/icon.png">
      
 LIFX-Control-Panel is an open source application for controlling your LIFX brand lights. It integrates simple features, 
 such as monitoring and changing bulb color, with more advanced ones, like Average Screen Color, Color Eyedropper, and more.
 
 <p align="center">
-  <img src="https://i.imgur.com/A98UMAg.png" alt="Screenshot" width="306" height="533">
+  <img src="https://raw.githubusercontent.com/samclane/LIFX-Control-Panel/master/screenshot.png" alt="Screenshot">
 </p>
 
 The application uses [mclarkk](https://github.com/mclarkk)'s [lifxlan](https://github.com/mclarkk/lifxlan) module to discover and send commands to the lights.
