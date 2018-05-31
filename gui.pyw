@@ -56,6 +56,7 @@ class LifxFrame(ttk.Frame):
         self.logger.info('Root logger initialized: {}'.format(self.logger.name))
         self.logger.info('Binary Version: {}'.format(VERSION))
         self.logger.info('Config Version: {}'.format(config["Info"]["Version"]))
+        self.logger.info('Build time: {}'.format(config["Info"]["BuildDate"]))
 
         # Setup menu
         self.menubar = Menu(master)
