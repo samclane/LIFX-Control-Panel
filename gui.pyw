@@ -602,7 +602,7 @@ def main():
 
     sys.excepthook = myHandler
 
-    mainframe = LifxFrame(root, LifxLAN())
+    mainframe = LifxFrame(root, LifxLAN(verbose=True))
 
     # Run main app
     root.mainloop()
