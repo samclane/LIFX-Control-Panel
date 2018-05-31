@@ -23,7 +23,7 @@ from utils import *
 from _constants import *
 
 HEARTBEAT_RATE = 3000  # 3 seconds
-LOGFILE = 'lifx_ctrl.log'
+LOGFILE = 'lifx-control-panel.log'
 
 # determine if application is a script file or frozen exe
 if getattr(sys, 'frozen', False):
