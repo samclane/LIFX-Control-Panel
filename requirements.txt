@@ -1,6 +1,6 @@
 PyHook3==1.6.1
 desktopmagic==14.3.11
-win32gui
+win32gui==221.6
 pyaudio
 Pillow
 lifxlan
