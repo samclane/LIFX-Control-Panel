@@ -1,5 +1,5 @@
 PyHook3==1.6.1
-desktopmagic
+desktopmagic==14.3.11
 win32gui
 pyaudio
 Pillow
