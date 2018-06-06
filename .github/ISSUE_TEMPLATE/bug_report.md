@@ -23,7 +23,7 @@ If applicable, add screenshots to help explain your problem.
 **Desktop (please complete the following information):**
  - OS: [e.g. iOS]
 
-**Please attach your logfile (lifx_ctrl.log)**
+**Please attach your logfile (lifx-control-panel.log)**
 Attempt to reproduce the problem, then attach your `lifx_ctrl.log` file. This will give us the most information about what went wrong.
 
 **Additional context**
