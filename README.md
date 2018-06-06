@@ -15,10 +15,20 @@ The application uses [mclarkk](https://github.com/mclarkk)'s [lifxlan](https://g
 # Quick Start
 Go over to [releases](https://github.com/samclane/LIFX-Control-Panel/releases) and download the latest `.exe` file.
 
+The `LIFX-Control-Panel-debug.exe` is a debug version that runs with a console in the background, and uses a verbose
+`lifxlan` network logger.
+
+`LIFX-Control-Panel-demo.exe` features several "Dummy" bulbs in addition to any real devices on your network. You can use
+this distribution to test the software on computers that do not have a LIFX device on the LAN. 
+
 Starting the program takes a moment, as it first must scan your LAN for any LIFX devices. 
 
 # Running the source code
-To run the code from source, simply run `python gui.pyw` from the command line
+To install the dependancies, run `pip install -r requirements.txt`. PyHook3 has given me some grief installing from pip
+in the past, but your millage may vary. 
+
+To run the code from source, simply run `python gui.pyw` from the command line. To run with "Dummy" devices included, 
+run `python dummy_devices.py`.
 
 # Testing progress
 I have currently only tested on the following operating systems:
