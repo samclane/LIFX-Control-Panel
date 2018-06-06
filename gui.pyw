@@ -8,6 +8,7 @@ from tkinter import messagebox
 from tkinter import ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
+import sys
 
 from PIL import Image as pImage
 from lifxlan import *
@@ -81,6 +82,7 @@ class LifxFrame(ttk.Frame):
             try:
                 product = product_map[light.get_product()]
                 label = light.get_label()
+                light.updated = False
                 self.lightsdict[label] = light
                 self.logger.info('Light found: {}:({})'.format(product, label))
                 self.bulb_icons.draw_bulb_icon(light, label)
@@ -153,7 +155,8 @@ class LifxFrame(ttk.Frame):
 
     def update_icons(self):
         for bulb in self.lightsdict.values():
-            self.bulb_icons.update_icon(bulb)
+            if bulb.updated:
+                self.bulb_icons.update_icon(bulb)
         self.after(HEARTBEAT_RATE, self.update_icons)
 
     def save_keybind(self, light, keypress, color):
@@ -416,6 +419,8 @@ class LightFrame(ttk.Labelframe):
             self.option_off.selection_clear()
         try:
             hsbk = self.bulb.get_color()
+            if hsbk != self.get_color_values_hsbk():
+                self.bulb.updated = True
             for key, val in enumerate(self.hsbk):
                 self.hsbk[key].set(hsbk[key])
                 self.update_label(key)

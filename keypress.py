@@ -6,15 +6,17 @@ from PyHook3.HookManager import HookConstants
 
 class Keystroke_Watcher:
     def __init__(self, master, sticky=False):
+        self.logger = logging.getLogger(master.logger.name + '.Keystroke_Watcher')
         self.hm = HookManager()
         self.hm.KeyDown = self.on_key_down
         self.hm.KeyUp = self.on_key_up
-        self.hm.HookKeyboard()
-        self.logger = logging.getLogger(master.logger.name + '.Keystroke_Watcher')
         self.function_map = {}
-        self.sticky = sticky
-
         self.keys_held = set()
+        self.sticky = sticky
+        self.hm.HookKeyboard()
+
+    def get_key_combo_code(self):
+        return '+'.join([HookConstants.IDToName(key) for key in self.keys_held])
 
     def register_function(self, key_combo, function):
         self.function_map[key_combo.lower()] = function
@@ -32,9 +34,6 @@ class Keystroke_Watcher:
             self.keys_held.add(event.KeyID)
         finally:
             return True
-
-    def get_key_combo_code(self):
-        return '+'.join([HookConstants.IDToName(key) for key in self.keys_held])
 
     def on_key_up(self, event):
         keycombo = self.get_key_combo_code().lower()

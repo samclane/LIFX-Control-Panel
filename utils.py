@@ -7,14 +7,15 @@ from desktopmagic.screengrab_win32 import *
 
 
 def HSBKtoRGB(hsvk):
+    """ Converted from PHP https://gist.github.com/joshrp/5200913 """
     iH, iS, iV, iK = hsvk
-    dS = (100 * iS / 65535) / 100.0
-    dV = (100 * iV / 65535) / 100.0
-    dC = dV * dS
-    dH = (360 * iH / 65535) / 60.0
-    dT = dH
+    dS = (100 * iS / 65535) / 100.0  # Saturation: 0.0-1.0
+    dV = (100 * iV / 65535) / 100.0  # Lightness: 0.0-1.0
+    dC = dV * dS  # Chroma: 0.0-1.0
+    dH = (360 * iH / 65535) / 60.0  # H-prime: 0.0-6.0
+    dT = dH  # Temp variable
 
-    while dT >= 2.0:
+    while dT >= 2.0:  # php modulus does not work with float
         dT -= 2.0
     dX = dC * (1 - abs(dT - 1))
 
@@ -53,11 +54,10 @@ def HSBKtoRGB(hsvk):
     dG += dM
     dB += dM
 
-    """    
+    """
     rgb_prime = int(dR * 255), int(dG * 255), int(dB * 255)
     rgb_k = KelvinToRGB(iK)
-    return_rgb = tuple(int(min(255, a+b)) for (a, b) in zip(rgb_prime, rgb_k))  # Light model
-    return_rgb = tuple(int((a+b)/2) for (a, b) in zip(rgb_prime, rgb_k))  # Gradient model
+    return_rgb = tuple(int(min(255, ((dC)*a)+((1-dC)*b))) for (a, b) in zip(rgb_prime, rgb_k))  # Light model
     return return_rgb
     """
 
