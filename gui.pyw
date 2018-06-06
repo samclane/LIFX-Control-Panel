@@ -157,6 +157,7 @@ class LifxFrame(ttk.Frame):
         for bulb in self.lightsdict.values():
             if bulb.updated:
                 self.bulb_icons.update_icon(bulb)
+                bulb.updated = False
         self.after(HEARTBEAT_RATE, self.update_icons)
 
     def save_keybind(self, light, keypress, color):
