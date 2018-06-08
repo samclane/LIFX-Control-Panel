@@ -24,7 +24,7 @@ this distribution to test the software on computers that do not have a LIFX devi
 Starting the program takes a moment, as it first must scan your LAN for any LIFX devices. 
 
 # Running the source code
-To install the dependancies, run `pip install -r requirements.txt`. PyHook3 has given me some grief installing from pip
+To install the dependencies, run `pip install -r requirements.txt`. PyHook3 has given me some grief installing from pip
 in the past, but your millage may vary. 
 
 To run the code from source, simply run `python gui.pyw` from the command line. To run with "Dummy" devices included, 
