@@ -8,7 +8,6 @@ from tkinter import messagebox
 from tkinter import ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
-import sys
 
 from PIL import Image as pImage
 from lifxlan import *
@@ -22,6 +21,7 @@ from keypress import Keystroke_Watcher
 from settings import config
 from utils import *
 from _constants import *
+from colorscale import ColorScale
 
 HEARTBEAT_RATE = 3000  # 3 seconds
 LOGFILE = 'lifx-control-panel.log'
@@ -246,8 +246,8 @@ class LightFrame(ttk.Labelframe):
             Label(self, text=str(self.hsbk[3].get()) + " K")
         )
         self.hsbk_scale = (
-            Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[0], command=self.update_color_from_ui,
-                  showvalue=False),
+            ColorScale(self, from_=0., to=65535., variable=self.hsbk[0], command=self.update_color_from_ui,
+                       ),
             Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[1], command=self.update_color_from_ui,
                   showvalue=False),
             Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[2], command=self.update_color_from_ui,
