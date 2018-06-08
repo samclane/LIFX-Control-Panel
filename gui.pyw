@@ -246,7 +246,7 @@ class LightFrame(ttk.Labelframe):
             Label(self, text=str(self.hsbk[3].get()) + " K")
         )
         self.hsbk_scale = (
-            ColorScale(self, from_=0., to=65535., variable=self.hsbk[0], command=self.update_color_from_ui,
+            ColorScale(self, to=65535., variable=self.hsbk[0], command=self.update_color_from_ui,
                        ),
             Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[1], command=self.update_color_from_ui,
                   showvalue=False),

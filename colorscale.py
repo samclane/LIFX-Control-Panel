@@ -8,7 +8,7 @@ cHBSK = namedtuple('cHBSK', 'h b s k')
 
 class ColorScale(tk.Canvas):
 
-    def __init__(self, parent, hue=0, height=11, width=256, variable=None, from_=0, to=360, command=None, **kwargs):
+    def __init__(self, parent, hue=0, height=13, width=100, variable=None, to=360, command=None, **kwargs):
         """
         Create a GradientBar.
         Keyword arguments:
@@ -18,7 +18,6 @@ class ColorScale(tk.Canvas):
             * height, width, and any keyword argument accepted by a tkinter Canvas
         """
         tk.Canvas.__init__(self, parent, width=width, height=height, **kwargs)
-        self.min = from_
         self.max = to
         self._variable = variable
         self.command = command
@@ -31,10 +30,7 @@ class ColorScale(tk.Canvas):
             self._variable = tk.IntVar(self)
         hue = max(min(self.max, hue), 0)
         self._variable.set(hue)
-        try:
-            self._variable.trace_add("write", self._update_hue)
-        except Exception:
-            self._variable.trace("w", self._update_hue)
+        self._variable.trace("w", self._update_hue)  # Problem here
 
         self.gradient = tk.PhotoImage(master=self, width=width, height=height)
 
@@ -61,13 +57,15 @@ class ColorScale(tk.Canvas):
         self.lower("gradient")
 
         x = hue / float(self.max) * width
-        self.create_line(x, 0, x, height, width=15, tags="cursor")
+        self.create_line(x, 0, x, height, width=4, tags="cursor")
 
     def _on_click(self, event):
         """Move selection cursor on click."""
         x = event.x
         self.coords('cursor', x, 0, x, self.winfo_height())
         self._variable.set(round((float(self.max) * x) / self.winfo_width(), 2))
+        # self._update_hue()
+
 
     def _on_move(self, event):
         """Make selection cursor follow the cursor."""
@@ -75,6 +73,7 @@ class ColorScale(tk.Canvas):
         x = min(max(abs(event.x), 0), w)
         self.coords('cursor', x, 0, x, self.winfo_height())
         self._variable.set(round((float(self.max) * x) / w, 2))
+        # self._update_hue()
 
     def _update_hue(self, *args):
         hue = int(self._variable.get())
@@ -94,3 +93,11 @@ class ColorScale(tk.Canvas):
         x = hue / float(self.max) * self.winfo_width()
         self.coords('cursor', x, 0, x, self.winfo_height())
         self._variable.set(hue)
+
+    def grid_remove(self):
+        self.unbind('<Configure>')
+        self.unbind('<ButtonPress-1>')
+        self.unbind('<B1-Motion>')
+        for t in self._variable.trace_vinfo():
+            self._variable.trace_vdelete(*t)
+        super().grid_remove()
