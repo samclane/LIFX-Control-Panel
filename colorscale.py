@@ -1,5 +1,5 @@
 from collections import namedtuple
-from utils import tuple2hex, HueToRGB
+from utils import tuple2hex, HueToRGB, KelvinToRGB
 import tkinter as tk
 
 cRGB = namedtuple('cRGB', 'r g b')
@@ -8,7 +8,8 @@ cHBSK = namedtuple('cHBSK', 'h b s k')
 
 class ColorScale(tk.Canvas):
 
-    def __init__(self, parent, hue=0, height=13, width=100, variable=None, to=360, command=None, **kwargs):
+    def __init__(self, parent, hue=0, height=13, width=100, variable=None, from_=0, to=360, command=None,
+                 gradient='hue', **kwargs):
         """
         Create a GradientBar.
         Keyword arguments:
@@ -20,8 +21,10 @@ class ColorScale(tk.Canvas):
         tk.Canvas.__init__(self, parent, width=width, height=height, **kwargs)
         self.parent = parent
         self.max = to
+        self.min = from_
         self._variable = variable
         self.command = command
+        self.color_grad = gradient
         if variable is not None:
             try:
                 hue = int(variable.get())
@@ -29,7 +32,7 @@ class ColorScale(tk.Canvas):
                 print(e)
         else:
             self._variable = tk.IntVar(self)
-        hue = max(min(self.max, hue), 0)
+        hue = max(min(self.max, hue), self.min)
         self._variable.set(hue)
         self._variable.trace("w", self._update_hue)
 
@@ -50,8 +53,19 @@ class ColorScale(tk.Canvas):
         self.gradient = tk.PhotoImage(master=self, width=width, height=height)
 
         line = []
+
+        if self.color_grad == 'bw':
+            def f(i):
+                line.append(tuple2hex((int(float(i) / width * 255),) * 3))
+        elif self.color_grad == 'kelvin':
+            def f(i):
+                line.append(tuple2hex(KelvinToRGB((float(i) / width) * self.max + self.min)))
+        else:  # self.color_grad == 'hue'
+            def f(i):
+                line.append(tuple2hex(HueToRGB(float(i) / width * 360)))
+
         for i in range(width):
-            line.append(tuple2hex(HueToRGB(float(i) / width * 360)))
+            f(i)
         line = "{" + " ".join(line) + "}"
         self.gradient.put(" ".join([line for j in range(height)]))
         self.create_image(0, 0, anchor="nw", tags="gradient", image=self.gradient)
@@ -81,7 +95,7 @@ class ColorScale(tk.Canvas):
 
     def _update_hue(self, *args):
         hue = int(self._variable.get())
-        hue = min(max(hue, 0), self.max)
+        hue = min(max(hue, self.min), self.max)
         self.set(hue)
         self.event_generate("<<HueChanged>>")
 

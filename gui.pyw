@@ -247,13 +247,12 @@ class LightFrame(ttk.Labelframe):
         )
         self.hsbk_scale = (
             ColorScale(self, to=65535., variable=self.hsbk[0], command=self.update_color_from_ui),
-            Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[1], command=self.update_color_from_ui,
-                  showvalue=False),
-            Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[2], command=self.update_color_from_ui,
-                  showvalue=False),
-            Scale(self, from_=2500, to=9000, orient=HORIZONTAL, variable=self.hsbk[3],
-                  command=self.update_color_from_ui,
-                  showvalue=False))
+            ColorScale(self, from_=0, to=65535, variable=self.hsbk[1], command=self.update_color_from_ui,
+                       gradient='bw'),
+            ColorScale(self, from_=0, to=65535, variable=self.hsbk[2], command=self.update_color_from_ui,
+                       gradient='bw'),
+            ColorScale(self, from_=2500, to=9000, variable=self.hsbk[3], command=self.update_color_from_ui,
+                       gradient='kelvin'))
         RELIEF = GROOVE
         self.hsbk_display = (
             Canvas(self, background=tuple2hex(HueToRGB(360 * (init_color.hue / 65535))), width=20, height=20,
