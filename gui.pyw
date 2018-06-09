@@ -246,8 +246,7 @@ class LightFrame(ttk.Labelframe):
             Label(self, text=str(self.hsbk[3].get()) + " K")
         )
         self.hsbk_scale = (
-            ColorScale(self, to=65535., variable=self.hsbk[0], command=self.update_color_from_ui,
-                       ),
+            ColorScale(self, to=65535., variable=self.hsbk[0], command=self.update_color_from_ui),
             Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[1], command=self.update_color_from_ui,
                   showvalue=False),
             Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[2], command=self.update_color_from_ui,
@@ -361,7 +360,13 @@ class LightFrame(ttk.Labelframe):
     def set_color(self, color, rapid=False):
         """ Should be called whenever the bulb wants to change color. Sends bulb command and updates UI accordingly. """
         self.stop_threads()
-        self.bulb.set_color(color, rapid)
+        try:
+            self.bulb.set_color(color, rapid)
+        except WorkflowException as e:
+            if rapid:  # If we're going fast we don't care if we miss a packet.
+                pass
+            else:
+                raise e
         self.update_status_from_bulb(run_once=True)  # Force UI to update from bulb
         self.logger.debug('Color changed to HSBK: {}'.format(color))  # Don't pollute log with rapid color changes
 

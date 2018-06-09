@@ -18,6 +18,7 @@ class ColorScale(tk.Canvas):
             * height, width, and any keyword argument accepted by a tkinter Canvas
         """
         tk.Canvas.__init__(self, parent, width=width, height=height, **kwargs)
+        self.parent = parent
         self.max = to
         self._variable = variable
         self.command = command
@@ -30,7 +31,7 @@ class ColorScale(tk.Canvas):
             self._variable = tk.IntVar(self)
         hue = max(min(self.max, hue), 0)
         self._variable.set(hue)
-        self._variable.trace("w", self._update_hue)  # Problem here
+        self._variable.trace("w", self._update_hue)
 
         self.gradient = tk.PhotoImage(master=self, width=width, height=height)
 
@@ -64,7 +65,8 @@ class ColorScale(tk.Canvas):
         x = event.x
         self.coords('cursor', x, 0, x, self.winfo_height())
         self._variable.set(round((float(self.max) * x) / self.winfo_width(), 2))
-        # self._update_hue()
+        if self.command is not None:
+            self.command()
 
 
     def _on_move(self, event):
@@ -73,15 +75,15 @@ class ColorScale(tk.Canvas):
         x = min(max(abs(event.x), 0), w)
         self.coords('cursor', x, 0, x, self.winfo_height())
         self._variable.set(round((float(self.max) * x) / w, 2))
-        # self._update_hue()
+        if self.command is not None:
+            self.command()
+
 
     def _update_hue(self, *args):
         hue = int(self._variable.get())
         hue = min(max(hue, 0), self.max)
         self.set(hue)
         self.event_generate("<<HueChanged>>")
-        if self.command is not None:
-            self.command()
 
     def get(self):
         """Return hue of color under cursor."""
