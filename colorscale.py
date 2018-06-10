@@ -74,12 +74,14 @@ class ColorScale(tk.Canvas):
         self.lower("gradient")
 
         x = (val - self.min) / float(self.range) * width
-        self.create_line(x, 0, x, height, width=4, tags="cursor")
+        self.create_line(x, 0, x, height, width=4, fill='white', tags="cursor")
+        self.create_line(x, 0, x, height, width=2, tags="cursor")
 
     def _on_click(self, event):
         """Move selection cursor on click."""
         x = event.x
-        self.coords('cursor', x, 0, x, self.winfo_height())
+        for s in self.find_withtag("cursor"):
+            self.coords(s, x, 0, x, self.winfo_height())
         self._variable.set(round((float(self.range) * x) / self.winfo_width() + self.min, 2))
         if self.command is not None:
             self.command()
@@ -88,7 +90,8 @@ class ColorScale(tk.Canvas):
         """Make selection cursor follow the cursor."""
         w = self.winfo_width()
         x = min(max(abs(event.x), 0), w)
-        self.coords('cursor', x, 0, x, self.winfo_height())
+        for s in self.find_withtag("cursor"):
+            self.coords(s, x, 0, x, self.winfo_height())
         self._variable.set(round((float(self.range) * x) / w + self.min, 2))
         if self.command is not None:
             self.command()
@@ -107,5 +110,6 @@ class ColorScale(tk.Canvas):
     def set(self, val):
         """Set cursor position on the color corresponding to the value"""
         x = (val - self.min) / float(self.range) * self.winfo_width()
-        self.coords('cursor', x, 0, x, self.winfo_height())
+        for s in self.find_withtag("cursor"):
+            self.coords(s, x, 0, x, self.winfo_height())
         self._variable.set(val)
