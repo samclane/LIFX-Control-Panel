@@ -17,11 +17,11 @@ import SysTrayIcon
 import audio
 import color_thread
 import settings
+from _constants import *
+from colorscale import ColorScale
 from keypress import Keystroke_Watcher
 from settings import config
 from utils import *
-from _constants import *
-from colorscale import ColorScale
 
 HEARTBEAT_RATE = 3000  # 3 seconds
 LOGFILE = 'lifx-control-panel.log'
@@ -239,6 +239,8 @@ class LightFrame(ttk.Labelframe):
                      IntVar(self, init_color.saturation, "Saturation"),
                      IntVar(self, init_color.brightness, "Brightness"),
                      IntVar(self, init_color.kelvin, "Kelvin"))
+        for i in self.hsbk:
+            i.trace('w', self.set_bulb_updated)
         self.hsbk_labels = (
             Label(self, text='%.3g' % (360 * (self.hsbk[0].get() / 65535))),
             Label(self, text=str('%.3g' % (100 * self.hsbk[1].get() / 65535)) + "%"),
@@ -341,6 +343,9 @@ class LightFrame(ttk.Labelframe):
         """ Get color values entered into GUI"""
         return Color(*tuple(v.get() for v in self.hsbk))
 
+    def set_bulb_updated(self, *args):
+        self.bulb.updated = True
+
     def stop_threads(self):
         """ Stop all ColorRunner threads """
         for thread in self.threads.values():
@@ -424,8 +429,6 @@ class LightFrame(ttk.Labelframe):
             self.option_off.selection_clear()
         try:
             hsbk = self.bulb.get_color()
-            if hsbk != self.get_color_values_hsbk():
-                self.bulb.updated = True
             for key, val in enumerate(self.hsbk):
                 self.hsbk[key].set(hsbk[key])
                 self.update_label(key)
@@ -476,6 +479,7 @@ class LightFrame(ttk.Labelframe):
         new_choices = [key for key in config['PresetColors']]
         for choice in new_choices:
             self.user_dropdown["menu"].add_command(label=choice, command=_setit(self.uservar, choice))
+
 
 class BulbIconList(Frame):
     def __init__(self, *args):
