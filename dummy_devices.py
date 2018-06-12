@@ -12,6 +12,16 @@ from threading import Timer
 import logging
 import os
 
+LOGFILE = 'lifx-control-panel.log'
+
+# determine if application is a script file or frozen exe
+if getattr(sys, 'frozen', False):
+    application_path = os.path.dirname(sys.executable)
+elif __file__:
+    application_path = os.path.dirname(__file__)
+
+LOGFILE = os.path.join(application_path, LOGFILE)
+
 
 # Helpers
 def randomMAC():
@@ -462,7 +472,9 @@ def main():
 
     root.logger = logging.getLogger('root')
     root.logger.setLevel(logging.DEBUG)
+    fh = logging.FileHandler(LOGFILE, mode='w')
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
     sh = logging.StreamHandler()
     sh.setLevel(logging.DEBUG)
     sh.setFormatter(formatter)
