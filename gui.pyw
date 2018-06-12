@@ -8,7 +8,6 @@ from tkinter import messagebox
 from tkinter import ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
-import sys
 
 from PIL import Image as pImage
 from lifxlan import *
@@ -18,10 +17,11 @@ import SysTrayIcon
 import audio
 import color_thread
 import settings
+from _constants import *
+from colorscale import ColorScale
 from keypress import Keystroke_Watcher
 from settings import config
 from utils import *
-from _constants import *
 
 HEARTBEAT_RATE = 3000  # 3 seconds
 LOGFILE = 'lifx-control-panel.log'
@@ -239,6 +239,8 @@ class LightFrame(ttk.Labelframe):
                      IntVar(self, init_color.saturation, "Saturation"),
                      IntVar(self, init_color.brightness, "Brightness"),
                      IntVar(self, init_color.kelvin, "Kelvin"))
+        for i in self.hsbk:
+            i.trace('w', self.set_bulb_updated)
         self.hsbk_labels = (
             Label(self, text='%.3g' % (360 * (self.hsbk[0].get() / 65535))),
             Label(self, text=str('%.3g' % (100 * self.hsbk[1].get() / 65535)) + "%"),
@@ -246,15 +248,13 @@ class LightFrame(ttk.Labelframe):
             Label(self, text=str(self.hsbk[3].get()) + " K")
         )
         self.hsbk_scale = (
-            Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[0], command=self.update_color_from_ui,
-                  showvalue=False),
-            Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[1], command=self.update_color_from_ui,
-                  showvalue=False),
-            Scale(self, from_=0, to=65535, orient=HORIZONTAL, variable=self.hsbk[2], command=self.update_color_from_ui,
-                  showvalue=False),
-            Scale(self, from_=2500, to=9000, orient=HORIZONTAL, variable=self.hsbk[3],
-                  command=self.update_color_from_ui,
-                  showvalue=False))
+            ColorScale(self, to=65535., variable=self.hsbk[0], command=self.update_color_from_ui),
+            ColorScale(self, from_=0, to=65535, variable=self.hsbk[1], command=self.update_color_from_ui,
+                       gradient='wb'),
+            ColorScale(self, from_=0, to=65535, variable=self.hsbk[2], command=self.update_color_from_ui,
+                       gradient='bw'),
+            ColorScale(self, from_=2500, to=9000, variable=self.hsbk[3], command=self.update_color_from_ui,
+                       gradient='kelvin'))
         RELIEF = GROOVE
         self.hsbk_display = (
             Canvas(self, background=tuple2hex(HueToRGB(360 * (init_color.hue / 65535))), width=20, height=20,
@@ -343,6 +343,9 @@ class LightFrame(ttk.Labelframe):
         """ Get color values entered into GUI"""
         return Color(*tuple(v.get() for v in self.hsbk))
 
+    def set_bulb_updated(self, *args):
+        self.bulb.updated = True
+
     def stop_threads(self):
         """ Stop all ColorRunner threads """
         for thread in self.threads.values():
@@ -361,7 +364,13 @@ class LightFrame(ttk.Labelframe):
     def set_color(self, color, rapid=False):
         """ Should be called whenever the bulb wants to change color. Sends bulb command and updates UI accordingly. """
         self.stop_threads()
-        self.bulb.set_color(color, rapid)
+        try:
+            self.bulb.set_color(color, rapid)
+        except WorkflowException as e:
+            if rapid:  # If we're going fast we don't care if we miss a packet.
+                pass
+            else:
+                raise e
         self.update_status_from_bulb(run_once=True)  # Force UI to update from bulb
         self.logger.debug('Color changed to HSBK: {}'.format(color))  # Don't pollute log with rapid color changes
 
@@ -381,6 +390,7 @@ class LightFrame(ttk.Labelframe):
         if key == 0:
             self.hsbk_display[0].config(background=tuple2hex(HueToRGB(360 * (h / 65535))))
         elif key == 1:
+            s = 65535 - s
             self.hsbk_display[1].config(
                 background=tuple2hex((int(255 * (s / 65535)), int(255 * (s / 65535)), int(255 * (s / 65535)))))
         elif key == 2:
@@ -472,6 +482,7 @@ class LightFrame(ttk.Labelframe):
         new_choices = [key for key in config['PresetColors']]
         for choice in new_choices:
             self.user_dropdown["menu"].add_command(label=choice, command=_setit(self.uservar, choice))
+
 
 class BulbIconList(Frame):
     def __init__(self, *args):
