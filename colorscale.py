@@ -59,6 +59,9 @@ class ColorScale(tk.Canvas):
         if self.color_grad == 'bw':
             def f(i):
                 line.append(tuple2hex((int(float(i) / width * 255),) * 3))
+        elif self.color_grad == 'wb':
+            def f(i):
+                line.append(tuple2hex((int((1 - (float(i) / width)) * 255),) * 3))
         elif self.color_grad == 'kelvin':
             def f(i):
                 line.append(tuple2hex(KelvinToRGB(((float(i) / width) * self.range) + self.min)))

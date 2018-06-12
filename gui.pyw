@@ -250,7 +250,7 @@ class LightFrame(ttk.Labelframe):
         self.hsbk_scale = (
             ColorScale(self, to=65535., variable=self.hsbk[0], command=self.update_color_from_ui),
             ColorScale(self, from_=0, to=65535, variable=self.hsbk[1], command=self.update_color_from_ui,
-                       gradient='bw'),
+                       gradient='wb'),
             ColorScale(self, from_=0, to=65535, variable=self.hsbk[2], command=self.update_color_from_ui,
                        gradient='bw'),
             ColorScale(self, from_=2500, to=9000, variable=self.hsbk[3], command=self.update_color_from_ui,
@@ -390,6 +390,7 @@ class LightFrame(ttk.Labelframe):
         if key == 0:
             self.hsbk_display[0].config(background=tuple2hex(HueToRGB(360 * (h / 65535))))
         elif key == 1:
+            s = 65535 - s
             self.hsbk_display[1].config(
                 background=tuple2hex((int(255 * (s / 65535)), int(255 * (s / 65535)), int(255 * (s / 65535)))))
         elif key == 2:
