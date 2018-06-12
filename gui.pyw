@@ -429,6 +429,8 @@ class LightFrame(ttk.Labelframe):
             self.option_off.selection_clear()
         try:
             hsbk = self.bulb.get_color()
+            if hsbk != self.get_color_values_hsbk():
+                self.bulb.updated = True
             for key, val in enumerate(self.hsbk):
                 self.hsbk[key].set(hsbk[key])
                 self.update_label(key)
