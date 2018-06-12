@@ -17,6 +17,10 @@ class ColorScale(tk.Canvas):
             * parent: parent window
             * val: initially selected value
             * variable: IntVar linked to the alpha value
+            * from_: The minimum value the slider can take on
+            * to: The maximum value of the slider
+            * command: A function callback, invoked every time the slider is moved
+            * gradient: The type of background coloration
             * height, width, and any keyword argument accepted by a tkinter Canvas
         """
         tk.Canvas.__init__(self, parent, width=width, height=height, **kwargs)
@@ -27,6 +31,7 @@ class ColorScale(tk.Canvas):
         self._variable = variable
         self.command = command
         self.color_grad = gradient
+        self.xpad = 4
         if variable is not None:
             try:
                 val = int(variable.get())
@@ -38,7 +43,7 @@ class ColorScale(tk.Canvas):
         self._variable.set(val)
         self._variable.trace("w", self._update_val)
 
-        self.gradient = tk.PhotoImage(master=self, width=width, height=height)
+        self.gradient = tk.PhotoImage(master=self, width=width - self.xpad, height=height)
 
         self.bind('<Configure>', lambda e: self._draw_gradient(val))
         self.bind('<ButtonPress-1>', self._on_click)
@@ -49,7 +54,7 @@ class ColorScale(tk.Canvas):
         self.delete("gradient")
         self.delete("cursor")
         del self.gradient
-        width = self.winfo_width()
+        width = self.winfo_width() - self.xpad
         height = self.winfo_height()
 
         self.gradient = tk.PhotoImage(master=self, width=width, height=height)
@@ -70,31 +75,34 @@ class ColorScale(tk.Canvas):
             f(i)
         line = "{" + " ".join(line) + "}"
         self.gradient.put(" ".join([line for j in range(height)]))
-        self.create_image(0, 0, anchor="nw", tags="gradient", image=self.gradient)
+        self.create_image(self.xpad, 0, anchor="nw", tags="gradient", image=self.gradient)
         self.lower("gradient")
 
-        x = (val - self.min) / float(self.range) * width
+        x = (val - self.min) / float(self.range) * width + self.xpad
         self.create_line(x, 0, x, height, width=4, fill='white', tags="cursor")
         self.create_line(x, 0, x, height, width=2, tags="cursor")
 
     def _on_click(self, event):
         """Move selection cursor on click."""
         x = event.x
-        for s in self.find_withtag("cursor"):
-            self.coords(s, x, 0, x, self.winfo_height())
-        self._variable.set(round((float(self.range) * x) / self.winfo_width() + self.min, 2))
-        if self.command is not None:
-            self.command()
+        if x >= 0:
+            width = self.winfo_width() - self.xpad
+            for s in self.find_withtag("cursor"):
+                self.coords(s, x, 0, x, self.winfo_height())
+            self._variable.set(round((float(self.range) * x) / width + self.min, 2))
+            if self.command is not None:
+                self.command()
 
     def _on_move(self, event):
         """Make selection cursor follow the cursor."""
-        w = self.winfo_width()
-        x = min(max(abs(event.x), 0), w)
-        for s in self.find_withtag("cursor"):
-            self.coords(s, x, 0, x, self.winfo_height())
-        self._variable.set(round((float(self.range) * x) / w + self.min, 2))
-        if self.command is not None:
-            self.command()
+        if event.x >= 0:
+            w = self.winfo_width() - self.xpad
+            x = min(max(abs(event.x), 0), w)
+            for s in self.find_withtag("cursor"):
+                self.coords(s, x, 0, x, self.winfo_height())
+            self._variable.set(round((float(self.range) * x) / w + self.min, 2))
+            if self.command is not None:
+                self.command()
 
     def _update_val(self, *args):
         val = int(self._variable.get())
@@ -105,11 +113,13 @@ class ColorScale(tk.Canvas):
     def get(self):
         """Return val of color under cursor."""
         coords = self.coords('cursor')
-        return round(self.range * coords[0] / self.winfo_width(), 2)
+        width = self.winfo_width() - self.xpad
+        return round(self.range * coords[0] / width, 2)
 
     def set(self, val):
         """Set cursor position on the color corresponding to the value"""
-        x = (val - self.min) / float(self.range) * self.winfo_width()
+        width = self.winfo_width() - self.xpad
+        x = (val - self.min) / float(self.range) * width
         for s in self.find_withtag("cursor"):
             self.coords(s, x, 0, x, self.winfo_height())
         self._variable.set(val)
