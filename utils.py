@@ -2,11 +2,12 @@ from functools import lru_cache
 from math import log, floor
 import os
 import sys
+from typing import Union, Tuple
 
 from desktopmagic.screengrab_win32 import *
 
 
-def HSBKtoRGB(hsvk):
+def HSBKtoRGB(hsvk: Tuple[int, int, int, int]) -> Tuple[int, int, int]:
     """ Converted from PHP https://gist.github.com/joshrp/5200913 """
     iH, iS, iV, iK = hsvk
     dS = (100 * iS / 65535) / 100.0  # Saturation: 0.0-1.0
@@ -64,7 +65,7 @@ def HSBKtoRGB(hsvk):
     return int(dR * 255), int(dG * 255), int(dB * 255)
 
 
-def HueToRGB(h, s=1, v=1):
+def HueToRGB(h: int, s: int = 1, v: int = 1) -> Tuple[int, int, int]:
     h = float(h)
     s = float(s)
     v = float(v)
@@ -92,7 +93,7 @@ def HueToRGB(h, s=1, v=1):
     return r, g, b
 
 
-def KelvinToRGB(temperature):
+def KelvinToRGB(temperature: int) -> Tuple[int, int, int]:
     temperature /= 100
     # calc red
     if temperature < 66:
@@ -133,18 +134,18 @@ def KelvinToRGB(temperature):
     return int(red), int(green), int(blue)
 
 
-def tuple2hex(tuple):
+def tuple2hex(tuple: Tuple[int, int, int]) -> str:
     """ Takes a color in tuple form an converts it to hex. """
     return '#%02x%02x%02x' % tuple
 
 
 # Multi monitor methods
 @lru_cache(maxsize=None)
-def get_primary_monitor():
+def get_primary_monitor() -> Tuple[int, int, int, int]:
     return [rect for rect in getDisplayRects() if rect[:2] == (0, 0)][0]  # primary monitor has top left as 0, 0
 
 
-def resource_path(relative_path):
+def resource_path(relative_path) -> Union[int, bytes]:
     """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
