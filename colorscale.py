@@ -8,16 +8,18 @@ class ColorScale(tk.Canvas):
     def __init__(self, parent, val=0, height=13, width=100, variable=None, from_=0, to=360, command=None,
                  gradient='hue', **kwargs):
         """
-        Create a GradientBar.
+        Create a ColorScale.
         Keyword arguments:
             * parent: parent window
             * val: initially selected value
+            * height: canvas length in y direction
+            * width: canvas length in x direction
             * variable: IntVar linked to the alpha value
             * from_: The minimum value the slider can take on
             * to: The maximum value of the slider
             * command: A function callback, invoked every time the slider is moved
             * gradient: The type of background coloration
-            * height, width, and any keyword argument accepted by a tkinter Canvas
+            * **kwargs: Any other keyword argument accepted by a tkinter Canvas
         """
         tk.Canvas.__init__(self, parent, width=width, height=height, **kwargs)
         self.parent = parent
@@ -104,6 +106,7 @@ class ColorScale(tk.Canvas):
                 self.command()
 
     def _on_release(self, event):
+        """ Tell the master BulbIconList to update immediately after value is changed. """
         self.master.master.update_icons()
 
     def _update_val(self, *args):
