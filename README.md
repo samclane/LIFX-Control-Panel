@@ -10,7 +10,8 @@ such as monitoring and changing bulb color, with more advanced ones, like Averag
   <img src="https://raw.githubusercontent.com/samclane/LIFX-Control-Panel/master/screenshot.png" alt="Screenshot" width="306" height=533>
 </p>
 
-The application uses [mclarkk](https://github.com/mclarkk)'s [lifxlan](https://github.com/mclarkk/lifxlan) module to discover and send commands to the lights.
+The application uses [mclarkk](https://github.com/mclarkk)'s [lifxlan](https://github.com/mclarkk/lifxlan) module to 
+discover and send commands to the lights.
 
 # Quick Start
 Go over to [releases](https://github.com/samclane/LIFX-Control-Panel/releases) and download the latest `.exe` file.
@@ -30,6 +31,25 @@ in the past, but your millage may vary.
 To run the code from source, simply run `python gui.pyw` from the command line. To run with "Dummy" devices included, 
 run `python dummy_devices.py`.
 
+# Building'
+LIFX-Control-Panel uses PyInstaller. After downloading the repository, open a command window in the `LIFX-Control-Panel`
+directory, and run `pyinstaller gui.pyw`. This should generate the necessary file structure to build the project.
+Note: Delete `gui.spec`, we will be using one of the following `.spec` files included in the repository:
+
+* `main.spec`
+  * This is the file that is used to build the main binary. The console, as well as verbose logging methods, are disabled.
+* `debug.spec`
+  * This spec file enables the console to run in the background, as well as verbose logging.
+* `demo.spec`
+  * The demo mode simulates adding several "dummy" lights to the LAN, allowing the software to be demonstrated on networks
+  that do not have any LIFX devices on them.
+
+To build the project, simply open a command window in the same folder and run `pyinstaller --onefile <FILE>.spec`, where
+`<FILE>` is the name of the build you want (`main`, `debug`, or `demo`). This should generate an `.exe` in the `/dist` 
+folder of the project. 
+
+If you need help using PyInstaller, more instructions are located [here](https://pythonhosted.org/PyInstaller/usage.html).
+
 # Testing progress
 I have currently only tested on the following operating systems:
 * Windows 10
@@ -40,6 +60,7 @@ and on the following LIFX devices:
 * LIFX Z   Firmware v1.22
 
 # Donate
-LIFX-Control-Panel will always be free and open source. However, if you appriciate the work I'm doing and would like to contribute financially, you can donate below. Thanks for your support!
+LIFX-Control-Panel will always be free and open source. However, if you appreciate the work I'm doing and would like to 
+contribute financially, you can donate below. Thanks for your support!
 
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.me/sawyermclane)
