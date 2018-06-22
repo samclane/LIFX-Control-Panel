@@ -31,7 +31,7 @@ in the past, but your millage may vary.
 To run the code from source, simply run `python gui.pyw` from the command line. To run with "Dummy" devices included, 
 run `python dummy_devices.py`.
 
-# Building'
+# Building
 LIFX-Control-Panel uses PyInstaller. After downloading the repository, open a command window in the `LIFX-Control-Panel`
 directory, and run `pyinstaller gui.pyw`. This should generate the necessary file structure to build the project.
 Note: Delete `gui.spec`, we will be using one of the following `.spec` files included in the repository:
