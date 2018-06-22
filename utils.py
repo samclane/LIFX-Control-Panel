@@ -55,14 +55,15 @@ def HSBKtoRGB(hsvk: Tuple[int, int, int, int]) -> Tuple[int, int, int]:
     dG += dM
     dB += dM
 
-    """
-    rgb_prime = int(dR * 255), int(dG * 255), int(dB * 255)
+    # Finally factor in Kelvin
+    rgb_hsb = int(dR * 255), int(dG * 255), int(dB * 255)
     rgb_k = KelvinToRGB(iK)
-    return_rgb = tuple(int(min(255, ((dC)*a)+((1-dC)*b))) for (a, b) in zip(rgb_prime, rgb_k))  # Light model
-    return return_rgb
-    """
-
-    return int(dR * 255), int(dG * 255), int(dB * 255)
+    a = iS / 65535.0
+    b = (1.0 - a) / 255
+    x = int(rgb_hsb[0] * (a + rgb_k[0] * b))
+    y = int(rgb_hsb[1] * (a + rgb_k[1] * b))
+    z = int(rgb_hsb[2] * (a + rgb_k[2] * b))
+    return x, y, z
 
 
 def HueToRGB(h: int, s: int = 1, v: int = 1) -> Tuple[int, int, int]:
