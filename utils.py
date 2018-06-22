@@ -56,6 +56,8 @@ def HSBKtoRGB(hsvk: Tuple[int, int, int, int]) -> Tuple[int, int, int]:
     dB += dM
 
     # Finally factor in Kelvin
+    # Adopted from:
+    # https://github.com/tort32/LightServer/blob/master/src/main/java/com/github/tort32/api/nodemcu/protocol/RawColor.java#L125
     rgb_hsb = int(dR * 255), int(dG * 255), int(dB * 255)
     rgb_k = KelvinToRGB(iK)
     a = iS / 65535.0

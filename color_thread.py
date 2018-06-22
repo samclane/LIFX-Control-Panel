@@ -89,7 +89,6 @@ class ColorThreadRunner:
             self.logger.error('Tried to start ColorThread again.')
 
     def stop(self):
-        self.logger.debug('Thread stopped')
         self.t.stop()
 
 
