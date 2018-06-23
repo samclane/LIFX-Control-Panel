@@ -68,9 +68,11 @@ class ColorScale(tk.Canvas):
         elif self.color_grad == 'kelvin':
             def f(i):
                 line.append(tuple2hex(KelvinToRGB(((float(i) / width) * self.range) + self.min)))
-        else:  # self.color_grad == 'hue'
+        elif self.color_grad == 'hue':
             def f(i):
                 line.append(tuple2hex(HueToRGB(float(i) / width * 360)))
+        else:
+            raise ValueError("gradient value {} not recognized".format(self.color_grad))
 
         for i in range(width):
             f(i)
