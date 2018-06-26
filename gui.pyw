@@ -1,17 +1,15 @@
 import logging
 import threading
 import tkinter.font as font
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 from tkinter import *
-from tkinter import _setit
-from tkinter import messagebox
-from tkinter import ttk
+from tkinter import _setit, messagebox, ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
-
 from PIL import Image as pImage
 from lifxlan import *
 from lifxlan import errors
+import traceback
 
 import SysTrayIcon
 import audio
@@ -68,18 +66,12 @@ class LifxFrame(ttk.Frame):
 
         # Initialize LIFX objects
         self.lightvar = StringVar(self)
-        self.lights = []
-        self.lightsdict = {}  # LifxLight objects
+        self.lightsdict = OrderedDict()  # LifxLight objects
         self.framesdict = {}  # corresponding LightFrame GUI
         self.current_lightframe = None  # currently selected and visible LightFrame
         self.bulb_icons = BulbIconList(self)
 
-        self.lights = self.lifx.get_lights()
-        if len(self.lights) == 0:
-            messagebox.showerror("No lights found.", "No LIFX devices were found on your LAN. Exiting.")
-            self.on_closing()
-
-        for x, light in enumerate(self.lights):
+        for x, light in enumerate(self.lifx.get_lights()):
             try:
                 product = product_map[light.get_product()]
                 label = light.get_label()
@@ -91,8 +83,11 @@ class LifxFrame(ttk.Frame):
                 self.logger.warning("Error when communicating with LIFX device: {}".format(e))
 
         if len(self.lightsdict):  # if any lights are found
-            self.lightvar.set(self.lights[0].get_label())
+            self.lightvar.set(next(iter(self.lightsdict.keys())))
             self.current_light = self.lightsdict[self.lightvar.get()]
+        else:
+            messagebox.showerror("No lights found.", "No LIFX devices were found on your LAN. Exiting.")
+            self.on_closing()
 
         self.bulb_icons.grid(row=1, column=1, sticky='w')
         self.bulb_icons.canvas.bind('<Button-1>', self.on_canvas_click)
@@ -141,9 +136,9 @@ class LifxFrame(ttk.Frame):
                 "Brought existing frame to front: {}".format(self.framesdict[new_light_label].get_label()))
         self.current_lightframe = self.framesdict[new_light_label]
         self.current_lightframe.restart()
-        if not self.current_light.get_label() == self.current_lightframe.get_label() == self.lightvar.get():
-            self.logger.error("Mismatch between Current Light ({}), LightFrame ({}) and Dropdown ({})".format(
-                self.current_light.get_label(), self.current_lightframe.get_label(), self.lightvar.get()))
+        if not self.current_lightframe.get_label() == self.lightvar.get():
+            self.logger.error("Mismatch between LightFrame ({}) and Dropdown ({})".format(
+                self.current_lightframe.get_label(), self.lightvar.get()))
         self.master.bind('<Unmap>', lambda *_: self.master.withdraw())  # reregister callback
 
     def on_canvas_click(self, event):
@@ -587,6 +582,6 @@ if __name__ == "__main__":
     except Exception as e:
         root.logger.exception(e)
         messagebox.showerror("Unhandled Exception", "Unhandled runtime exception: {}\n\n"
-                                                    "Please report this at: {}".format(e,
+                                                    "Please report this at: {}".format(traceback.format_exc(),
                                                                                        r"https://github.com/samclane/LIFX-Control-Panel/issues"))
         os._exit(1)

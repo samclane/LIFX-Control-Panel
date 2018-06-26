@@ -54,9 +54,12 @@ class ColorThreadRunner:
         self.prev_color = parent.get_color_values_hsbk()
         self.continuous = continuous
         self.t = ColorThread(target=self.match_color, args=(self.bulb,))
-        # self.t.setDaemon(True)
+        try:
+            label = self.bulb.get_label()
+        except Exception:
+            label = "<LABEL-ERR>"
         self.logger.info(
-            'Initialized Thread: Bulb: {} // Continuous: {}'.format(self.bulb.get_label(), self.continuous))
+            'Initialized Thread: Bulb: {} // Continuous: {}'.format(label, self.continuous))
 
     def match_color(self, bulb):
         self.logger.debug('Starting color match.')

@@ -4,13 +4,15 @@ import time
 from random import randint, sample, randrange, choice
 from tkinter import messagebox
 from tkinter import *
-
-from gui import Color as DummyColor
-from lifxlan import product_map
-from utils import resource_path
+import traceback
 from threading import Timer
 import logging
 import os
+from lifxlan import product_map
+
+from gui import Color as DummyColor
+from utils import resource_path
+
 
 LOGFILE = 'lifx-control-panel.log'
 
@@ -500,6 +502,6 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         messagebox.showerror("Unhandled Exception", "Unhandled runtime exception: {}\n\n"
-                                                    "Please report this at: {}".format(e,
+                                                    "Please report this at: {}".format(traceback.format_exc(),
                                                                                        r"https://github.com/samclane/LIFX-Control-Panel/issues"))
         raise e
