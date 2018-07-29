@@ -1,15 +1,16 @@
 import logging
 import threading
 import tkinter.font as font
+import traceback
 from collections import namedtuple, OrderedDict
 from tkinter import *
 from tkinter import _setit, messagebox, ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
+
 from PIL import Image as pImage
 from lifxlan import *
 from lifxlan import errors
-import traceback
 
 import SysTrayIcon
 import audio
