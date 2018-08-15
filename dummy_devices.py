@@ -354,13 +354,13 @@ class LifxLANDummy:
         return self.devices[name]
 
     def get_devices_by_names(self, names):
-        return Group(list(light for light in self.devices.values() if light.get_label() in names))
+        return DummyGroup(list(light for light in self.devices.values() if light.get_label() in names))
 
     def get_devices_by_group(self, group_id):
-        return Group(list(light for light in self.devices.values() if light.get_group() == group_id))
+        return DummyGroup(list(light for light in self.devices.values() if light.get_group() == group_id))
 
     def get_devices_by_location(self, location: str):
-        return Group(list(light for light in self.devices.values() if light.get_location() == location))
+        return DummyGroup(list(light for light in self.devices.values() if light.get_location() == location))
 
     def set_power_all_lights(self, power, duration=0, rapid=False):
         for light in self.devices:
@@ -387,7 +387,7 @@ class LifxLANDummy:
         return dict([((light, light.get_color()) for light in self.devices)])
 
 
-class Group:
+class DummyGroup:
     def __init__(self, devices: list, label: str = "N/A"):
         self.devices = devices
         self.label = label

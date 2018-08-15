@@ -3,7 +3,7 @@ import datetime
 
 bd = datetime.datetime.now().isoformat()
 auth = "Sawyer McLane"
-vers = "1.4.2"
+vers = "1.5.0"
 is_debug = True
 
 # Write version info into _constants.py resource file
@@ -45,6 +45,7 @@ for d in a.datas:
 a.datas += [('res//splash_vector_png.png', 'res/splash_vector_png.png', 'Data')]
 a.datas += [('res//icon_vector_9fv_icon.ico', 'res/icon_vector_9fv_icon.ico', 'Data')]
 a.datas += [('res//lightbulb.png', 'res/lightbulb.png', 'Data')]
+a.datas += [('res//group.png', 'res/group.png', 'Data')]
 a.datas += [('default.ini', 'default.ini', '.')]
 
 pyz = PYZ(a.pure, a.zipped_data,

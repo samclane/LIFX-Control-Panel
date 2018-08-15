@@ -90,9 +90,9 @@ class LifxFrame(ttk.Frame):
                 if not (group_label in self.groupsdict.keys()):
                     self.groupsdict[group_label] = self.lifx.get_devices_by_group(group_label)
                     self.group_icons.draw_group_icon(group, group_label)
-                    self.logger.info('Group found {}: {}'.format(group_label, [d.get_label() for d in
-                                                                               self.lifx.get_devices_by_group(
-                                                                                   group_label)]))
+                    # self.logger.info('Group found {}: {}'.format(group_label, [d.get_label() for d in
+                    #                                                           self.lifx.get_devices_by_group(
+                    #                                                               group_label)]))
             except WorkflowException as e:
                 self.logger.warning("Error when communicating with LIFX device: {}".format(e))
 
