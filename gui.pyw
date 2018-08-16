@@ -145,7 +145,7 @@ class LifxFrame(ttk.Frame):
         for keypress, function in dict(config['Keybinds']).items():
             light, color = function.split(':')
             color = Color(*eval(color))
-            self.save_keybind(light, keypress, color)
+            self.save_keybind(light, keypress, color, light in self.groupsdict.keys())
 
         # Stop splashscreen and start main function
         self.splashscreen.__exit__(None, None, None)
@@ -223,10 +223,15 @@ class LifxFrame(ttk.Frame):
                 bulb.updated = False
         self.after(HEARTBEAT_RATE, self.update_icons)
 
-    def save_keybind(self, light, keypress, color):
-        def lambda_factory(self, light, color):
-            """ https://stackoverflow.com/questions/938429/scope-of-lambda-functions-and-their-parameters """
-            return lambda *_: self.lightsdict[light].set_color(color)
+    def save_keybind(self, light, keypress, color, is_group=False):
+        if is_group:
+            def lambda_factory(self, light, color):
+                """ https://stackoverflow.com/questions/938429/scope-of-lambda-functions-and-their-parameters """
+                return lambda *_: self.groupsdict[light].set_color(color)
+        else:
+            def lambda_factory(self, light, color):
+                """ https://stackoverflow.com/questions/938429/scope-of-lambda-functions-and-their-parameters """
+                return lambda *_: self.lightsdict[light].set_color(color)
 
         func = lambda_factory(self, light, color)
         self.keylogger.register_function(keypress, func)

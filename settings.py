@@ -211,7 +211,7 @@ class SettingsDisplay(Dialog):
         self.preset_color_button = Button(master, text="Choose and add!", command=self.get_color)
 
         # Add keybindings
-        lightnames = list(self.root_window.lightsdict.keys())
+        lightnames = list(self.root_window.lightsdict.keys()) + list(self.root_window.groupsdict.keys())
         self.keybind_bulb_selection = StringVar(master, value=lightnames[0])
         self.keybind_bulb_dropdown = OptionMenu(master, self.keybind_bulb_selection,
                                                 *lightnames)
@@ -267,7 +267,7 @@ class SettingsDisplay(Dialog):
 
     def register_keybinding(self, bulb: str, keys: str, color: str):
         color = eval(color)  # should match color to variable w/ same name
-        self.root_window.save_keybind(bulb, keys, color)
+        self.root_window.save_keybind(bulb, keys, color, bulb in self.root_window.groupsdict.keys())
         config["Keybinds"][str(keys)] = str(bulb + ":" + str(color))
         self.mlb.insert(END, (str(bulb), str(keys), str(color)))
         self.keybind_keys_select.config(state='normal')

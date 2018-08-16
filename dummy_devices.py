@@ -58,9 +58,11 @@ class DummyDevice:
         self.group_label = "Room 2"
         self.group_tuple = sample(range(255), 16)
         self.group_updated_at = 1516997252642000000
-        self.is_light = True
 
         self._start_time = time.time()
+
+    def is_light(self):
+        return True
 
     def set_label(self, val: str):
         self.label = val
