@@ -293,3 +293,4 @@ class SettingsDisplay(Dialog):
         self.mlb.delete(ACTIVE)
         self.root_window.delete_keybind(keybind)
         config.remove_option("Keybinds", keybind)
+

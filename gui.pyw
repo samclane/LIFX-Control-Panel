@@ -2,7 +2,7 @@ import logging
 import threading
 import tkinter.font as font
 import traceback
-from collections import namedtuple, OrderedDict
+from collections import OrderedDict, namedtuple
 from tkinter import *
 from tkinter import _setit, messagebox, ttk
 from tkinter.colorchooser import *
@@ -36,8 +36,26 @@ LOGFILE = os.path.join(application_path, LOGFILE)
 
 SPLASHFILE = resource_path('res//splash_vector_png.png')
 
-Color = namedtuple('hsbk_color', 'hue saturation brightness kelvin')
 
+# Color = namedtuple('hsbk_color', 'hue saturation brightness kelvin')
+
+class Color:
+    __slots__ = ['hue', 'saturation', 'brightness', 'kelvin']
+
+    def __init__(self, hue, saturation, brightness, kelvin):
+        self.hue = hue
+        self.saturation = saturation
+        self.brightness = brightness
+        self.kelvin = kelvin
+
+    def __getitem__(self, item):
+        return self.__getattribute__(self.__slots__[item])
+
+    def __len__(self):
+        return 4
+
+    def __setitem__(self, key, value):
+        self.__setattr__(self.__slots__[key], value)
 
 class LifxFrame(ttk.Frame):
     def __init__(self, master, lifx_instance):  # We take a lifx instance so we can theoretically inject our own.
@@ -586,12 +604,12 @@ class GroupFrame(ttk.Labelframe):
             Label(self, text=str(self.hsbk[3].get()) + " K")
         )
         self.hsbk_scale = (
-            ColorScale(self, to=65535., variable=self.hsbk[0], command=self.update_color_from_ui),
-            ColorScale(self, from_=0, to=65535, variable=self.hsbk[1], command=self.update_color_from_ui,
+            ColorScale(self, to=65535., variable=self.hsbk[0], command=self.update_hue_from_ui),
+            ColorScale(self, from_=0, to=65535, variable=self.hsbk[1], command=self.update_saturation_from_ui,
                        gradient='wb'),
-            ColorScale(self, from_=0, to=65535, variable=self.hsbk[2], command=self.update_color_from_ui,
+            ColorScale(self, from_=0, to=65535, variable=self.hsbk[2], command=self.update_brightness_from_ui,
                        gradient='bw'),
-            ColorScale(self, from_=2500, to=9000, variable=self.hsbk[3], command=self.update_color_from_ui,
+            ColorScale(self, from_=2500, to=9000, variable=self.hsbk[3], command=self.update_colortemp_from_ui,
                        gradient='kelvin'))
         RELIEF = GROOVE
         self.hsbk_display = (
@@ -696,6 +714,22 @@ class GroupFrame(ttk.Labelframe):
         self.stop_threads()
         self.set_color(self.get_color_values_hsbk(), rapid=True)
 
+    def update_hue_from_ui(self, *args):
+        self.stop_threads()
+        self.set_hue(self.get_color_values_hsbk().hue, rapid=False)
+
+    def update_saturation_from_ui(self, *args):
+        self.stop_threads()
+        self.set_saturation(self.get_color_values_hsbk().saturation, rapid=False)
+
+    def update_brightness_from_ui(self, *args):
+        self.stop_threads()
+        self.set_brightness(self.get_color_values_hsbk().brightness, rapid=False)
+
+    def update_colortemp_from_ui(self, *args):
+        self.stop_threads()
+        self.set_colortemp(self.get_color_values_hsbk().kelvin, rapid=False)
+
     def set_color(self, color, rapid=False):
         """ Should be called whenever the group wants to change color. Sends group command and updates UI accordingly. """
         self.stop_threads()
@@ -708,6 +742,54 @@ class GroupFrame(ttk.Labelframe):
                 raise e
         self.update_status_from_bulb(run_once=True)  # Force UI to update from group
         self.logger.debug('Color changed to HSBK: {}'.format(color))  # Don't pollute log with rapid color changes
+
+    def set_hue(self, hue, rapid=False):
+        self.stop_threads()
+        try:
+            self.group.set_hue(hue, rapid=rapid)
+        except WorkflowException as e:
+            if rapid:
+                pass
+            else:
+                raise e
+        self.update_status_from_bulb(run_once=True)
+        self.logger.debug('Hue changed to {}'.format(hue))
+
+    def set_saturation(self, saturation, rapid=False):
+        self.stop_threads()
+        try:
+            self.group.set_saturation(saturation, rapid=rapid)
+        except WorkflowException as e:
+            if rapid:
+                pass
+            else:
+                raise e
+        self.update_status_from_bulb(run_once=True)
+        self.logger.debug('Hue changed to {}'.format(saturation))
+
+    def set_brightness(self, brightness, rapid=False):
+        self.stop_threads()
+        try:
+            self.group.set_brightness(brightness, rapid=rapid)
+        except WorkflowException as e:
+            if rapid:
+                pass
+            else:
+                raise e
+        self.update_status_from_bulb(run_once=True)
+        self.logger.debug('Hue changed to {}'.format(brightness))
+
+    def set_colortemp(self, colortemp, rapid=False):
+        self.stop_threads()
+        try:
+            self.group.set_colortemp(colortemp, rapid=rapid)
+        except WorkflowException as e:
+            if rapid:
+                pass
+            else:
+                raise e
+        self.update_status_from_bulb(run_once=True)
+        self.logger.debug('Hue changed to {}'.format(colortemp))
 
     def update_label(self, key):
         """ Update scale labels, formatted accordingly. """
@@ -800,7 +882,6 @@ class GroupFrame(ttk.Labelframe):
         new_choices = [key for key in config['PresetColors']]
         for choice in new_choices:
             self.user_dropdown["menu"].add_command(label=choice, command=_setit(self.uservar, choice))
-
 
 
 class BulbIconList(Frame):
