@@ -2,7 +2,7 @@ import logging
 import threading
 import tkinter.font as font
 import traceback
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 from tkinter import *
 from tkinter import _setit, messagebox, ttk
 from tkinter.colorchooser import *
@@ -37,8 +37,6 @@ LOGFILE = os.path.join(application_path, LOGFILE)
 SPLASHFILE = resource_path('res//splash_vector_png.png')
 
 
-# Color = namedtuple('hsbk_color', 'hue saturation brightness kelvin')
-
 class Color:
     __slots__ = ['hue', 'saturation', 'brightness', 'kelvin']
 
@@ -56,6 +54,7 @@ class Color:
 
     def __setitem__(self, key, value):
         self.__setattr__(self.__slots__[key], value)
+
 
 class LifxFrame(ttk.Frame):
     def __init__(self, master, lifx_instance):  # We take a lifx instance so we can theoretically inject our own.
