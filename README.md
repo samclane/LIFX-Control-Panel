@@ -53,6 +53,9 @@ To build the project, simply open a command window in the same folder and run `p
 `<FILE>` is the name of the build you want (`main`, `debug`, or `demo`). This should generate an `.exe` in the `/dist` 
 folder of the project. 
 
+If you want all 3 builds quickly, and you're on Windows, simply run `build_all.bat` in the command prompt. It will 
+call `pyinstaller` on all 3 `spec` files previously mentioned. 
+
 If you need help using PyInstaller, more instructions are located [here](https://pythonhosted.org/PyInstaller/usage.html).
 
 # Testing progress

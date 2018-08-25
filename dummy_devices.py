@@ -5,10 +5,9 @@ from random import randint, sample, randrange, choice
 from tkinter import messagebox
 from tkinter import *
 import traceback
-from threading import Timer
 import logging
 import os
-from lifxlan import product_map
+from lifxlan import product_map, Group
 
 from gui import Color as DummyColor
 from utils import resource_path
@@ -56,12 +55,14 @@ class DummyDevice:
         self.location_label = "My Home"
         self.location_tuple = sample(range(255), 16)
         self.location_updated_at = 1516997252637000000
-        self.group_label = "Room 1"
+        self.group_label = "Room 2"
         self.group_tuple = sample(range(255), 16)
         self.group_updated_at = 1516997252642000000
-        self.is_light = True
 
         self._start_time = time.time()
+
+    def is_light(self):
+        return True
 
     def set_label(self, val: str):
         self.label = val
@@ -197,15 +198,9 @@ class DummyBulb(DummyDevice):
     # Official api
 
     def set_power(self, val: bool, duration: int = 0, rapid: bool = False):
-        if duration:
-            prev_power = self.power
-            Timer(duration, self.set_power, args=[prev_power, 0, rapid]).start()
         self.power = val
 
     def set_color(self, val: DummyColor, duration: int = 0, rapid: bool = False):
-        if duration:
-            prev_color = self.color
-            Timer(duration, self.set_color, args=[prev_color, 0, rapid]).start()
         self.color = val
         return self.get_color()
 
@@ -225,27 +220,15 @@ class DummyBulb(DummyDevice):
         self.infared_brightness = val
 
     def set_hue(self, hue, duration=0, rapid=False):
-        if duration:
-            prev_hue = self.color.hue
-            Timer(duration, self.set_hue, args=[prev_hue, 0, rapid]).start()
         self.color.hue = hue
 
     def set_brightness(self, brightness, duration=0, rapid=False):
-        if duration:
-            prev_brightness = self.color.brightness
-            Timer(duration, self.set_brightness, args=[prev_brightness, 0, rapid]).start()
         self.color.brightness = brightness
 
     def set_saturation(self, saturation, duration=0, rapid=False):
-        if duration:
-            prev_saturation = self.color.saturation
-            Timer(duration, self.set_saturation, args=[prev_saturation, 0, rapid]).start()
         self.color.saturation = saturation
 
     def set_colortemp(self, kelvin, duration=0, rapid=False):
-        if duration:
-            prev_kelvin = self.color.kelvin
-            Timer(duration, self.set_colortemp, args=[prev_kelvin, 0, rapid]).start()
         self.color.kelvin = kelvin
 
 
@@ -293,10 +276,6 @@ class TileChainDummy(DummyBulb):
         return [tile.get_color() for tile in self.tiles[start_index:start_index + tile_count]]
 
     def set_tile_colors(self, start_index, colors, duration=0, tile_count=0, x=0, y=0, width=0, rapid=False):
-        if duration:
-            prev_colors = self.get_tile_colors(start_index, tile_count, x, y, width)
-            Timer(duration, self.set_tile_colors,
-                  args=[start_index, prev_colors, 0, tile_count, x, y, width, rapid]).start()
         for index, tile in enumerate(self.tiles[start_index:start_index + tile_count]):
             tile.set_color(colors[index])
 
@@ -304,9 +283,6 @@ class TileChainDummy(DummyBulb):
         return [tile.get_color() for tile in self.tiles]
 
     def set_tilechain_colors(self, tilechain_colors, duration=0, rapid=False):
-        if duration:
-            prev_colors = self.get_tile_colors(0, len(self.tiles))
-            Timer(duration, self.set_tile_colors, args=[0, prev_colors, 0, len(self.tiles)]).start()
         for index, tile in enumerate(self.tiles):
             tile.set_color(tilechain_colors[index])
 
@@ -364,16 +340,10 @@ class LifxLANDummy:
 
     def set_power_all_lights(self, power, duration=0, rapid=False):
         for light in self.devices:
-            if duration:
-                prev_power = light.power
-                Timer(duration, self.set_power_all_lights, args=[prev_power, 0, rapid]).start()
             light.set_power(power)
 
     def set_color_all_lights(self, color, duration=0, rapid=False):
         for light in self.devices:
-            if duration:
-                prev_color = light.color
-                Timer(duration, self.set_color_all_lights, args=[prev_color, 0, rapid]).start()
             light.set_color(color)
 
     def set_waveform_all_lights(self, is_transient, color, period, cycles, duty_cycle, wavform, rapid=False):
@@ -387,7 +357,7 @@ class LifxLANDummy:
         return dict([((light, light.get_color()) for light in self.devices)])
 
 
-class Group:
+class DummyGroup:
     def __init__(self, devices: list, label: str = "N/A"):
         self.devices = devices
         self.label = label
@@ -418,23 +388,23 @@ class Group:
         for device in self.devices:
             device.set_color(color, duration, rapid)
 
-    def set_hue(self, hue, duration, rapid=False):
+    def set_hue(self, hue, duration=0, rapid=False):
         for device in self.devices:
             device.set_hue(hue, duration, rapid)
 
-    def set_brightness(self, brightness, duration, rapid=False):
+    def set_brightness(self, brightness, duration=0, rapid=False):
         for device in self.devices:
             device.set_hue(brightness, duration, rapid)
 
-    def set_saturation(self, saturation, duration, rapid=False):
+    def set_saturation(self, saturation, duration=0, rapid=False):
         for device in self.devices:
             device.set_hue(saturation, duration, rapid)
 
-    def set_colortemp(self, kelvin, duration, rapid=False):
+    def set_colortemp(self, kelvin, duration=0, rapid=False):
         for device in self.devices:
             device.set_hue(kelvin, duration, rapid)
 
-    def set_infrared(self, infrared, duration, rapid=False):
+    def set_infrared(self, infrared, duration=0, rapid=False):
         for device in self.devices:
             device.set_hue(infrared, duration, rapid)
 
