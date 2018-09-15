@@ -55,6 +55,20 @@ class Color:
     def __setitem__(self, key, value):
         self.__setattr__(self.__slots__[key], value)
 
+    def __str__(self):
+        return "[{}, {}, {}, {}]".format(self.hue,
+                                         self.saturation,
+                                         self.brightness,
+                                         self.kelvin)
+
+    def __repr__(self):
+        return [self.hue,
+                self.saturation,
+                self.brightness,
+                self.kelvin
+                ].__repr__()
+
+
 
 class LifxFrame(ttk.Frame):
     def __init__(self, master, lifx_instance):  # We take a lifx instance so we can theoretically inject our own.
@@ -99,6 +113,7 @@ class LifxFrame(ttk.Frame):
             try:
                 product = product_map[light.get_product()]
                 label = light.get_label()
+                light.get_color()
                 light.updated = False
                 self.lightsdict[label] = light
                 self.logger.info('Light found: {}:({})'.format(product, label))
@@ -107,9 +122,7 @@ class LifxFrame(ttk.Frame):
                 if not (group_label in self.groupsdict.keys()):
                     self.groupsdict[group_label] = self.lifx.get_devices_by_group(group_label)
                     self.group_icons.draw_group_icon(group, group_label)
-                    # self.logger.info('Group found {}: {}'.format(group_label, [d.get_label() for d in
-                    #                                                           self.lifx.get_devices_by_group(
-                    #                                                               group_label)]))
+                    self.logger.info("Group found: {}".format(group_label))
             except WorkflowException as e:
                 self.logger.warning("Error when communicating with LIFX device: {}".format(e))
 
@@ -133,9 +146,9 @@ class LifxFrame(ttk.Frame):
 
         def run_tray_icon():
             SysTrayIcon.SysTrayIcon(resource_path('res/icon_vector_9fv_icon.ico'), "LIFX-Control-Panel", tray_options,
-                                    on_quit=lambda *_: os._exit(1))
+                                    on_quit=lambda *_: self.on_closing)
 
-        self.systray_thread = threading.Thread(target=run_tray_icon)
+        self.systray_thread = threading.Thread(target=run_tray_icon, daemon=True)
         self.systray_thread.start()
         self.master.bind('<Unmap>', lambda *_: self.master.withdraw())  # Minimize to taskbar
 
@@ -252,7 +265,7 @@ class LifxFrame(ttk.Frame):
     def on_closing(self):
         self.logger.info('Shutting down.\n')
         self.master.destroy()
-        os._exit(1)
+        sys.exit(0)
 
 
 class LightFrame(ttk.Labelframe):
@@ -925,11 +938,11 @@ class BulbIconList(Frame):
         # update sizing info
         self.current_icon_width += self.icon_width
 
-    def update_icon(self, bulb):
+    def update_icon(self, bulb: lifxlan.Light):
         try:
-            bulb_color = bulb.get_color()
+            bulb_color = bulb.color
             bulb_brightness = bulb_color[2]
-            sprite, image, text = self.bulb_dict[bulb.get_label()]
+            sprite, image, text = self.bulb_dict[bulb.label]
         except WorkflowException:
             return
         brightness_scale = (bulb_brightness / 65535) * sprite.height()

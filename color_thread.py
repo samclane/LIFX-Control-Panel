@@ -35,7 +35,7 @@ def mode_screen_color(initial_color):
 
 class ColorThread(threading.Thread):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, daemon=True, **kwargs)
         self._stop = threading.Event()
 
     def stop(self):
