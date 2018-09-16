@@ -63,9 +63,10 @@ I have currently only tested on the following operating systems:
 * Windows 10
 
 and on the following LIFX devices:
-* LIFX A19 Firmware v2.75
-* LIFX A13 Firmware v2.75
+* LIFX A19 Firmware v2.76
+* LIFX A13 Firmware v2.76 
 * LIFX Z   Firmware v1.22
+* LIFX Mini White Firmware v3.41
 
 # Donate
 LIFX-Control-Panel will always be free and open source. However, if you appreciate the work I'm doing and would like to 
