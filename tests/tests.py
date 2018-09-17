@@ -1,5 +1,5 @@
 import unittest
-from dummy_devices import *
+from tests.dummy_devices import *
 from gui import Color
 import random
 import string

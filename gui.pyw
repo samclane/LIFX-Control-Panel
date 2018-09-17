@@ -12,16 +12,14 @@ from PIL import Image as pImage
 from lifxlan import *
 from lifxlan import errors
 
-import SysTrayIcon
-import audio
-import color_thread
-import settings
+from ui import SysTrayIcon, settings
+from utilities import audio, color_thread
 from _constants import *
-from colorscale import ColorScale
-from keypress import Keystroke_Watcher
-from settings import config
-from splashscreen import Splash
-from utils import *
+from ui.colorscale import ColorScale
+from utilities.keypress import Keystroke_Watcher
+from ui.settings import config
+from ui.splashscreen import Splash
+from utilities.utils import *
 
 HEARTBEAT_RATE = 3000  # 3 seconds
 LOGFILE = 'lifx-control-panel.log'
@@ -144,9 +142,12 @@ class LifxFrame(ttk.Frame):
         # Setup tray icon
         tray_options = (('Adjust Lights', None, lambda *_: self.master.deiconify()),)
 
+        def lambda_factory(self):
+            return lambda *_: self.on_closing()
+
         def run_tray_icon():
             SysTrayIcon.SysTrayIcon(resource_path('res/icon_vector_9fv_icon.ico'), "LIFX-Control-Panel", tray_options,
-                                    on_quit=lambda *_: self.on_closing)
+                                    on_quit=lambda_factory(self))
 
         self.systray_thread = threading.Thread(target=run_tray_icon, daemon=True)
         self.systray_thread.start()

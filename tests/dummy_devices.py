@@ -10,7 +10,7 @@ import os
 from lifxlan import product_map, Group
 
 from gui import Color as DummyColor
-from utils import resource_path
+from utilities.utils import resource_path
 
 
 LOGFILE = 'lifx-control-panel.log'

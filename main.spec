@@ -3,7 +3,7 @@ import datetime
 
 bd = datetime.datetime.now().isoformat()
 auth = "Sawyer McLane"
-vers = "1.5.1"
+vers = "1.5.2"
 is_debug = False
 
 # Write version info into _constants.py resource file
@@ -26,7 +26,7 @@ with open('default.ini', 'w') as f:
 block_cipher = None
 
 
-a = Analysis(['gui.pyw', 'color_thread.py', 'audio.py', 'settings.py', 'SysTrayIcon.py', 'utils.py', '_constants.py', 'splashscreen.py'],
+a = Analysis(['gui.pyw', 'utilities//color_thread.py', 'utilities//audio.py', 'ui//settings.py', 'ui//SysTrayIcon.py', 'utilities//utils.py', '_constants.py', 'ui//splashscreen.py'],
              pathex=['\\.'],
              binaries=[],
              datas=[],

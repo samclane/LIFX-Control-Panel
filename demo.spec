@@ -3,7 +3,7 @@ import datetime
 
 bd = datetime.datetime.now().isoformat()
 auth = "Sawyer McLane"
-vers = "1.5.1"
+vers = "1.5.2"
 is_debug = True
 
 # Write version info into _constants.py resource file
@@ -13,7 +13,7 @@ with open('_constants.py', 'w') as f:
     f.write("AUTHOR = \"{}\"\n".format(auth))
     f.write("DEBUGGING = {}".format(str(is_debug)))
 
-# Write version info into default config file
+# Write version info into default config file/
 with open('default.ini', 'r') as f:
     initdata = f.readlines()
 initdata[-1] = "builddate = {}\n".format(bd)
@@ -25,7 +25,7 @@ with open('default.ini', 'w') as f:
 block_cipher = None
 
 
-a = Analysis(['dummy_devices.py', 'gui.pyw', 'color_thread.py', 'audio.py', 'settings.py', 'SysTrayIcon.py', 'utils.py', '_constants.py', 'splashscreen.py'],
+a = Analysis(['tests//dummy_devices.py', 'gui.pyw', 'utilities//color_thread.py', 'utilities//audio.py', 'ui//settings.py', 'ui//SysTrayIcon.py', 'utilities//utils.py', '_constants.py', 'ui//splashscreen.py'],
              pathex=['\\.'],
              binaries=[],
              datas=[],

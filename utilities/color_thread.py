@@ -7,10 +7,9 @@ from time import sleep
 
 from PIL import Image
 from desktopmagic.screengrab_win32 import *
-from lifxlan import LifxLAN, utils
+from lifxlan import utils
 
-from utils import get_primary_monitor
-from settings import config
+from ui.settings import config
 
 
 def avg_screen_color(initial_color):
