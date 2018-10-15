@@ -4,6 +4,7 @@ __pycache__/
 build/
 dist/
 venv/
+icons/
 *.log
 archive_viewer.spec
 config.ini
