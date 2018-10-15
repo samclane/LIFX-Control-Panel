@@ -196,8 +196,15 @@ class DummyBulb(DummyDevice):
         self.power: int = 0
 
     # Official api
+    @property
+    def power_level(self):
+        return self.power
 
-    def set_power(self, val: bool, duration: int = 0, rapid: bool = False):
+    @power_level.setter
+    def power_level(self, val):
+        self.power = val
+
+    def set_power(self, val: int, duration: int = 0, rapid: bool = False):
         self.power = val
 
     def set_color(self, val: DummyColor, duration: int = 0, rapid: bool = False):

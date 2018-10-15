@@ -12,13 +12,13 @@ from PIL import Image as pImage
 from lifxlan import *
 from lifxlan import errors
 
-from ui import SysTrayIcon, settings
-from utilities import audio, color_thread
 from _constants import *
+from ui import SysTrayIcon, settings
 from ui.colorscale import ColorScale
-from utilities.keypress import Keystroke_Watcher
 from ui.settings import config
 from ui.splashscreen import Splash
+from utilities import audio, color_thread
+from utilities.keypress import Keystroke_Watcher
 from utilities.utils import *
 
 HEARTBEAT_RATE = 3000  # 3 seconds
@@ -65,7 +65,6 @@ class Color:
                 self.brightness,
                 self.kelvin
                 ].__repr__()
-
 
 
 class LifxFrame(ttk.Frame):
@@ -497,7 +496,10 @@ class LightFrame(ttk.Labelframe):
         if not self.started:
             return
         try:
-            self.powervar.set(self.bulb.get_power())
+            pwr = self.bulb.get_power()
+            if pwr != self.bulb.power_level:
+                self.bulb.updated = True
+            self.powervar.set(pwr)
         except OSError:
             self.logger.warning("Error updating bulb power: OS")
         except errors.WorkflowException:
@@ -932,7 +934,7 @@ class BulbIconList(Frame):
         image = self.canvas.create_image(
             (self.current_icon_width + self.icon_width - self.pad, self.icon_height / 2 + 2 * self.pad), image=sprite,
             anchor=SE, tags=[label])
-        text = self.canvas.create_text(self.current_icon_width + self.pad, self.icon_height / 2 + self.pad,
+        text = self.canvas.create_text(self.current_icon_width + self.pad / 2, self.icon_height / 2 + 2 * self.pad,
                                        text=label[:8], anchor=NW, tags=[label])
         self.bulb_dict[label] = (sprite, image, text)
         self.update_icon(bulb)
@@ -942,17 +944,17 @@ class BulbIconList(Frame):
     def update_icon(self, bulb: lifxlan.Light):
         try:
             bulb_color = bulb.color
+            bulb_power = bulb.power_level
             bulb_brightness = bulb_color[2]
             sprite, image, text = self.bulb_dict[bulb.label]
         except WorkflowException:
             return
-        brightness_scale = (bulb_brightness / 65535) * sprite.height()
+        brightness_scale = ((int((bulb_brightness / 65535) * 10) * (bulb_power > 0)) - 1)
         for y in range(sprite.height()):
             for x in range(sprite.width()):
-                value = 1 - (self.original_icon[x, y][0] / 255)
-                if all([v == 0 for v in self.original_icon[x, y][:3]]) and self.original_icon[x, y][
-                    3] == 255 and y < brightness_scale:
-                    bulb_color = bulb_color[0], value * bulb_color[1], bulb_color[2], bulb_color[3]
+                if all([(v <= brightness_scale or v == 11) for v in self.original_icon[x, y][:3]]) and \
+                        self.original_icon[x, y][3] == 255:
+                    bulb_color = bulb_color[0], bulb_color[1], bulb_color[2], bulb_color[3]
                     color = HSBKtoRGB(bulb_color)
                 elif any([v > 0 for v in self.original_icon[x, y]]):
                     color = self.original_icon[x, y][:3]
@@ -992,7 +994,7 @@ class GroupIconList(Frame):
         image = self.canvas.create_image(
             (self.current_icon_width + self.icon_width - self.pad, self.icon_height / 2 + 2 * self.pad), image=sprite,
             anchor=SE, tags=[label])
-        text = self.canvas.create_text(self.current_icon_width + self.pad, self.icon_height / 2 + self.pad,
+        text = self.canvas.create_text(self.current_icon_width + self.pad / 2, self.icon_height / 2 + 2 * self.pad,
                                        text=label[:8], anchor=NW, tags=[label])
         self.group_dict[label] = (sprite, image, text)
         self.update_icon(group)
