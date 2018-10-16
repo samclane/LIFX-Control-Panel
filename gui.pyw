@@ -436,6 +436,7 @@ class LightFrame(ttk.Labelframe):
         """ Send new power state to bulb when UI is changed. """
         self.stop_threads()
         self.bulb.set_power(self.powervar.get())
+        self.bulb.updated = True
 
     def update_color_from_ui(self, *args):
         """ Send new color state to bulb when UI is changed. """
@@ -497,10 +498,11 @@ class LightFrame(ttk.Labelframe):
         if not self.started:
             return
         try:
-            pwr = self.bulb.get_power()
-            if pwr != self.bulb.power_level:
+            old_pwr = self.bulb.power_level
+            new_pwr = self.bulb.get_power()
+            if new_pwr != old_pwr:
                 self.bulb.updated = True
-            self.powervar.set(pwr)
+            self.powervar.set(new_pwr)
         except OSError:
             self.logger.warning("Error updating bulb power: OS")
         except errors.WorkflowException:
@@ -962,7 +964,7 @@ class BulbIconList(Frame):
                 else:
                     continue
                 sprite.put(tuple2hex(color), (x, y))
-                self.canvas.itemconfig(image, image=sprite)
+        self.canvas.itemconfig(image, image=sprite)
 
 
 class GroupIconList(Frame):
