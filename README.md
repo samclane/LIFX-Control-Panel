@@ -72,4 +72,6 @@ and on the following LIFX devices:
 LIFX-Control-Panel will always be free and open source. However, if you appreciate the work I'm doing and would like to 
 contribute financially, you can donate below. Thanks for your support!
 
+<a href='https://ko-fi.com/J3J8LZKP' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.me/sawyermclane)
