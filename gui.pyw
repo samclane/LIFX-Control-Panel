@@ -261,7 +261,7 @@ class LifxFrame(ttk.Frame):
         messagebox.showinfo("About", "LIFX-Control-Panel\n"
                                      "Version {}\n"
                                      "{}, {}\n"
-                                     "Bulb Icons by DJW".format(VERSION, AUTHOR, BUILD_DATE))
+                                     "Bulb Icons by Quixote".format(VERSION, AUTHOR, BUILD_DATE))
 
     def on_closing(self):
         self.logger.info('Shutting down.\n')
