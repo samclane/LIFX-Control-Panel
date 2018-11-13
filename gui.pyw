@@ -945,6 +945,7 @@ class BulbIconList(Frame):
         self.current_icon_width += self.icon_width
 
     def update_icon(self, bulb: lifxlan.Light):
+        # Get updated info from local bulb object
         try:
             bulb_color = bulb.color
             bulb_power = bulb.power_level
@@ -952,18 +953,23 @@ class BulbIconList(Frame):
             sprite, image, text = self.bulb_dict[bulb.label]
         except WorkflowException:
             return
-        brightness_scale = ((int((bulb_brightness / 65535) * 10) * (bulb_power > 0)) - 1)
+        # Calculate what number, 0-11, corresponds to current brightness
+        brightness_scale = (int((bulb_brightness / 65535) * 10) * (bulb_power > 0)) - 1
+        color_string = ''
         for y in range(sprite.height()):
+            color_string += '{'
             for x in range(sprite.width()):
+                # If the tick is < brightness, color it. Otherwise, set it back to the default color
                 if all([(v <= brightness_scale or v == 11) for v in self.original_icon[x, y][:3]]) and \
                         self.original_icon[x, y][3] == 255:
                     bulb_color = bulb_color[0], bulb_color[1], bulb_color[2], bulb_color[3]
                     color = HSBKtoRGB(bulb_color)
-                elif any([v > 0 for v in self.original_icon[x, y]]):
-                    color = self.original_icon[x, y][:3]
                 else:
-                    continue
-                sprite.put(tuple2hex(color), (x, y))
+                    color = self.original_icon[x, y][:3]
+                color_string += tuple2hex(color) + ' '
+            color_string += '} '
+        # Write the final colorstring to the sprite, then update the GUI
+        sprite.put(color_string, (0, 0, sprite.height(), sprite.width()))
         self.canvas.itemconfig(image, image=sprite)
 
 
