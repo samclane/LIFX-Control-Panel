@@ -279,7 +279,7 @@ class LightFrame(ttk.Labelframe):
             bulb_power = bulb.get_power()
             init_color = Color(*bulb.get_color())
         except WorkflowException as e:
-            messagebox.showerror("Error building lightframe",
+            messagebox.showerror("Error building LightFrame",
                                  "Error thrown when trying to get label from bulb:\n{}".format(e))
             return
         ttk.Labelframe.__init__(self, master, padding="3 3 12 12",

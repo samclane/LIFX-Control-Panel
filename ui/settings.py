@@ -228,7 +228,11 @@ class SettingsDisplay(Dialog):
         self.keybind_color_selection = StringVar(master, value="Color")
         self.keybind_color_dropdown = OptionMenu(master, self.keybind_color_selection,
                                                  *self.root_window.framesdict[
-                                                     self.keybind_bulb_selection.get()].default_colors)
+                                                     self.keybind_bulb_selection.get()].default_colors,
+                                                 *(
+                                                     [*config["PresetColors"].keys()] if len(
+                                                         config["PresetColors"].keys()) else [None])
+                                                 )
         self.keybind_add_button = Button(master, text="Add keybind",
                                          command=lambda *_: self.register_keybinding(
                                              self.keybind_bulb_selection.get(), self.keybind_keys_select.get(),
@@ -269,12 +273,15 @@ class SettingsDisplay(Dialog):
     def get_color(self):
         color = askcolor()[0]
         if color:
-            # RGBtoHBSK sometimes returns >65535, so we have to truncate
+            # RGBtoHBSK sometimes returns >65535, so we have to clamp
             hsbk = [min(c, 65535) for c in RGBtoHSBK(color)]
             config["PresetColors"][self.preset_color_name.get()] = str(hsbk)
 
     def register_keybinding(self, bulb: str, keys: str, color: str):
-        color = eval(color)  # should match color to variable w/ same name
+        try:
+            color = eval(color)  # should match color to variable w/ same name
+        except NameError:  # must be using a custom color
+            color = eval(config["PresetColors"][color])
         self.root_window.save_keybind(bulb, keys, color, bulb in self.root_window.groupsdict.keys())
         config["Keybinds"][str(keys)] = str(bulb + ":" + str(color))
         self.mlb.insert(END, (str(bulb), str(keys), str(color)))
