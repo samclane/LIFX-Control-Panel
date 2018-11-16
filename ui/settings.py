@@ -191,11 +191,16 @@ class SettingsDisplay(Dialog):
         self.logger = logging.getLogger(self.root_window.logger.name + '.SettingsDisplay')
         self.k = Keystroke_Watcher(self, sticky=True)
         # Labels
-        Label(master, text="Avg. Monitor Default: ").grid(row=0, column=0)
-        Label(master, text="Add Preset Color: ").grid(row=1, column=0)
-        Label(master, text="Add keyboard shortcut").grid(row=2, column=0)
+        Label(master, text="Start Minimized?: ").grid(row=0, column=0)
+        Label(master, text="Avg. Monitor Default: ").grid(row=1, column=0)
+        Label(master, text="Add Preset Color: ").grid(row=2, column=0)
+        Label(master, text="Add keyboard shortcut").grid(row=3, column=0)
 
         # Widgets
+        # Starting minimized
+        self.start_mini = BooleanVar(master, value=eval(config["AppSettings"]["start_minimized"]))
+        self.start_mini_check = Checkbutton(master, variable=self.start_mini)
+
         # Avg monitor color match
         self.avg_monitor = StringVar(master, value=config["AverageColor"]["DefaultMonitor"])
         options = []
@@ -231,24 +236,27 @@ class SettingsDisplay(Dialog):
         self.keybind_delete_button = Button(master, text="Delete keybind", command=self.delete_keybind)
 
         # Insert
-        self.avg_monitor_dropdown.grid(row=0, column=1)
+        self.start_mini_check.grid(row=0, column=1)
         ttk.Separator(master, orient=HORIZONTAL).grid(row=0, sticky='esw', columnspan=100)
-        self.preset_color_name.grid(row=1, column=1)
-        self.preset_color_button.grid(row=1, column=2)
+        self.avg_monitor_dropdown.grid(row=1, column=1)
         ttk.Separator(master, orient=HORIZONTAL).grid(row=1, sticky='esw', columnspan=100)
-        self.keybind_bulb_dropdown.grid(row=2, column=1)
-        self.keybind_keys_select.grid(row=2, column=2)
-        self.keybind_color_dropdown.grid(row=2, column=3)
-        self.keybind_add_button.grid(row=2, column=4)
+        self.preset_color_name.grid(row=2, column=1)
+        self.preset_color_button.grid(row=2, column=2)
+        ttk.Separator(master, orient=HORIZONTAL).grid(row=2, sticky='esw', columnspan=100)
+        self.keybind_bulb_dropdown.grid(row=3, column=1)
+        self.keybind_keys_select.grid(row=3, column=2)
+        self.keybind_color_dropdown.grid(row=3, column=3)
+        self.keybind_add_button.grid(row=3, column=4)
         self.mlb = MultiListbox(master, (('Bulb', 5), ('Keybind', 5), ('Color', 5)))
         for keypress, fnx in dict(config['Keybinds']).items():
             label, color = fnx.split(':')
             self.mlb.insert(END, (label, keypress, color))
-        self.mlb.grid(row=3, columnspan=100, sticky='esw')
-        self.keybind_delete_button.grid(row=4, column=0)
+        self.mlb.grid(row=4, columnspan=100, sticky='esw')
+        self.keybind_delete_button.grid(row=5, column=0)
 
     def validate(self):
         config["AverageColor"]["DefaultMonitor"] = str(self.avg_monitor.get())
+        config["AppSettings"]["start_minimized"] = str(self.start_mini.get())
 
         # Write to config file
         with open('config.ini', 'w') as cfg:
