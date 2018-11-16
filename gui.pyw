@@ -780,7 +780,6 @@ class GroupFrame(ttk.Labelframe):
             else:
                 raise e
         self.update_status_from_bulb(run_once=True)
-        self.logger.debug('Hue changed to {}'.format(hue))
 
     def set_saturation(self, saturation, rapid=False):
         self.stop_threads()
@@ -792,7 +791,6 @@ class GroupFrame(ttk.Labelframe):
             else:
                 raise e
         self.update_status_from_bulb(run_once=True)
-        self.logger.debug('Hue changed to {}'.format(saturation))
 
     def set_brightness(self, brightness, rapid=False):
         self.stop_threads()
@@ -804,7 +802,6 @@ class GroupFrame(ttk.Labelframe):
             else:
                 raise e
         self.update_status_from_bulb(run_once=True)
-        self.logger.debug('Hue changed to {}'.format(brightness))
 
     def set_colortemp(self, colortemp, rapid=False):
         self.stop_threads()
@@ -816,7 +813,6 @@ class GroupFrame(ttk.Labelframe):
             else:
                 raise e
         self.update_status_from_bulb(run_once=True)
-        self.logger.debug('Hue changed to {}'.format(colortemp))
 
     def update_label(self, key):
         """ Update scale labels, formatted accordingly. """
