@@ -164,6 +164,8 @@ class LifxFrame(ttk.Frame):
         if len(self.lightsdict):  # if any lights are found, show the first display
             self.bulb_changed()
         self.after(HEARTBEAT_RATE, self.update_icons)
+        if eval(config["AppSettings"]["start_minimized"]):
+            self.master.withdraw()
 
     def bulb_changed(self, *args):
         """ Change current display frame when dropdown menu is changed. """
@@ -505,8 +507,10 @@ class LightFrame(ttk.Labelframe):
             self.powervar.set(new_pwr)
         except OSError:
             self.logger.warning("Error updating bulb power: OS")
+            return
         except errors.WorkflowException:
             self.logger.warning("Error updating bulb power: Workflow")
+            return
         if self.powervar.get() == 0:
             # Light is off
             self.option_off.select()
