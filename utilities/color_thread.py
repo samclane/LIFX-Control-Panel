@@ -10,6 +10,9 @@ from desktopmagic.screengrab_win32 import *
 from lifxlan import utils
 
 from ui.settings import config
+from utilities.utils import get_primary_monitor;
+
+get_primary_monitor()
 
 
 def avg_screen_color(initial_color):

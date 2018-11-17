@@ -1,19 +1,19 @@
 import configparser
 import itertools
 import logging
+import tkinter.ttk as ttk
 from shutil import copyfile
 from tkinter import *
 from tkinter import messagebox
 from tkinter.colorchooser import *
-import tkinter.ttk as ttk
 
 from desktopmagic.screengrab_win32 import getDisplayRects
 from lifxlan import *
 from lifxlan.utils import RGBtoHSBK
 
-from utilities.utils import resource_path
-from utilities.keypress import Keystroke_Watcher
 from _constants import *
+from utilities.keypress import Keystroke_Watcher
+from utilities.utils import resource_path
 
 config = configparser.ConfigParser()
 if not os.path.isfile("config.ini"):
@@ -29,6 +29,7 @@ if not config.has_section("Info") or int(config["Info"]["Version"].replace('.', 
     copyfile(resource_path("default.ini"), "config.ini")
     config.clear()
     config.read("config.ini")
+
 
 # boilerplate code from http://effbot.org/tkinterbook/tkinter-dialog-windows.htm
 class Dialog(Toplevel):
@@ -187,7 +188,7 @@ class MultiListbox(Frame):
 
 class SettingsDisplay(Dialog):
     def body(self, master):
-        self.root_window = master.master.master
+        self.root_window = master.master.master  # This is really gross. I'm sorry.
         self.logger = logging.getLogger(self.root_window.logger.name + '.SettingsDisplay')
         self.k = Keystroke_Watcher(self, sticky=True)
         # Labels
@@ -308,4 +309,3 @@ class SettingsDisplay(Dialog):
         self.mlb.delete(ACTIVE)
         self.root_window.delete_keybind(keybind)
         config.remove_option("Keybinds", keybind)
-
