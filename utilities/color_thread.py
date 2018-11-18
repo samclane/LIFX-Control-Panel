@@ -10,9 +10,7 @@ from desktopmagic.screengrab_win32 import *
 from lifxlan import utils
 
 from ui.settings import config
-from utilities.utils import get_primary_monitor;
-
-get_primary_monitor()
+from utilities.utils import get_primary_monitor
 
 
 def avg_screen_color(initial_color):
@@ -20,7 +18,7 @@ def avg_screen_color(initial_color):
     if monitor == "all":
         im = getScreenAsImage()
     else:
-        im = getRectAsImage(eval(monitor))
+        im = getRectAsImage(eval(monitor, {'get_primary_monitor': get_primary_monitor}))
     color = im.resize((1, 1), Image.HAMMING).getpixel((0, 0))
     color_hsbk = utils.RGBtoHSBK(color, temperature=initial_color[3])
     # return tuple((val1+val2)/2 for (val1, val2) in zip(initial_color, color_hsbk))

@@ -199,7 +199,7 @@ class SettingsDisplay(Dialog):
 
         # Widgets
         # Starting minimized
-        self.start_mini = BooleanVar(master, value=eval(config["AppSettings"]["start_minimized"]))
+        self.start_mini = BooleanVar(master, value=eval(config["AppSettings"]["start_minimized"], {}))
         self.start_mini_check = Checkbutton(master, variable=self.start_mini)
 
         # Avg monitor color match
@@ -280,9 +280,10 @@ class SettingsDisplay(Dialog):
 
     def register_keybinding(self, bulb: str, keys: str, color: str):
         try:
-            color = eval(color)  # should match color to variable w/ same name
+            color = eval(color, {c: eval(c) for c in self.root_window.framesdict[
+                self.keybind_bulb_selection.get()].default_colors})  # should match color to variable w/ same name
         except NameError:  # must be using a custom color
-            color = eval(config["PresetColors"][color])
+            color = eval(config["PresetColors"][color], {})
         self.root_window.save_keybind(bulb, keys, color, bulb in self.root_window.groupsdict.keys())
         config["Keybinds"][str(keys)] = str(bulb + ":" + str(color))
         self.mlb.insert(END, (str(bulb), str(keys), str(color)))
