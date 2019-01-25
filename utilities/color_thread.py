@@ -89,6 +89,7 @@ class ColorThreadRunner:
         self.logger.debug('Color match finished.')
 
     def start(self):
+        self.update_params()  # If any configs were changed, update them here.
         if self.t.stopped():
             self.t = ColorThread(target=self.match_color, args=(self.bulb,))
             self.t.setDaemon(True)
@@ -99,7 +100,6 @@ class ColorThreadRunner:
             self.logger.error('Tried to start ColorThread again.')
 
     def stop(self):
-        self.update_params()  # If any configs were changed, update them here.
         self.t.stop()
 
     def update_params(self):
