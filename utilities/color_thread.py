@@ -60,6 +60,7 @@ class ColorThreadRunner:
         self.logger = logging.getLogger(parent.logger.name + '.Thread({})'.format(color_function.__name__))
         self.prev_color = parent.get_color_values_hsbk()
         self.continuous = continuous
+        self.duration = float(config["AverageColor"]["Duration"])
         self.t = ColorThread(target=self.match_color, args=(self.bulb,))
         try:
             label = self.bulb.get_label()
@@ -71,19 +72,18 @@ class ColorThreadRunner:
     def match_color(self, bulb):
         self.logger.debug('Starting color match.')
         self.prev_color = self.parent.get_color_values_hsbk()  # coupling to LightFrame from gui.py here
-        duration_secs = 1 / 15  # TODO Allow user to specify
-        transition_time_ms = duration_secs * 1000 * 0.5
+        transition_time_ms = self.duration * 1000 * 0.5
         while not self.t.stopped():
             try:
                 color = self.color_function(initial_color=self.prev_color, **self.kwargs)
                 bulb.set_color(color, transition_time_ms,
-                               True if duration_secs < 1 else False)
+                               True if self.duration < 1 else False)
                 self.prev_color = color
             except OSError:
                 # This is dirty, but we really don't care, just keep going
                 self.logger.info("Hit an os error")
                 continue
-            sleep(duration_secs)
+            sleep(self.duration)
             if not self.continuous:
                 self.stop()
         self.logger.debug('Color match finished.')
@@ -99,7 +99,11 @@ class ColorThreadRunner:
             self.logger.error('Tried to start ColorThread again.')
 
     def stop(self):
+        self.update_params()
         self.t.stop()
+
+    def update_params(self):
+        self.duration = float(config["AverageColor"]["Duration"])
 
 
 def install_thread_excepthook():
