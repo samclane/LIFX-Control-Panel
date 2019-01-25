@@ -427,8 +427,8 @@ class LightFrame(ttk.Labelframe):
         if isinstance(region, str):
             region = ["full"] * 4
         self.screen_region_entires['x1'].insert(END, region[0])
-        self.screen_region_entires['x2'].insert(END, region[1])
-        self.screen_region_entires['y1'].insert(END, region[2])
+        self.screen_region_entires['y1'].insert(END, region[1])
+        self.screen_region_entires['x2'].insert(END, region[2])
         self.screen_region_entires['y2'].insert(END, region[3])
         Label(self.screen_region_lf, text="x1").grid(row=7, column=0)
         self.screen_region_entires['x1'].grid(row=7, column=1)
