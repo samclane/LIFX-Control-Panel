@@ -4,6 +4,7 @@ import logging
 import threading
 from statistics import mode
 from time import sleep
+from functools import lru_cache
 
 from PIL import Image
 from desktopmagic.screengrab_win32 import *
@@ -13,8 +14,13 @@ from ui.settings import config
 from utilities.utils import get_primary_monitor
 
 
+@lru_cache(maxsize=32)
+def get_monitor_from_bounds(func):
+    return func() or config["AverageColor"]["DefaultMonitor"]
+
+
 def avg_screen_color(initial_color, func_bounds=lambda: None):
-    monitor = func_bounds() or config["AverageColor"]["DefaultMonitor"]
+    monitor = get_monitor_from_bounds(func_bounds)
     if "full" in monitor:
         im = getScreenAsImage()
     else:
@@ -65,12 +71,12 @@ class ColorThreadRunner:
     def match_color(self, bulb):
         self.logger.debug('Starting color match.')
         self.prev_color = self.parent.get_color_values_hsbk()  # coupling to LightFrame from gui.py here
-        duration_secs = 1 / 15
+        duration_secs = 1 / 15  # TODO Allow user to specify
         transition_time_ms = duration_secs * 1000 * 0.5
         while not self.t.stopped():
             try:
                 color = self.color_function(initial_color=self.prev_color, **self.kwargs)
-                bulb.set_color(color, 0,
+                bulb.set_color(color, transition_time_ms,
                                True if duration_secs < 1 else False)
                 self.prev_color = color
             except OSError:
