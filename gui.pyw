@@ -419,9 +419,11 @@ class LightFrame(ttk.Labelframe):
             'y2': Entry(self.screen_region_lf, width=6)
         }
         if self.bulb.label in config["AverageColor"].keys():
-            region = eval(config['AverageColor'][self.bulb.label], {"full": "full"})
+            region = eval(config['AverageColor'][self.bulb.label],
+                          {"full": "full", "get_primary_monitor": get_primary_monitor})
         else:
-            region = eval(config['AverageColor']['defaultmonitor'], {"full": "full"})
+            region = eval(config['AverageColor']['defaultmonitor'],
+                          {"full": "full", "get_primary_monitor": get_primary_monitor})
         if isinstance(region, str):
             region = ["full"] * 4
         self.screen_region_entires['x1'].insert(END, region[0])
