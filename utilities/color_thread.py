@@ -13,19 +13,19 @@ from ui.settings import config
 from utilities.utils import get_primary_monitor
 
 
-def avg_screen_color(initial_color):
-    monitor = config["AverageColor"]["DefaultMonitor"]
-    if monitor == "all":
+def avg_screen_color(initial_color, func_bounds=lambda: None):
+    monitor = func_bounds() or config["AverageColor"]["DefaultMonitor"]
+    if "full" in monitor:
         im = getScreenAsImage()
     else:
         im = getRectAsImage(eval(monitor, {'get_primary_monitor': get_primary_monitor}))
     color = im.resize((1, 1), Image.HAMMING).getpixel((0, 0))
     color_hsbk = utils.RGBtoHSBK(color, temperature=initial_color[3])
     # return tuple((val1+val2)/2 for (val1, val2) in zip(initial_color, color_hsbk))
-    return utils.RGBtoHSBK(color, temperature=initial_color[3])
+    return color_hsbk
 
 
-def mode_screen_color(initial_color):
+def mode_screen_color(initial_color):  # UNUSED
     """ Probably a more accurate way to get screen color, but is incredibly slow. """
     im = getRectAsImage(getDisplayRects()[1]).resize((500, 500))
     color = mode(im.load()[x, y] for x in range(im.width) for y in range(im.height) if
@@ -46,9 +46,10 @@ class ColorThread(threading.Thread):
 
 
 class ColorThreadRunner:
-    def __init__(self, bulb, color_function, parent, continuous=True):
+    def __init__(self, bulb, color_function, parent, continuous=True, **kwargs):
         self.bulb = bulb
         self.color_function = color_function
+        self.kwargs = kwargs
         self.parent = parent  # couple to parent frame
         self.logger = logging.getLogger(parent.logger.name + '.Thread({})'.format(color_function.__name__))
         self.prev_color = parent.get_color_values_hsbk()
@@ -65,10 +66,10 @@ class ColorThreadRunner:
         self.logger.debug('Starting color match.')
         self.prev_color = self.parent.get_color_values_hsbk()  # coupling to LightFrame from gui.py here
         duration_secs = 1 / 15
-        transition_time_ms = duration_secs * 1000
+        transition_time_ms = duration_secs * 1000 * 0.5
         while not self.t.stopped():
             try:
-                color = self.color_function(initial_color=self.prev_color)
+                color = self.color_function(initial_color=self.prev_color, **self.kwargs)
                 bulb.set_color(color, 0,
                                True if duration_secs < 1 else False)
                 self.prev_color = color

@@ -156,7 +156,7 @@ class LifxFrame(ttk.Frame):
         self.keylogger = Keystroke_Watcher(self)
         for keypress, function in dict(config['Keybinds']).items():
             light, color = function.split(':')
-            color = Color(*eval(color))
+            color = Color(*eval(color, {}))
             self.save_keybind(light, keypress, color, light in self.groupsdict.keys())
 
         # Stop splashscreen and start main function
@@ -164,7 +164,7 @@ class LifxFrame(ttk.Frame):
         if len(self.lightsdict):  # if any lights are found, show the first display
             self.bulb_changed()
         self.after(HEARTBEAT_RATE, self.update_icons)
-        if eval(config["AppSettings"]["start_minimized"]):
+        if eval(config["AppSettings"]["start_minimized"], {}):
             self.master.withdraw()
 
     def bulb_changed(self, *args):
@@ -263,7 +263,9 @@ class LifxFrame(ttk.Frame):
         messagebox.showinfo("About", "LIFX-Control-Panel\n"
                                      "Version {}\n"
                                      "{}, {}\n"
-                                     "Bulb Icons by Quixote".format(VERSION, AUTHOR, BUILD_DATE))
+                                     "Bulb Icons by Quixote\n"
+                                     "Please consider donating at ko-fi.com/sawyermclane"
+                            .format(VERSION, AUTHOR, BUILD_DATE))
 
     def on_closing(self):
         self.logger.info('Shutting down.\n')
@@ -393,7 +395,8 @@ class LightFrame(ttk.Labelframe):
 
         # Add buttons for special routines
         self.special_functions_lf = ttk.LabelFrame(self, text="Special Functions", padding="3 3 12 12")
-        self.threads['screen'] = color_thread.ColorThreadRunner(self.bulb, color_thread.avg_screen_color, self)
+        self.threads['screen'] = color_thread.ColorThreadRunner(self.bulb, color_thread.avg_screen_color, self,
+                                                                func_bounds=self.get_monitor_bounds)
         Button(self.special_functions_lf, text="Avg. Screen Color", command=self.threads['screen'].start).grid(row=6,
                                                                                                                column=0)
         Button(self.special_functions_lf, text="Pick Color", command=self.get_color_from_palette).grid(row=6, column=1)
@@ -405,6 +408,37 @@ class LightFrame(ttk.Labelframe):
                                                                                                                   column=1)
         Button(self.special_functions_lf, text="Stop effects", command=self.stop_threads).grid(row=8, column=0)
         self.special_functions_lf.grid(row=6, columnspan=4)
+
+        # Add custom screen region (real ugly)
+        self.screen_region_lf = ttk.LabelFrame(self, text="Screen Avg. Region", padding="3 3 12 12")
+
+        self.screen_region_entires = {
+            'x1': Entry(self.screen_region_lf, width=6),
+            'x2': Entry(self.screen_region_lf, width=6),
+            'y1': Entry(self.screen_region_lf, width=6),
+            'y2': Entry(self.screen_region_lf, width=6)
+        }
+        if self.bulb.label in config["AverageColor"].keys():
+            region = eval(config['AverageColor'][self.bulb.label], {"full": "full"})
+        else:
+            region = eval(config['AverageColor']['defaultmonitor'], {"full": "full"})
+        if isinstance(region, str):
+            region = ["full"] * 4
+        self.screen_region_entires['x1'].insert(END, region[0])
+        self.screen_region_entires['x2'].insert(END, region[1])
+        self.screen_region_entires['y1'].insert(END, region[2])
+        self.screen_region_entires['y2'].insert(END, region[3])
+        Label(self.screen_region_lf, text="x1").grid(row=7, column=0)
+        self.screen_region_entires['x1'].grid(row=7, column=1)
+        Label(self.screen_region_lf, text="x2").grid(row=7, column=2)
+        self.screen_region_entires['x2'].grid(row=7, column=3)
+        Label(self.screen_region_lf, text="y1").grid(row=8, column=0)
+        self.screen_region_entires['y1'].grid(row=8, column=1)
+        Label(self.screen_region_lf, text="y2").grid(row=8, column=2)
+        self.screen_region_entires['y2'].grid(row=8, column=3)
+        self.save_region = Button(self.screen_region_lf, text="Save", command=self.save_monitor_bounds) \
+            .grid(row=9, column=0)
+        self.screen_region_lf.grid(row=7, columnspan=4)
 
         # Start update loop
         self.started = True
@@ -562,7 +596,7 @@ class LightFrame(ttk.Labelframe):
         self.set_color(color, False)
 
     def change_user_dropdown(self, *args):
-        color = Color(*eval(config["PresetColors"][self.uservar.get()]))
+        color = Color(*eval(config["PresetColors"][self.uservar.get()], {}))
         self.set_color(color, False)
 
     def update_user_dropdown(self):
@@ -572,6 +606,16 @@ class LightFrame(ttk.Labelframe):
         new_choices = [key for key in config['PresetColors']]
         for choice in new_choices:
             self.user_dropdown["menu"].add_command(label=choice, command=_setit(self.uservar, choice))
+
+    def get_monitor_bounds(self):
+        return f"[{self.screen_region_entires['x1'].get()}, {self.screen_region_entires['y1'].get()}, " \
+            f"{self.screen_region_entires['x2'].get()}, {self.screen_region_entires['y2'].get()}]"
+
+    def save_monitor_bounds(self):
+        config["AverageColor"][self.bulb.label] = self.get_monitor_bounds()
+        # Write to config file
+        with open('config.ini', 'w') as cfg:
+            config.write(cfg)
 
 
 class GroupFrame(ttk.Labelframe):
@@ -891,11 +935,11 @@ class GroupFrame(ttk.Labelframe):
         return utils.RGBtoHSBK(color, temperature=self.get_color_values_hsbk().kelvin)
 
     def change_preset_dropdown(self, *args):
-        color = Color(*eval(self.colorVar.get()))
+        color = Color(*eval(self.colorVar.get(), {}))
         self.set_color(color, False)
 
     def change_user_dropdown(self, *args):
-        color = Color(*eval(config["PresetColors"][self.uservar.get()]))
+        color = Color(*eval(config["PresetColors"][self.uservar.get()], {}))
         self.set_color(color, False)
 
     def update_user_dropdown(self):
