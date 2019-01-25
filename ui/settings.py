@@ -212,7 +212,7 @@ class SettingsDisplay(Dialog):
             options.extend(els)
         self.avg_monitor_dropdown = OptionMenu(master, self.avg_monitor, *lst, 'full')
 
-        self.duration_scale = Scale(master, from_=1 / 15, to_=2, resolution=1 / 15, orient=HORIZONTAL)
+        self.duration_scale = Scale(master, from_=0, to_=2, resolution=1 / 15, orient=HORIZONTAL)
         self.duration_scale.set(float(config["AverageColor"]["Duration"]))
 
         # Custom preset color

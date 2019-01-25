@@ -99,7 +99,7 @@ class ColorThreadRunner:
             self.logger.error('Tried to start ColorThread again.')
 
     def stop(self):
-        self.update_params()
+        self.update_params()  # If any configs were changed, update them here.
         self.t.stop()
 
     def update_params(self):
