@@ -485,7 +485,7 @@ class LightFrame(ttk.Labelframe):
         """ Should be called whenever the bulb wants to change color. Sends bulb command and updates UI accordingly. """
         self.stop_threads()
         try:
-            self.bulb.set_color(color, rapid)
+            self.bulb.set_color(color, rapid=rapid)
         except WorkflowException as e:
             if rapid:  # If we're going fast we don't care if we miss a packet.
                 pass
