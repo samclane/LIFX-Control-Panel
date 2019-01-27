@@ -21,6 +21,8 @@ from utilities import audio, color_thread
 from utilities.keypress import Keystroke_Watcher
 from utilities.utils import *
 
+audio.init(config)
+
 HEARTBEAT_RATE = 3000  # 3 seconds
 LOGFILE = 'lifx-control-panel.log'
 
@@ -257,6 +259,9 @@ class LifxFrame(ttk.Frame):
         self.keylogger.shutdown()
         s = settings.SettingsDisplay(self, "Settings")
         self.current_lightframe.update_user_dropdown()
+        audio.init(config)
+        for f in self.framesdict.values():
+            f.music_button.config(state='normal' if audio.initialized else 'disabled')
         self.keylogger.restart()
 
     def show_about(self):
@@ -401,8 +406,9 @@ class LightFrame(ttk.Labelframe):
                                                                                                                column=0)
         Button(self.special_functions_lf, text="Pick Color", command=self.get_color_from_palette).grid(row=6, column=1)
         self.threads['audio'] = color_thread.ColorThreadRunner(self.bulb, audio.get_music_color, self)
-        Button(self.special_functions_lf, text="Music Color", command=self.threads['audio'].start,
-               state='normal' if audio.initialized else 'disabled').grid(row=7, column=0)
+        self.music_button = Button(self.special_functions_lf, text="Music Color", command=self.threads['audio'].start,
+                                   state='normal' if audio.initialized else 'disabled')
+        self.music_button.grid(row=7, column=0)
         self.threads['eyedropper'] = color_thread.ColorThreadRunner(self.bulb, self.eyedropper, self, continuous=False)
         Button(self.special_functions_lf, text="Color Eyedropper", command=self.threads['eyedropper'].start).grid(row=7,
                                                                                                                   column=1)
@@ -744,8 +750,9 @@ class GroupFrame(ttk.Labelframe):
                                                                                                                column=0)
         Button(self.special_functions_lf, text="Pick Color", command=self.get_color_from_palette).grid(row=6, column=1)
         self.threads['audio'] = color_thread.ColorThreadRunner(self.group, audio.get_music_color, self)
-        Button(self.special_functions_lf, text="Music Color", command=self.threads['audio'].start,
-               state='normal' if audio.initialized else 'disabled').grid(row=7, column=0)
+        self.music_button = Button(self.special_functions_lf, text="Music Color", command=self.threads['audio'].start,
+                                   state='normal' if audio.initialized else 'disabled')
+        self.music_button.grid(row=7, column=0)
         self.threads['eyedropper'] = color_thread.ColorThreadRunner(self.group, self.eyedropper, self, continuous=False)
         Button(self.special_functions_lf, text="Color Eyedropper", command=self.threads['eyedropper'].start).grid(row=7,
                                                                                                                   column=1)
@@ -937,7 +944,7 @@ class GroupFrame(ttk.Labelframe):
         return utils.RGBtoHSBK(color, temperature=self.get_color_values_hsbk().kelvin)
 
     def change_preset_dropdown(self, *args):
-        color = Color(*eval(self.colorVar.get(), {}))
+        color = Color(*eval(self.colorVar.get()))
         self.set_color(color, False)
 
     def change_user_dropdown(self, *args):

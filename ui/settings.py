@@ -12,6 +12,7 @@ from lifxlan import *
 from lifxlan.utils import RGBtoHSBK
 
 from _constants import *
+from utilities.audio import get_names
 from utilities.keypress import Keystroke_Watcher
 from utilities.utils import resource_path
 
@@ -196,7 +197,8 @@ class SettingsDisplay(Dialog):
         Label(master, text="Avg. Monitor Default: ").grid(row=1, column=0)
         Label(master, text="Avg. Transition Time: ").grid(row=2, column=0)
         Label(master, text="Add Preset Color: ").grid(row=3, column=0)
-        Label(master, text="Add keyboard shortcut").grid(row=4, column=0)
+        Label(master, text="Audio Input Source: ").grid(row=4, column=0)
+        Label(master, text="Add keyboard shortcut").grid(row=5, column=0)
 
         # Widgets
         # Starting minimized
@@ -219,6 +221,16 @@ class SettingsDisplay(Dialog):
         self.preset_color_name = Entry(master)
         self.preset_color_name.insert(END, "Enter color name...")
         self.preset_color_button = Button(master, text="Choose and add!", command=self.get_color)
+
+        # Audio dropdown
+        try:
+            init_string = " " + config["Audio"]["InputIndex"] + " " + get_names()[int(config["Audio"]["InputIndex"])]
+        except ValueError:
+            init_string = " None"
+        self.audio_source = StringVar(master,
+                                      init_string)  # AudioSource index is grabbed from [1], so add a space at [0]
+        as_choices = get_names().items()
+        self.as_dropdown = OptionMenu(master, self.audio_source, *as_choices)
 
         # Add keybindings
         lightnames = list(self.root_window.lightsdict.keys()) + list(self.root_window.groupsdict.keys())
@@ -253,21 +265,24 @@ class SettingsDisplay(Dialog):
         self.preset_color_name.grid(row=3, column=1)
         self.preset_color_button.grid(row=3, column=2)
         ttk.Separator(master, orient=HORIZONTAL).grid(row=3, sticky='esw', columnspan=100)
-        self.keybind_bulb_dropdown.grid(row=4, column=1)
-        self.keybind_keys_select.grid(row=4, column=2)
-        self.keybind_color_dropdown.grid(row=4, column=3)
-        self.keybind_add_button.grid(row=4, column=4)
+        self.as_dropdown.grid(row=4, column=1)
+        ttk.Separator(master, orient=HORIZONTAL).grid(row=4, sticky='esw', columnspan=100)
+        self.keybind_bulb_dropdown.grid(row=5, column=1)
+        self.keybind_keys_select.grid(row=5, column=2)
+        self.keybind_color_dropdown.grid(row=5, column=3)
+        self.keybind_add_button.grid(row=5, column=4)
         self.mlb = MultiListbox(master, (('Bulb', 5), ('Keybind', 5), ('Color', 5)))
         for keypress, fnx in dict(config['Keybinds']).items():
             label, color = fnx.split(':')
             self.mlb.insert(END, (label, keypress, color))
-        self.mlb.grid(row=5, columnspan=100, sticky='esw')
-        self.keybind_delete_button.grid(row=6, column=0)
+        self.mlb.grid(row=6, columnspan=100, sticky='esw')
+        self.keybind_delete_button.grid(row=7, column=0)
 
     def validate(self):
         config["AverageColor"]["DefaultMonitor"] = str(self.avg_monitor.get())
         config["AppSettings"]["start_minimized"] = str(self.start_mini.get())
         config["AverageColor"]["Duration"] = str(self.duration_scale.get())
+        config["Audio"]["InputIndex"] = str(self.audio_source.get()[1])
         # Write to config file
         with open('config.ini', 'w') as cfg:
             config.write(cfg)
