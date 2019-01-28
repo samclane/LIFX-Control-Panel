@@ -5,6 +5,8 @@ import threading
 from statistics import mode
 from time import sleep
 from functools import lru_cache
+from collections import deque
+
 
 from PIL import Image
 from desktopmagic.screengrab_win32 import *
@@ -19,14 +21,26 @@ def get_monitor_from_bounds(func):
     return func() or config["AverageColor"]["DefaultMonitor"]
 
 
+N_POINTS = 5
+window = deque([0, 0, 0, 0] for _ in range(N_POINTS))
+
+
+def column(matrix, i):
+    return [row[i] for row in matrix]
 def avg_screen_color(initial_color, func_bounds=lambda: None):
+    global window
     monitor = get_monitor_from_bounds(func_bounds)
     if "full" in monitor:
         im = getScreenAsImage()
     else:
         im = getRectAsImage(eval(monitor, {'get_primary_monitor': get_primary_monitor}))
     color = im.resize((1, 1), Image.HAMMING).getpixel((0, 0))
-    color_hsbk = utils.RGBtoHSBK(color, temperature=initial_color[3])
+    color_hsbk = list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
+    window.rotate(1)
+    window[0] = color_hsbk
+    # Take the sliding window across each parameter
+    for p in range(4):
+        color_hsbk[p] = int(sum(column(window, p)) / N_POINTS)
     # return tuple((val1+val2)/2 for (val1, val2) in zip(initial_color, color_hsbk))
     return color_hsbk
 

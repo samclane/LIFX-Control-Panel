@@ -1,6 +1,7 @@
 import audioop
 import pyaudio
 from tkinter import messagebox
+from collections import deque
 
 # Audio processing constants
 CHUNK = 1024
@@ -68,10 +69,29 @@ def init(config, logger=None):
         initialized = False
 
 
+"""
 def get_music_color(initial_color):
     data = stream.read(CHUNK)
     frame_rms = audioop.rms(data, 2)
     level = min(frame_rms / (2.0 ** 16) * SCALE, 1.0)
     level = level ** EXPONENT
     level = int(level * 65535)
+    level = (level + initial_color[2]) // 2
+#     print(level)
     return initial_color[0], initial_color[1], level, initial_color[3]
+"""
+N_POINTS = 20
+window = deque([0] * N_POINTS)
+
+
+def get_music_color(initial_color):
+    global window
+    data = stream.read(CHUNK)
+    frame_rms = audioop.rms(data, 2)
+    level = min(frame_rms / (2.0 ** 16) * SCALE, 1.0)
+    level = level ** EXPONENT
+    level = int(level * 65535)
+    window.rotate(1)
+    window[0] = level
+    retval = int(sum(window) / N_POINTS)
+    return initial_color[0], initial_color[1], retval, initial_color[3]
