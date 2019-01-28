@@ -74,5 +74,4 @@ def get_music_color(initial_color):
     level = min(frame_rms / (2.0 ** 16) * SCALE, 1.0)
     level = level ** EXPONENT
     level = int(level * 65535)
-    print(level)
     return initial_color[0], initial_color[1], level, initial_color[3]

@@ -21,6 +21,8 @@ from utilities import audio, color_thread
 from utilities.keypress import Keystroke_Watcher
 from utilities.utils import *
 
+RED = [0, 65535, 65535, 3500]  # Overwrite color, which appears black otherwise
+
 audio.init(config)
 
 HEARTBEAT_RATE = 3000  # 3 seconds
@@ -384,9 +386,9 @@ class LightFrame(ttk.Labelframe):
                                "COLD_WHITE",
                                "WARM_WHITE",
                                "GOLD"]
-        preset_dropdown = OptionMenu(self.preset_colors_lf, self.colorVar, *self.default_colors)
-        preset_dropdown.grid(row=0, column=0)
-        preset_dropdown.configure(width=13)
+        self.preset_dropdown = OptionMenu(self.preset_colors_lf, self.colorVar, *self.default_colors)
+        self.preset_dropdown.grid(row=0, column=0)
+        self.preset_dropdown.configure(width=13)
         self.colorVar.trace('w', self.change_preset_dropdown)
 
         self.uservar = StringVar(self, value="User Presets")
@@ -402,11 +404,21 @@ class LightFrame(ttk.Labelframe):
         self.special_functions_lf = ttk.LabelFrame(self, text="Special Functions", padding="3 3 12 12")
         self.threads['screen'] = color_thread.ColorThreadRunner(self.bulb, color_thread.avg_screen_color, self,
                                                                 func_bounds=self.get_monitor_bounds)
-        Button(self.special_functions_lf, text="Avg. Screen Color", command=self.threads['screen'].start).grid(row=6,
-                                                                                                               column=0)
+
+        def start_screen_avg():
+            self.avg_screen_btn.config(bg="Green")
+            self.threads['screen'].start()
+
+        self.avg_screen_btn = Button(self.special_functions_lf, text="Avg. Screen Color", command=start_screen_avg)
+        self.avg_screen_btn.grid(row=6, column=0)
         Button(self.special_functions_lf, text="Pick Color", command=self.get_color_from_palette).grid(row=6, column=1)
         self.threads['audio'] = color_thread.ColorThreadRunner(self.bulb, audio.get_music_color, self)
-        self.music_button = Button(self.special_functions_lf, text="Music Color", command=self.threads['audio'].start,
+
+        def start_audio():
+            self.music_button.config(bg="Green")
+            self.threads['audio'].start()
+
+        self.music_button = Button(self.special_functions_lf, text="Music Color", command=start_audio,
                                    state='normal' if audio.initialized else 'disabled')
         self.music_button.grid(row=7, column=0)
         self.threads['eyedropper'] = color_thread.ColorThreadRunner(self.bulb, self.eyedropper, self, continuous=False)
@@ -473,6 +485,8 @@ class LightFrame(ttk.Labelframe):
 
     def stop_threads(self):
         """ Stop all ColorRunner threads """
+        self.music_button.config(bg="SystemButtonFace")
+        self.avg_screen_btn.config(bg="SystemButtonFace")
         for thread in self.threads.values():
             thread.stop()
 
@@ -601,10 +615,14 @@ class LightFrame(ttk.Labelframe):
 
     def change_preset_dropdown(self, *args):
         color = Color(*eval(self.colorVar.get()))
+        self.preset_dropdown.config(bg=tuple2hex(HSBKtoRGB(color)),
+                                    activebackground=tuple2hex(HSBKtoRGB(color)))
         self.set_color(color, False)
 
     def change_user_dropdown(self, *args):
         color = Color(*eval(config["PresetColors"][self.uservar.get()], {}))
+        self.user_dropdown.config(bg=tuple2hex(HSBKtoRGB(color)),
+                                  activebackground=tuple2hex(HSBKtoRGB(color)))
         self.set_color(color, False)
 
     def update_user_dropdown(self):
@@ -729,9 +747,9 @@ class GroupFrame(ttk.Labelframe):
                                "COLD_WHITE",
                                "WARM_WHITE",
                                "GOLD"]
-        preset_dropdown = OptionMenu(self.preset_colors_lf, self.colorVar, *self.default_colors)
-        preset_dropdown.grid(row=0, column=0)
-        preset_dropdown.configure(width=13)
+        self.preset_dropdown = OptionMenu(self.preset_colors_lf, self.colorVar, *self.default_colors)
+        self.preset_dropdown.grid(row=0, column=0)
+        self.preset_dropdown.configure(width=13)
         self.colorVar.trace('w', self.change_preset_dropdown)
 
         self.uservar = StringVar(self, value="User Presets")
