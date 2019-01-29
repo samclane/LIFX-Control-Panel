@@ -115,7 +115,6 @@ class LifxFrame(ttk.Frame):
                 product = product_map[light.get_product()]
                 label = light.get_label()
                 light.get_color()
-                light.updated = False
                 self.lightsdict[label] = light
                 self.logger.info('Light found: {}:({})'.format(product, label))
                 self.bulb_icons.draw_bulb_icon(light, label)
@@ -166,7 +165,9 @@ class LifxFrame(ttk.Frame):
         # Stop splashscreen and start main function
         self.splashscreen.__exit__(None, None, None)
         if len(self.lightsdict):  # if any lights are found, show the first display
-            self.bulb_changed()
+            for l in self.lightsdict.values():
+                self.framesdict[l.label] = LightFrame(self, l)
+                self.logger.info("Building new frame: {}".format(self.framesdict[l.label].get_label()))
         self.after(HEARTBEAT_RATE, self.update_icons)
         if eval(config["AppSettings"]["start_minimized"], {}):
             self.master.withdraw()
@@ -179,15 +180,11 @@ class LifxFrame(ttk.Frame):
             self.current_lightframe.stop()
             self.logger.debug('Stopping current frame: {}'.format(self.current_lightframe.get_label()))
         self.current_light = self.lightsdict[new_light_label]
-        if new_light_label not in self.framesdict.keys():  # Build a new frame
-            self.framesdict[new_light_label] = LightFrame(self, self.current_light)
-            self.logger.info("Building new frame: {}".format(self.framesdict[new_light_label].get_label()))
-        else:  # Frame was found; bring to front
-            for frame in self.framesdict.values():
-                frame.grid_remove()  # remove all other frames; not just the current one (this fixes sync bugs for some reason)
-            self.framesdict[new_light_label].grid()  # should bring to front
-            self.logger.info(
-                "Brought existing frame to front: {}".format(self.framesdict[new_light_label].get_label()))
+        for frame in self.framesdict.values():
+            frame.grid_remove()  # remove all other frames; not just the current one (this fixes sync bugs for some reason)
+        self.framesdict[new_light_label].grid()  # should bring to front
+        self.logger.info(
+            "Brought existing frame to front: {}".format(self.framesdict[new_light_label].get_label()))
         self.current_lightframe = self.framesdict[new_light_label]
         self.current_lightframe.restart()
         if not self.current_lightframe.get_label() == self.lightvar.get():
@@ -235,10 +232,11 @@ class LifxFrame(ttk.Frame):
         self.groupvar.set(canvas.gettags(item)[0])
 
     def update_icons(self):
-        for bulb in self.lightsdict.values():
-            if bulb.updated:
-                self.bulb_icons.update_icon(bulb)
-                bulb.updated = False
+        if self.master.winfo_viewable():
+            for fr in self.framesdict.values():
+                if not fr.is_group and fr.icon_update_flag:
+                    self.bulb_icons.update_icon(fr.target)
+                    fr.icon_update_flag = False
         self.after(HEARTBEAT_RATE, self.update_icons)
 
     def save_keybind(self, light, keypress, color, is_group=False):
@@ -283,6 +281,7 @@ class LifxFrame(ttk.Frame):
 class LightFrame(ttk.Labelframe):
     def __init__(self, master, target, is_group=False):
         self.is_group = is_group
+        self.icon_update_flag = True
         # Initialize frame
         try:
             if self.is_group:
@@ -339,7 +338,7 @@ class LightFrame(ttk.Labelframe):
                      IntVar(self, init_color.brightness, "Brightness"),
                      IntVar(self, init_color.kelvin, "Kelvin"))
         for i in self.hsbk:
-            i.trace('w', self.set_bulb_updated)
+            i.trace('w', self.trigger_icon_update)
         self.hsbk_labels = (
             Label(self, text='%.3g' % (360 * (self.hsbk[0].get() / 65535))),
             Label(self, text=str('%.3g' % (100 * self.hsbk[1].get() / 65535)) + "%"),
@@ -484,16 +483,12 @@ class LightFrame(ttk.Labelframe):
     def get_label(self):
         return self.label
 
+    def trigger_icon_update(self, *args):
+        self.icon_update_flag = True
+
     def get_color_values_hsbk(self):
         """ Get color values entered into GUI"""
         return Color(*tuple(v.get() for v in self.hsbk))
-
-    def set_bulb_updated(self, *args):
-        if self.is_group:
-            for d in self.target.get_device_list():
-                d.updated = True
-        else:
-            self.target.updated = True
 
     def stop_threads(self):
         """ Stop all ColorRunner threads """
@@ -506,11 +501,6 @@ class LightFrame(ttk.Labelframe):
         """ Send new power state to bulb when UI is changed. """
         self.stop_threads()
         self.target.set_power(self.powervar.get())
-        if self.is_group:
-            for d in self.target.get_device_list():
-                d.updated = True
-        else:
-            self.target.updated = True
 
     def update_color_from_ui(self, *args):
         """ Send new color state to bulb when UI is changed. """
@@ -570,6 +560,7 @@ class LightFrame(ttk.Labelframe):
         Periodically update status from the bulb to keep UI in sync.
         :param run_once: Don't call `after` statement at end. Keeps a million workers from being instanced.
         """
+        require_icon_update = False
         if not self.started:
             return
         if not self.is_group:
@@ -577,7 +568,7 @@ class LightFrame(ttk.Labelframe):
                 old_pwr = self.target.power_level
                 new_pwr = self.target.get_power()
                 if new_pwr != old_pwr:
-                    self.target.updated = True
+                    require_icon_update = True
                 self.powervar.set(new_pwr)
             except OSError:
                 self.logger.warning("Error updating bulb power: OS")
@@ -595,7 +586,7 @@ class LightFrame(ttk.Labelframe):
             try:
                 hsbk = self.target.get_color()
                 if hsbk != self.get_color_values_hsbk():
-                    self.target.updated = True
+                    require_icon_update = True
                 for key, val in enumerate(self.hsbk):
                     self.hsbk[key].set(hsbk[key])
                     self.update_label(key)
@@ -605,6 +596,8 @@ class LightFrame(ttk.Labelframe):
                 self.logger.warning("Error updating bulb color: OS")
             except errors.WorkflowException:
                 self.logger.warning("Error updating bulb color: Workflow")
+        if require_icon_update:
+            self.trigger_icon_update()
         if self.started and not run_once:
             self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
 
@@ -656,12 +649,10 @@ class LightFrame(ttk.Labelframe):
             f"{self.screen_region_entires['x2'].get()}, {self.screen_region_entires['y2'].get()}]"
 
     def save_monitor_bounds(self):
-        config["AverageColor"][self.target.label] = self.get_monitor_bounds()
+        config["AverageColor"][self.label] = self.get_monitor_bounds()
         # Write to config file
         with open('config.ini', 'w') as cfg:
             config.write(cfg)
-
-
 
 
 class BulbIconList(Frame):
@@ -704,8 +695,8 @@ class BulbIconList(Frame):
     def update_icon(self, bulb: lifxlan.Light):
         # Get updated info from local bulb object
         try:
-            bulb_color = bulb.color
-            bulb_power = bulb.power_level
+            bulb_color = bulb.get_color()
+            bulb_power = bulb.get_power()
             bulb_brightness = bulb_color[2]
             sprite, image, text = self.bulb_dict[bulb.label]
         except WorkflowException:

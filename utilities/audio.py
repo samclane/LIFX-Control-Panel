@@ -38,7 +38,7 @@ def get_names():
     return ret_dict
 
 
-def init(config, logger=None):
+def init(config):
     global numdevices, stream, initialized
     if initialized:
         p.close(stream)
@@ -91,7 +91,7 @@ def get_music_color(initial_color):
     level = min(frame_rms / (2.0 ** 16) * SCALE, 1.0)
     level = level ** EXPONENT
     level = int(level * 65535)
-    window.rotate(1)
+    window.rotate(1)  # FILO Queue
     window[0] = level
     retval = int(sum(window) / N_POINTS)
     return initial_color[0], initial_color[1], retval, initial_color[3]
