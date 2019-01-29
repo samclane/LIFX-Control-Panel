@@ -444,7 +444,7 @@ class LightFrame(ttk.Labelframe):
             'y2': Entry(self.screen_region_lf, width=6)
         }
         if self.label in config["AverageColor"].keys():
-            region = eval(config['AverageColor'][self.target.label],
+            region = eval(config['AverageColor'][self.label],
                           {"full": "full", "get_primary_monitor": get_primary_monitor})
         else:
             region = eval(config['AverageColor']['defaultmonitor'],

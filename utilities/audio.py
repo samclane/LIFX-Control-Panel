@@ -10,7 +10,7 @@ CHANNELS = 2
 RATE = 44100
 
 # RMS -> Brightness control constants
-SCALE = 7  # Change if too dim/bright
+SCALE = 8  # Change if too dim/bright
 EXPONENT = 2  # Change if too little/too much difference between loud and quiet sounds
 
 # Init stream on module load
@@ -80,9 +80,8 @@ def get_music_color(initial_color):
 #     print(level)
     return initial_color[0], initial_color[1], level, initial_color[3]
 """
-N_POINTS = 20
+N_POINTS = 15
 window = deque([0] * N_POINTS)
-
 
 def get_music_color(initial_color):
     global window
@@ -92,6 +91,7 @@ def get_music_color(initial_color):
     level = level ** EXPONENT
     level = int(level * 65535)
     window.rotate(1)  # FILO Queue
+    # window = deque([0.99*x for x in window])  # exp decay
     window[0] = level
     retval = int(sum(window) / N_POINTS)
     return initial_color[0], initial_color[1], retval, initial_color[3]
