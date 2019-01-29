@@ -10,7 +10,7 @@ CHANNELS = 2
 RATE = 44100
 
 # RMS -> Brightness control constants
-SCALE = 15  # Change if too dim/bright
+SCALE = 7  # Change if too dim/bright
 EXPONENT = 2  # Change if too little/too much difference between loud and quiet sounds
 
 # Init stream on module load

@@ -203,7 +203,7 @@ class LifxFrame(ttk.Frame):
             self.logger.debug('Stopping current frame: {}'.format(self.current_lightframe.get_label()))
         self.current_group = self.groupsdict[new_group_label]
         if new_group_label not in self.framesdict.keys():
-            self.framesdict[new_group_label] = GroupFrame(self, self.current_group)
+            self.framesdict[new_group_label] = LightFrame(self, self.current_group, is_group=True)
             self.logger.info("Building new frame: {}".format(self.framesdict[new_group_label].get_label()))
         else:
             for frame in self.framesdict.values():
@@ -281,12 +281,19 @@ class LifxFrame(ttk.Frame):
 
 
 class LightFrame(ttk.Labelframe):
-    def __init__(self, master, bulb):
+    def __init__(self, master, target, is_group=False):
+        self.is_group = is_group
         # Initialize frame
         try:
-            self.label = bulb.get_label()
-            bulb_power = bulb.get_power()
-            init_color = Color(*bulb.get_color())
+            if self.is_group:
+                devices = target.get_device_list()
+                self.label = devices[0].get_group_label()
+                bulb_power = devices[0].get_power()
+                init_color = Color(*devices[0].get_color())
+            else:  # is bulb
+                self.label = target.get_label()
+                bulb_power = target.get_power()
+                init_color = Color(*target.get_color())
         except WorkflowException as e:
             messagebox.showerror("Error building LightFrame",
                                  "Error thrown when trying to get label from bulb:\n{}".format(e))
@@ -297,7 +304,7 @@ class LightFrame(ttk.Labelframe):
         self.grid(column=1, row=0, sticky=(N, W, E, S))
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
-        self.bulb = bulb
+        self.target = target
 
         # Setup logger
         self.logger = logging.getLogger(
@@ -402,7 +409,7 @@ class LightFrame(ttk.Labelframe):
 
         # Add buttons for special routines
         self.special_functions_lf = ttk.LabelFrame(self, text="Special Functions", padding="3 3 12 12")
-        self.threads['screen'] = color_thread.ColorThreadRunner(self.bulb, color_thread.avg_screen_color, self,
+        self.threads['screen'] = color_thread.ColorThreadRunner(self.target, color_thread.avg_screen_color, self,
                                                                 func_bounds=self.get_monitor_bounds)
 
         def start_screen_avg():
@@ -412,7 +419,7 @@ class LightFrame(ttk.Labelframe):
         self.avg_screen_btn = Button(self.special_functions_lf, text="Avg. Screen Color", command=start_screen_avg)
         self.avg_screen_btn.grid(row=6, column=0)
         Button(self.special_functions_lf, text="Pick Color", command=self.get_color_from_palette).grid(row=6, column=1)
-        self.threads['audio'] = color_thread.ColorThreadRunner(self.bulb, audio.get_music_color, self)
+        self.threads['audio'] = color_thread.ColorThreadRunner(self.target, audio.get_music_color, self)
 
         def start_audio():
             self.music_button.config(bg="Green")
@@ -421,7 +428,8 @@ class LightFrame(ttk.Labelframe):
         self.music_button = Button(self.special_functions_lf, text="Music Color", command=start_audio,
                                    state='normal' if audio.initialized else 'disabled')
         self.music_button.grid(row=7, column=0)
-        self.threads['eyedropper'] = color_thread.ColorThreadRunner(self.bulb, self.eyedropper, self, continuous=False)
+        self.threads['eyedropper'] = color_thread.ColorThreadRunner(self.target, self.eyedropper, self,
+                                                                    continuous=False)
         Button(self.special_functions_lf, text="Color Eyedropper", command=self.threads['eyedropper'].start).grid(row=7,
                                                                                                                   column=1)
         Button(self.special_functions_lf, text="Stop effects", command=self.stop_threads).grid(row=8, column=0)
@@ -436,8 +444,8 @@ class LightFrame(ttk.Labelframe):
             'y1': Entry(self.screen_region_lf, width=6),
             'y2': Entry(self.screen_region_lf, width=6)
         }
-        if self.bulb.label in config["AverageColor"].keys():
-            region = eval(config['AverageColor'][self.bulb.label],
+        if self.label in config["AverageColor"].keys():
+            region = eval(config['AverageColor'][self.target.label],
                           {"full": "full", "get_primary_monitor": get_primary_monitor})
         else:
             region = eval(config['AverageColor']['defaultmonitor'],
@@ -481,7 +489,11 @@ class LightFrame(ttk.Labelframe):
         return Color(*tuple(v.get() for v in self.hsbk))
 
     def set_bulb_updated(self, *args):
-        self.bulb.updated = True
+        if self.is_group:
+            for d in self.target.get_device_list():
+                d.updated = True
+        else:
+            self.target.updated = True
 
     def stop_threads(self):
         """ Stop all ColorRunner threads """
@@ -493,8 +505,12 @@ class LightFrame(ttk.Labelframe):
     def update_power(self):
         """ Send new power state to bulb when UI is changed. """
         self.stop_threads()
-        self.bulb.set_power(self.powervar.get())
-        self.bulb.updated = True
+        self.target.set_power(self.powervar.get())
+        if self.is_group:
+            for d in self.target.get_device_list():
+                d.updated = True
+        else:
+            self.target.updated = True
 
     def update_color_from_ui(self, *args):
         """ Send new color state to bulb when UI is changed. """
@@ -505,14 +521,15 @@ class LightFrame(ttk.Labelframe):
         """ Should be called whenever the bulb wants to change color. Sends bulb command and updates UI accordingly. """
         self.stop_threads()
         try:
-            self.bulb.set_color(color, rapid=rapid)
+            self.target.set_color(color, rapid=rapid)
         except WorkflowException as e:
             if rapid:  # If we're going fast we don't care if we miss a packet.
                 pass
             else:
                 raise e
         self.update_status_from_bulb(run_once=True)  # Force UI to update from bulb
-        self.logger.debug('Color changed to HSBK: {}'.format(color))  # Don't pollute log with rapid color changes
+        if not rapid:
+            self.logger.debug('Color changed to HSBK: {}'.format(color))  # Don't pollute log with rapid color changes
 
     def update_label(self, key):
         """ Update scale labels, formatted accordingly. """
@@ -555,38 +572,39 @@ class LightFrame(ttk.Labelframe):
         """
         if not self.started:
             return
-        try:
-            old_pwr = self.bulb.power_level
-            new_pwr = self.bulb.get_power()
-            if new_pwr != old_pwr:
-                self.bulb.updated = True
-            self.powervar.set(new_pwr)
-        except OSError:
-            self.logger.warning("Error updating bulb power: OS")
-            return
-        except errors.WorkflowException:
-            self.logger.warning("Error updating bulb power: Workflow")
-            return
-        if self.powervar.get() == 0:
-            # Light is off
-            self.option_off.select()
-            self.option_on.selection_clear()
-        else:
-            self.option_on.select()
-            self.option_off.selection_clear()
-        try:
-            hsbk = self.bulb.get_color()
-            if hsbk != self.get_color_values_hsbk():
-                self.bulb.updated = True
-            for key, val in enumerate(self.hsbk):
-                self.hsbk[key].set(hsbk[key])
-                self.update_label(key)
-                self.update_display(key)
-            self.current_color.config(background=tuple2hex(HSBKtoRGB(hsbk)))
-        except OSError:
-            self.logger.warning("Error updating bulb color: OS")
-        except errors.WorkflowException:
-            self.logger.warning("Error updating bulb color: Workflow")
+        if not self.is_group:
+            try:
+                old_pwr = self.target.power_level
+                new_pwr = self.target.get_power()
+                if new_pwr != old_pwr:
+                    self.target.updated = True
+                self.powervar.set(new_pwr)
+            except OSError:
+                self.logger.warning("Error updating bulb power: OS")
+                return
+            except errors.WorkflowException:
+                self.logger.warning("Error updating bulb power: Workflow")
+                return
+            if self.powervar.get() == 0:
+                # Light is off
+                self.option_off.select()
+                self.option_on.selection_clear()
+            else:
+                self.option_on.select()
+                self.option_off.selection_clear()
+            try:
+                hsbk = self.target.get_color()
+                if hsbk != self.get_color_values_hsbk():
+                    self.target.updated = True
+                for key, val in enumerate(self.hsbk):
+                    self.hsbk[key].set(hsbk[key])
+                    self.update_label(key)
+                    self.update_display(key)
+                self.current_color.config(background=tuple2hex(HSBKtoRGB(hsbk)))
+            except OSError:
+                self.logger.warning("Error updating bulb color: OS")
+            except errors.WorkflowException:
+                self.logger.warning("Error updating bulb color: Workflow")
         if self.started and not run_once:
             self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
 
@@ -638,344 +656,12 @@ class LightFrame(ttk.Labelframe):
             f"{self.screen_region_entires['x2'].get()}, {self.screen_region_entires['y2'].get()}]"
 
     def save_monitor_bounds(self):
-        config["AverageColor"][self.bulb.label] = self.get_monitor_bounds()
+        config["AverageColor"][self.target.label] = self.get_monitor_bounds()
         # Write to config file
         with open('config.ini', 'w') as cfg:
             config.write(cfg)
 
 
-class GroupFrame(ttk.Labelframe):
-    def __init__(self, master, group):
-        # Initialize frame
-        try:
-            self.label = group.get_device_list()[0].get_group_label()
-            bulb_power = 0
-            init_color = Color(0, 0, 0, 3500)
-        except WorkflowException as e:
-            messagebox.showerror("Error building groupframe",
-                                 "Error thrown when trying to get label from group:\n{}".format(e))
-            return
-        ttk.Labelframe.__init__(self, master, padding="3 3 12 12",
-                                labelwidget=Label(master, text=self.label, font=font.Font(size=12), fg="#0046d5",
-                                                  relief=RIDGE))
-        self.grid(column=1, row=0, sticky=(N, W, E, S))
-        self.columnconfigure(0, weight=1)
-        self.rowconfigure(0, weight=1)
-        self.group = group
-
-        # Setup logger
-        self.logger = logging.getLogger(
-            self.master.logger.name + '.' + self.__class__.__name__ + '({})'.format(self.label))
-        self.logger.setLevel(logging.DEBUG)
-        self.logger.info(
-            'GroupFrame logger initialized: {} // Device: {}'.format(self.logger.name, self.label))
-
-        # Initialize vars to hold on/off state
-        self.powervar = BooleanVar(self)
-        self.powervar.set(bulb_power)
-        self.option_on = Radiobutton(self, text="On", variable=self.powervar, value=65535, command=self.update_power)
-        self.option_off = Radiobutton(self, text="Off", variable=self.powervar, value=0, command=self.update_power)
-        if self.powervar.get() == 0:
-            # Light is off
-            self.option_off.select()
-            self.option_on.selection_clear()
-        else:
-            self.option_on.select()
-            self.option_off.selection_clear()
-        self.option_on.grid(row=0, column=0)
-        self.option_off.grid(row=0, column=1)
-
-        # Initialize vars to hold and display group color
-        self.current_color = Canvas(self, background=tuple2hex(HSBKtoRGB(init_color)), width=40, height=20,
-                                    borderwidth=3,
-                                    relief=GROOVE)
-        self.current_color.grid(row=0, column=2)
-        self.hsbk = (IntVar(self, init_color.hue, "Hue"),
-                     IntVar(self, init_color.saturation, "Saturation"),
-                     IntVar(self, init_color.brightness, "Brightness"),
-                     IntVar(self, init_color.kelvin, "Kelvin"))
-        self.hsbk_labels = (
-            Label(self, text='%.3g' % (360 * (self.hsbk[0].get() / 65535))),
-            Label(self, text=str('%.3g' % (100 * self.hsbk[1].get() / 65535)) + "%"),
-            Label(self, text=str('%.3g' % (100 * self.hsbk[2].get() / 65535)) + "%"),
-            Label(self, text=str(self.hsbk[3].get()) + " K")
-        )
-        self.hsbk_scale = (
-            ColorScale(self, to=65535., variable=self.hsbk[0], command=self.update_hue_from_ui),
-            ColorScale(self, from_=0, to=65535, variable=self.hsbk[1], command=self.update_saturation_from_ui,
-                       gradient='wb'),
-            ColorScale(self, from_=0, to=65535, variable=self.hsbk[2], command=self.update_brightness_from_ui,
-                       gradient='bw'),
-            ColorScale(self, from_=2500, to=9000, variable=self.hsbk[3], command=self.update_colortemp_from_ui,
-                       gradient='kelvin'))
-        RELIEF = GROOVE
-        self.hsbk_display = (
-            Canvas(self, background=tuple2hex(HueToRGB(360 * (init_color.hue / 65535))), width=20, height=20,
-                   borderwidth=3,
-                   relief=RELIEF),
-            Canvas(self, background=tuple2hex((
-                int(255 * (init_color.saturation / 65535)), int(255 * (init_color.saturation / 65535)),
-                int(255 * (init_color.saturation / 65535)))),
-                   width=20, height=20, borderwidth=3, relief=RELIEF),
-            Canvas(self, background=tuple2hex((
-                int(255 * (init_color.brightness / 65535)), int(255 * (init_color.brightness / 65535)),
-                int(255 * (init_color.brightness / 65535)))),
-                   width=20, height=20, borderwidth=3, relief=RELIEF),
-            Canvas(self, background=tuple2hex(KelvinToRGB(init_color.kelvin)), width=20, height=20,
-                   borderwidth=3, relief=RELIEF)
-        )
-        for key, scale in enumerate(self.hsbk_scale):
-            Label(self, text=self.hsbk[key]).grid(row=key + 1, column=0)
-            scale.grid(row=key + 1, column=1)
-            self.hsbk_labels[key].grid(row=key + 1, column=2)
-            self.hsbk_display[key].grid(row=key + 1, column=3)
-
-        self.threads = {}
-
-        # Add buttons for pre-made colors
-        self.preset_colors_lf = ttk.LabelFrame(self, text="Preset Colors", padding="3 3 12 12")
-        self.colorVar = StringVar(self, value="Presets")
-        self.default_colors = ["RED",
-                               "ORANGE",
-                               "YELLOW",
-                               "GREEN",
-                               "CYAN",
-                               "BLUE",
-                               "PURPLE",
-                               "PINK",
-                               "WHITE",
-                               "COLD_WHITE",
-                               "WARM_WHITE",
-                               "GOLD"]
-        self.preset_dropdown = OptionMenu(self.preset_colors_lf, self.colorVar, *self.default_colors)
-        self.preset_dropdown.grid(row=0, column=0)
-        self.preset_dropdown.configure(width=13)
-        self.colorVar.trace('w', self.change_preset_dropdown)
-
-        self.uservar = StringVar(self, value="User Presets")
-        self.user_dropdown = OptionMenu(self.preset_colors_lf, self.uservar, *(
-            [*config["PresetColors"].keys()] if len(config["PresetColors"].keys()) else [None]))
-        self.user_dropdown.grid(row=0, column=1)
-        self.user_dropdown.config(width=13)
-        self.uservar.trace('w', self.change_user_dropdown)
-
-        self.preset_colors_lf.grid(row=5, columnspan=4)
-
-        # Add buttons for special routines
-        self.special_functions_lf = ttk.LabelFrame(self, text="Special Functions", padding="3 3 12 12")
-        self.threads['screen'] = color_thread.ColorThreadRunner(self.group, color_thread.avg_screen_color, self)
-        Button(self.special_functions_lf, text="Avg. Screen Color", command=self.threads['screen'].start).grid(row=6,
-                                                                                                               column=0)
-        Button(self.special_functions_lf, text="Pick Color", command=self.get_color_from_palette).grid(row=6, column=1)
-        self.threads['audio'] = color_thread.ColorThreadRunner(self.group, audio.get_music_color, self)
-        self.music_button = Button(self.special_functions_lf, text="Music Color", command=self.threads['audio'].start,
-                                   state='normal' if audio.initialized else 'disabled')
-        self.music_button.grid(row=7, column=0)
-        self.threads['eyedropper'] = color_thread.ColorThreadRunner(self.group, self.eyedropper, self, continuous=False)
-        Button(self.special_functions_lf, text="Color Eyedropper", command=self.threads['eyedropper'].start).grid(row=7,
-                                                                                                                  column=1)
-        Button(self.special_functions_lf, text="Stop effects", command=self.stop_threads).grid(row=8, column=0)
-        self.special_functions_lf.grid(row=6, columnspan=4)
-
-        # Start update loop
-        self.started = True
-        self.update_status_from_bulb()
-
-    def restart(self):
-        self.started = True
-        self.update_status_from_bulb()
-        self.logger.info("Light frame Restarted.")
-
-    def stop(self):
-        self.started = False
-        self.logger.info("Light frame Stopped.")
-
-    def get_label(self):
-        return self.label
-
-    def get_color_values_hsbk(self):
-        """ Get color values entered into GUI"""
-        return Color(*tuple(v.get() for v in self.hsbk))
-
-    def stop_threads(self):
-        """ Stop all ColorRunner threads """
-        for thread in self.threads.values():
-            thread.stop()
-
-    def update_power(self):
-        """ Send new power state to group when UI is changed. """
-        self.stop_threads()
-        self.group.set_power(self.powervar.get())
-
-    def update_color_from_ui(self, *args):
-        """ Send new color state to group when UI is changed. """
-        self.stop_threads()
-        self.set_color(self.get_color_values_hsbk(), rapid=True)
-
-    def update_hue_from_ui(self, *args):
-        self.stop_threads()
-        self.set_hue(self.get_color_values_hsbk().hue, rapid=False)
-
-    def update_saturation_from_ui(self, *args):
-        self.stop_threads()
-        self.set_saturation(self.get_color_values_hsbk().saturation, rapid=False)
-
-    def update_brightness_from_ui(self, *args):
-        self.stop_threads()
-        self.set_brightness(self.get_color_values_hsbk().brightness, rapid=False)
-
-    def update_colortemp_from_ui(self, *args):
-        self.stop_threads()
-        self.set_colortemp(self.get_color_values_hsbk().kelvin, rapid=False)
-
-    def set_color(self, color, rapid=False):
-        """ Should be called whenever the group wants to change color. Sends group command and updates UI accordingly. """
-        self.stop_threads()
-        try:
-            self.group.set_color(color, rapid=rapid)
-        except WorkflowException as e:
-            if rapid:  # If we're going fast we don't care if we miss a packet.
-                pass
-            else:
-                raise e
-        self.update_status_from_bulb(run_once=True)  # Force UI to update from group
-        self.logger.debug('Color changed to HSBK: {}'.format(color))  # Don't pollute log with rapid color changes
-
-    def set_hue(self, hue, rapid=False):
-        self.stop_threads()
-        try:
-            self.group.set_hue(hue, rapid=rapid)
-        except WorkflowException as e:
-            if rapid:
-                pass
-            else:
-                raise e
-        self.update_status_from_bulb(run_once=True)
-
-    def set_saturation(self, saturation, rapid=False):
-        self.stop_threads()
-        try:
-            self.group.set_saturation(saturation, rapid=rapid)
-        except WorkflowException as e:
-            if rapid:
-                pass
-            else:
-                raise e
-        self.update_status_from_bulb(run_once=True)
-
-    def set_brightness(self, brightness, rapid=False):
-        self.stop_threads()
-        try:
-            self.group.set_brightness(brightness, rapid=rapid)
-        except WorkflowException as e:
-            if rapid:
-                pass
-            else:
-                raise e
-        self.update_status_from_bulb(run_once=True)
-
-    def set_colortemp(self, colortemp, rapid=False):
-        self.stop_threads()
-        try:
-            self.group.set_colortemp(colortemp, rapid=rapid)
-        except WorkflowException as e:
-            if rapid:
-                pass
-            else:
-                raise e
-        self.update_status_from_bulb(run_once=True)
-
-    def update_label(self, key):
-        """ Update scale labels, formatted accordingly. """
-        if key == 0:  # H
-            self.hsbk_labels[0].config(text=str('%.3g' % (360 * (self.hsbk[0].get() / 65535))))
-        elif key == 1:  # S
-            self.hsbk_labels[1].config(text=str('%.3g' % (100 * (self.hsbk[1].get() / 65535))) + "%")
-        elif key == 2:  # B
-            self.hsbk_labels[2].config(text=str('%.3g' % (100 * (self.hsbk[2].get() / 65535))) + "%")
-        elif key == 3:  # K
-            self.hsbk_labels[3].config(text=str(self.hsbk[3].get()) + " K")
-
-    def update_display(self, key):
-        hsbk = h, s, b, k = self.get_color_values_hsbk()
-        if key == 0:
-            self.hsbk_display[0].config(background=tuple2hex(HueToRGB(360 * (h / 65535))))
-        elif key == 1:
-            s = 65535 - s
-            self.hsbk_display[1].config(
-                background=tuple2hex((int(255 * (s / 65535)), int(255 * (s / 65535)), int(255 * (s / 65535)))))
-        elif key == 2:
-            self.hsbk_display[2].config(
-                background=tuple2hex((int(255 * (b / 65535)), int(255 * (b / 65535)), int(255 * (b / 65535)))))
-        elif key == 3:
-            self.hsbk_display[3].config(background=tuple2hex(KelvinToRGB(k)))
-
-    def get_color_from_palette(self):
-        """ Asks users for color selection using standard color palette dialog. """
-        color = askcolor(initialcolor=HSBKtoRGB(self.get_color_values_hsbk()))[0]
-        if color:
-            # RGBtoHBSK sometimes returns >65535, so we have to truncate
-            hsbk = [min(c, 65535) for c in utils.RGBtoHSBK(color, self.hsbk[3].get())]
-            self.set_color(hsbk)
-            self.logger.info("Color set to HSBK {} from palette.".format(hsbk))
-
-    def update_status_from_bulb(self, run_once=False):
-        """
-        Periodically update status from the group to keep UI in sync.
-        :param run_once: Don't call `after` statement at end. Keeps a million workers from being instanced.
-        """
-        if not self.started:
-            return
-        try:
-            for key, val in enumerate(self.hsbk):
-                self.update_label(key)
-                self.update_display(key)
-            self.current_color.config(background=tuple2hex(HSBKtoRGB(self.get_color_values_hsbk())))
-        except OSError:
-            self.logger.warning("Error updating group color: OS")
-        except errors.WorkflowException:
-            self.logger.warning("Error updating group color: Workflow")
-        if self.started and not run_once:
-            self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
-
-    def eyedropper(self, initial_color):
-        """ Allows user to select a color pixel from the screen. """
-        self.master.master.withdraw()  # Hide window
-        state_left = win32api.GetKeyState(0x01)  # Left button down = 0 or 1. Button up = -127 or -128
-        while True:
-            a = win32api.GetKeyState(0x01)
-            if a != state_left:  # Button state changed
-                state_left = a
-                if a < 0:  # Button down
-                    pass
-                else:  # Button up
-                    break
-            sleep(0.001)
-        # Button state changed
-        im = getScreenAsImage()
-        cursorpos = GetCursorPos()
-        cursorpos = normalizeRects(getDisplayRects() + [(cursorpos[0], cursorpos[1], 0, 0)])[-1][
-                    :2]  # Convert display coords to image coords
-        color = im.getpixel(cursorpos)
-        self.master.master.deiconify()  # Reshow window
-        self.logger.info("Eyedropper color found RGB {}".format(color))
-        return utils.RGBtoHSBK(color, temperature=self.get_color_values_hsbk().kelvin)
-
-    def change_preset_dropdown(self, *args):
-        color = Color(*eval(self.colorVar.get()))
-        self.set_color(color, False)
-
-    def change_user_dropdown(self, *args):
-        color = Color(*eval(config["PresetColors"][self.uservar.get()], {}))
-        self.set_color(color, False)
-
-    def update_user_dropdown(self):
-        # self.uservar.set('')
-        self.user_dropdown["menu"].delete(0, 'end')
-
-        new_choices = [key for key in config['PresetColors']]
-        for choice in new_choices:
-            self.user_dropdown["menu"].add_command(label=choice, command=_setit(self.uservar, choice))
 
 
 class BulbIconList(Frame):
