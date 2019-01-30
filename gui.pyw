@@ -99,16 +99,12 @@ class LifxFrame(ttk.Frame):
 
         # Initialize LIFX objects
         self.lightvar = StringVar(self)
-        self.groupvar = StringVar()
         self.lightsdict = OrderedDict()  # LifxLight objects
-        self.groupsdict = OrderedDict()  # LifxGroup objects
         self.framesdict = {}  # corresponding LightFrame GUI
         self.current_lightframe = None  # currently selected and visible LightFrame
-        self.current_groupframe = None
         self.current_light = None
-        self.current_group = None
         self.bulb_icons = BulbIconList(self)
-        self.group_icons = GroupIconList(self)
+        self.group_icons = BulbIconList(self, is_group=True)
 
         for x, light in enumerate(self.lifx.get_lights()):
             try:
@@ -119,9 +115,11 @@ class LifxFrame(ttk.Frame):
                 self.logger.info('Light found: {}:({})'.format(product, label))
                 self.bulb_icons.draw_bulb_icon(light, label)
                 group_label = light.get_group_label()
-                if not (group_label in self.groupsdict.keys()):
-                    self.groupsdict[group_label] = self.lifx.get_devices_by_group(group_label)
-                    self.group_icons.draw_group_icon(group, group_label)
+                if not (group_label in self.lightsdict.keys()):
+                    self.lightsdict[group_label] = self.lifx.get_devices_by_group(group_label)
+                    # Giving an attribute here is a bit dirty, but whatever
+                    self.lightsdict[group_label].label = group_label
+                    self.group_icons.draw_bulb_icon(group, group_label)
                     self.logger.info("Group found: {}".format(group_label))
             except WorkflowException as e:
                 self.logger.warning("Error when communicating with LIFX device: {}".format(e))
@@ -138,8 +136,7 @@ class LifxFrame(ttk.Frame):
         self.lightvar.trace('w', self.bulb_changed)  # Keep lightvar in sync with drop-down selection
 
         self.group_icons.grid(row=2, column=1, sticky='w')
-        self.group_icons.canvas.bind('<Button-1>', self.on_group_canvas_click)
-        self.groupvar.trace('w', self.group_changed)
+        self.group_icons.canvas.bind('<Button-1>', self.on_bulb_canvas_click)
 
         # Setup tray icon
         tray_options = (('Adjust Lights', None, lambda *_: self.master.deiconify()),)
@@ -160,15 +157,21 @@ class LifxFrame(ttk.Frame):
         for keypress, function in dict(config['Keybinds']).items():
             light, color = function.split(':')
             color = Color(*eval(color, {}))
-            self.save_keybind(light, keypress, color, light in self.groupsdict.keys())
+            self.save_keybind(light, keypress, color)
 
         # Stop splashscreen and start main function
         self.splashscreen.__exit__(None, None, None)
-        if len(self.lightsdict):  # if any lights are found, show the first display
+
+        # if any lights are found, show the first display
+        if len(self.lightsdict):
             for l in self.lightsdict.values():
                 self.framesdict[l.label] = LightFrame(self, l)
                 self.logger.info("Building new frame: {}".format(self.framesdict[l.label].get_label()))
+
+        # Start icon callback
         self.after(HEARTBEAT_RATE, self.update_icons)
+
+        # Minimize if in config
         if eval(config["AppSettings"]["start_minimized"], {}):
             self.master.withdraw()
 
@@ -192,44 +195,13 @@ class LifxFrame(ttk.Frame):
                 self.current_lightframe.get_label(), self.lightvar.get()))
         self.master.bind('<Unmap>', lambda *_: self.master.withdraw())  # reregister callback
 
-    def group_changed(self, *args):
-        self.master.unbind('<Unmap>')
-        new_group_label = self.groupvar.get()
-        if self.current_lightframe is not None:
-            self.current_lightframe.stop()
-            self.logger.debug('Stopping current frame: {}'.format(self.current_lightframe.get_label()))
-        self.current_group = self.groupsdict[new_group_label]
-        if new_group_label not in self.framesdict.keys():
-            self.framesdict[new_group_label] = LightFrame(self, self.current_group, is_group=True)
-            self.logger.info("Building new frame: {}".format(self.framesdict[new_group_label].get_label()))
-        else:
-            for frame in self.framesdict.values():
-                frame.grid_remove()
-            self.framesdict[new_group_label].grid()
-            self.logger.info(
-                "Brought existing frame to front: {}".format(self.framesdict[new_group_label].get_label()))
-        self.current_groupframe = self.framesdict[new_group_label]
-        self.current_groupframe.restart()
-        if not self.current_groupframe.get_label() == self.groupvar.get():
-            self.logger.error("Mismatch between GroupFrame ({}) and Dropdown ({})".format(
-                self.current_groupframe.get_label(), self.groupvar.get()))
-        self.master.bind('<Unmap>', lambda *_: self.master.withdraw())  # reregister callback
-
     def on_bulb_canvas_click(self, event):
-        canvas = self.bulb_icons.canvas
+        canvas = event.widget
         # Convert to Canvas coords as we are using a Scrollbar, so Frame coords doesn't always match up.
         x = canvas.canvasx(event.x)
         y = canvas.canvasy(event.y)
         item = canvas.find_closest(x, y)
         self.lightvar.set(canvas.gettags(item)[0])
-
-    def on_group_canvas_click(self, event):
-        canvas = self.group_icons.canvas
-        # Convert to Canvas coords as we are using a Scrollbar, so Frame coords doesn't always match up.
-        x = canvas.canvasx(event.x)
-        y = canvas.canvasy(event.y)
-        item = canvas.find_closest(x, y)
-        self.groupvar.set(canvas.gettags(item)[0])
 
     def update_icons(self):
         if self.master.winfo_viewable():
@@ -239,16 +211,10 @@ class LifxFrame(ttk.Frame):
                     fr.icon_update_flag = False
         self.after(HEARTBEAT_RATE, self.update_icons)
 
-    def save_keybind(self, light, keypress, color, is_group=False):
-        if is_group:
-            def lambda_factory(self, light, color):
-                """ https://stackoverflow.com/questions/938429/scope-of-lambda-functions-and-their-parameters """
-                return lambda *_: self.groupsdict[light].set_color(color)
-        else:
-            def lambda_factory(self, light, color):
-                """ https://stackoverflow.com/questions/938429/scope-of-lambda-functions-and-their-parameters """
-                return lambda *_: self.lightsdict[light].set_color(color)
-
+    def save_keybind(self, light, keypress, color):
+        def lambda_factory(self, light, color):
+            """ https://stackoverflow.com/questions/938429/scope-of-lambda-functions-and-their-parameters """
+            return lambda *_: self.lightsdict[light].set_color(color)
         func = lambda_factory(self, light, color)
         self.keylogger.register_function(keypress, func)
 
@@ -279,8 +245,8 @@ class LifxFrame(ttk.Frame):
 
 
 class LightFrame(ttk.Labelframe):
-    def __init__(self, master, target, is_group=False):
-        self.is_group = is_group
+    def __init__(self, master, target):
+        self.is_group = isinstance(target, Group)
         self.icon_update_flag = True
         # Initialize frame
         try:
@@ -455,16 +421,16 @@ class LightFrame(ttk.Labelframe):
         self.screen_region_entires['y1'].insert(END, region[1])
         self.screen_region_entires['x2'].insert(END, region[2])
         self.screen_region_entires['y2'].insert(END, region[3])
-        Label(self.screen_region_lf, text="x1").grid(row=7, column=0)
-        self.screen_region_entires['x1'].grid(row=7, column=1)
+        Label(self.screen_region_lf, text="x1").grid(row=7, column=0, sticky='e')
+        self.screen_region_entires['x1'].grid(row=7, column=1, padx=(0, 10))
         Label(self.screen_region_lf, text="x2").grid(row=7, column=2)
         self.screen_region_entires['x2'].grid(row=7, column=3)
-        Label(self.screen_region_lf, text="y1").grid(row=8, column=0)
-        self.screen_region_entires['y1'].grid(row=8, column=1)
+        Label(self.screen_region_lf, text="y1").grid(row=8, column=0, sticky='e')
+        self.screen_region_entires['y1'].grid(row=8, column=1, padx=(0, 10))
         Label(self.screen_region_lf, text="y2").grid(row=8, column=2)
         self.screen_region_entires['y2'].grid(row=8, column=3)
         self.save_region = Button(self.screen_region_lf, text="Save", command=self.save_monitor_bounds) \
-            .grid(row=9, column=0)
+            .grid(row=9, column=1, sticky='w')
         self.screen_region_lf.grid(row=7, columnspan=4)
 
         # Start update loop
@@ -656,11 +622,12 @@ class LightFrame(ttk.Labelframe):
 
 
 class BulbIconList(Frame):
-    def __init__(self, *args):
+    def __init__(self, *args, is_group=False, **kwargs):
+        self.is_group = is_group
         self.window_width = 285
         self.icon_width = 50
         self.icon_height = 75
-        super().__init__(*args, width=self.window_width, height=self.icon_height)
+        super().__init__(*args, width=self.window_width, height=self.icon_height, **kwargs)
         self.pad = 5
         self.scrollx = 0
         self.scrolly = 0
@@ -674,14 +641,20 @@ class BulbIconList(Frame):
         self.canvas.config(xscrollcommand=hbar.set)
         self.canvas.pack(side=LEFT, expand=True, fill=BOTH)
         self.current_icon_width = 0
-        self.original_icon = pImage.open(resource_path("res/lightbulb.png")).load()
+        if self.is_group:
+            self.original_icon = pImage.open(resource_path("res/group.png")).load()
+        else:
+            self.original_icon = pImage.open(resource_path("res/lightbulb.png")).load()
 
     def draw_bulb_icon(self, bulb, label):
         # Make room on canvas
         self.scrollx += self.icon_width
         self.canvas.configure(scrollregion=(0, 0, self.scrollx, self.scrolly))
         # Build icon
-        sprite = PhotoImage(file=resource_path("res/lightbulb.png"), master=self.master)
+        if self.is_group:
+            sprite = PhotoImage(file=resource_path("res/group.png"), master=self.master)
+        else:
+            sprite = PhotoImage(file=resource_path("res/lightbulb.png"), master=self.master)
         image = self.canvas.create_image(
             (self.current_icon_width + self.icon_width - self.pad, self.icon_height / 2 + 2 * self.pad), image=sprite,
             anchor=SE, tags=[label])
@@ -694,6 +667,8 @@ class BulbIconList(Frame):
 
     def update_icon(self, bulb: lifxlan.Light):
         # Get updated info from local bulb object
+        if self.is_group:
+            return
         try:
             bulb_color = bulb.get_color()
             bulb_power = bulb.get_power()
@@ -719,48 +694,6 @@ class BulbIconList(Frame):
         # Write the final colorstring to the sprite, then update the GUI
         sprite.put(color_string, (0, 0, sprite.height(), sprite.width()))
         self.canvas.itemconfig(image, image=sprite)
-
-
-class GroupIconList(Frame):
-    def __init__(self, *args):
-        self.window_width = 285
-        self.icon_width = 50
-        self.icon_height = 75
-        super().__init__(*args, width=self.window_width, height=self.icon_height)
-        self.pad = 5
-        self.scrollx = 0
-        self.scrolly = 0
-        self.group_dict = {}
-        self.canvas = Canvas(self, width=self.window_width, height=self.icon_height,
-                             scrollregion=(0, 0, self.scrollx, self.scrolly))
-        hbar = Scrollbar(self, orient=HORIZONTAL)
-        hbar.pack(side=BOTTOM, fill=X)
-        hbar.config(command=self.canvas.xview)
-        self.canvas.config(width=self.window_width, height=self.icon_height)
-        self.canvas.config(xscrollcommand=hbar.set)
-        self.canvas.pack(side=LEFT, expand=True, fill=BOTH)
-        self.current_icon_width = 0
-        self.original_icon = pImage.open(resource_path("res/group.png")).load()
-
-    def draw_group_icon(self, group, label):
-        # Make room on canvas
-        self.scrollx += self.icon_width
-        self.canvas.configure(scrollregion=(0, 0, self.scrollx, self.scrolly))
-        # Build icon
-        sprite = PhotoImage(file=resource_path("res/group.png"), master=self.master)
-        image = self.canvas.create_image(
-            (self.current_icon_width + self.icon_width - self.pad, self.icon_height / 2 + 2 * self.pad), image=sprite,
-            anchor=SE, tags=[label])
-        text = self.canvas.create_text(self.current_icon_width + self.pad / 2, self.icon_height / 2 + 2 * self.pad,
-                                       text=label[:8], anchor=NW, tags=[label])
-        self.group_dict[label] = (sprite, image, text)
-        self.update_icon(group)
-        # update sizing info
-        self.current_icon_width += self.icon_width
-
-    def update_icon(self, group):
-        pass  # No way to get definitive values from group. We're ignoring this for now.
-
 
 root = None
 

@@ -83,7 +83,8 @@ def get_music_color(initial_color):
 N_POINTS = 15
 window = deque([0] * N_POINTS)
 
-def get_music_color(initial_color):
+
+def get_music_color(initial_color, a=0.99):
     global window
     data = stream.read(CHUNK)
     frame_rms = audioop.rms(data, 2)
@@ -91,7 +92,7 @@ def get_music_color(initial_color):
     level = level ** EXPONENT
     level = int(level * 65535)
     window.rotate(1)  # FILO Queue
-    # window = deque([0.99*x for x in window])  # exp decay
+    # window = deque([a*x for x in window])  # exp decay
     window[0] = level
     retval = int(sum(window) / N_POINTS)
     return initial_color[0], initial_color[1], retval, initial_color[3]

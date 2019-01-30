@@ -234,7 +234,7 @@ class SettingsDisplay(Dialog):
         self.as_dropdown = OptionMenu(master, self.audio_source, *as_choices)
 
         # Add keybindings
-        lightnames = list(self.root_window.lightsdict.keys()) + list(self.root_window.groupsdict.keys())
+        lightnames = list(self.root_window.lightsdict.keys())
         self.keybind_bulb_selection = StringVar(master, value=lightnames[0])
         self.keybind_bulb_dropdown = OptionMenu(master, self.keybind_bulb_selection,
                                                 *lightnames)
@@ -305,7 +305,7 @@ class SettingsDisplay(Dialog):
                 self.keybind_bulb_selection.get()].default_colors})  # should match color to variable w/ same name
         except NameError:  # must be using a custom color
             color = eval(config["PresetColors"][color], {})
-        self.root_window.save_keybind(bulb, keys, color, bulb in self.root_window.groupsdict.keys())
+        self.root_window.save_keybind(bulb, keys, color)
         config["Keybinds"][str(keys)] = str(bulb + ":" + str(color))
         self.mlb.insert(END, (str(bulb), str(keys), str(color)))
         self.keybind_keys_select.config(state='normal')

@@ -21,10 +21,8 @@ def get_monitor_from_bounds(func):
     return func() or config["AverageColor"]["DefaultMonitor"]
 
 
-N_POINTS = 5
+N_POINTS = 3
 window = deque([0, 0, 0, 0] for _ in range(N_POINTS))
-
-
 def column(matrix, i):
     return [row[i] for row in matrix]
 def avg_screen_color(initial_color, func_bounds=lambda: None):
@@ -41,7 +39,6 @@ def avg_screen_color(initial_color, func_bounds=lambda: None):
     # Take the sliding window across each parameter
     for p in range(4):
         color_hsbk[p] = int(sum(column(window, p)) / N_POINTS)
-    # return tuple((val1+val2)/2 for (val1, val2) in zip(initial_color, color_hsbk))
     return color_hsbk
 
 
