@@ -641,20 +641,23 @@ class BulbIconList(Frame):
         self.canvas.config(xscrollcommand=hbar.set)
         self.canvas.pack(side=LEFT, expand=True, fill=BOTH)
         self.current_icon_width = 0
+        path = self.icon_path()
+        self.original_icon = pImage.open(path).load()
+
+    def icon_path(self):
         if self.is_group:
-            self.original_icon = pImage.open(resource_path("res/group.png")).load()
+            path = resource_path("res/group.png")
         else:
-            self.original_icon = pImage.open(resource_path("res/lightbulb.png")).load()
+            path = resource_path("res/lightbulb.png")
+        return path
 
     def draw_bulb_icon(self, bulb, label):
         # Make room on canvas
         self.scrollx += self.icon_width
         self.canvas.configure(scrollregion=(0, 0, self.scrollx, self.scrolly))
         # Build icon
-        if self.is_group:
-            sprite = PhotoImage(file=resource_path("res/group.png"), master=self.master)
-        else:
-            sprite = PhotoImage(file=resource_path("res/lightbulb.png"), master=self.master)
+        path = self.icon_path()
+        sprite = PhotoImage(file=path, master=self.master)
         image = self.canvas.create_image(
             (self.current_icon_width + self.icon_width - self.pad, self.icon_height / 2 + 2 * self.pad), image=sprite,
             anchor=SE, tags=[label])
@@ -683,12 +686,13 @@ class BulbIconList(Frame):
             color_string += '{'
             for x in range(sprite.width()):
                 # If the tick is < brightness, color it. Otherwise, set it back to the default color
-                if all([(v <= brightness_scale or v == 11) for v in self.original_icon[x, y][:3]]) and \
+                icon_rgb = self.original_icon[x, y][:3]
+                if all([(v <= brightness_scale or v == 11) for v in icon_rgb]) and \
                         self.original_icon[x, y][3] == 255:
                     bulb_color = bulb_color[0], bulb_color[1], bulb_color[2], bulb_color[3]
                     color = HSBKtoRGB(bulb_color)
                 else:
-                    color = self.original_icon[x, y][:3]
+                    color = icon_rgb
                 color_string += tuple2hex(color) + ' '
             color_string += '} '
         # Write the final colorstring to the sprite, then update the GUI
