@@ -37,7 +37,7 @@ def avg_screen_color(initial_color, func_bounds=lambda: None):
     window.rotate(1)
     window[0] = color_hsbk
     # Take the sliding window across each parameter
-    for p in range(4):
+    for p in range(1, 4):  # Skip Hue ([0]); averaging it only makes things weird
         color_hsbk[p] = int(sum(column(window, p)) / N_POINTS)
     return color_hsbk
 
