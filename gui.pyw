@@ -453,6 +453,7 @@ class LightFrame(ttk.Labelframe):
         return self.label
 
     def trigger_icon_update(self, *args):
+        """ Just sets a flag for now. Could be more advanced in the future. """
         self.icon_update_flag = True
 
     def get_color_values_hsbk(self):
