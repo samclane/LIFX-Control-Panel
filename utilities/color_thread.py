@@ -3,7 +3,6 @@
 import logging
 import threading
 from statistics import mode
-from time import sleep
 from functools import lru_cache
 from collections import deque
 
@@ -71,7 +70,6 @@ class ColorThreadRunner:
         self.logger = logging.getLogger(parent.logger.name + '.Thread({})'.format(color_function.__name__))
         self.prev_color = parent.get_color_values_hsbk()
         self.continuous = continuous
-        self.duration = float(config["AverageColor"]["Duration"])
         self.t = ColorThread(target=self.match_color, args=(self.bulb,))
         try:
             label = self.bulb.get_label()
@@ -83,24 +81,21 @@ class ColorThreadRunner:
     def match_color(self, bulb):
         self.logger.debug('Starting color match.')
         self.prev_color = self.parent.get_color_values_hsbk()  # coupling to LightFrame from gui.py here
-        transition_time_ms = self.duration * 1000 * 0.5
         while not self.t.stopped():
             try:
                 color = self.color_function(initial_color=self.prev_color, **self.kwargs)
-                bulb.set_color(color, transition_time_ms,
-                               True if self.duration < 1 else False)
+                bulb.set_color(color, duration=0 if self.continuous else self.get_duration() * 1000,
+                               rapid=self.continuous)
                 self.prev_color = color
             except OSError:
                 # This is dirty, but we really don't care, just keep going
                 self.logger.info("Hit an os error")
                 continue
-            sleep(self.duration)
             if not self.continuous:
                 self.stop()
         self.logger.debug('Color match finished.')
 
     def start(self):
-        self.update_params()  # If any configs were changed, update them here.
         if self.t.stopped():
             self.t = ColorThread(target=self.match_color, args=(self.bulb,))
             self.t.setDaemon(True)
@@ -113,8 +108,10 @@ class ColorThreadRunner:
     def stop(self):
         self.t.stop()
 
-    def update_params(self):
-        self.duration = float(config["AverageColor"]["Duration"])
+    @staticmethod
+    def get_duration():
+        return float(config["AverageColor"]["duration"])
+
 
 
 def install_thread_excepthook():

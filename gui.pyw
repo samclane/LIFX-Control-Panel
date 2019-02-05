@@ -168,6 +168,7 @@ class LifxFrame(ttk.Frame):
                 self.framesdict[l.label] = LightFrame(self, l)
                 self.logger.info("Building new frame: {}".format(self.framesdict[l.label].get_label()))
 
+        self.current_lightframe = self.framesdict[self.lightvar.get()]
         # Start icon callback
         self.after(HEARTBEAT_RATE, self.update_icons)
 
@@ -214,7 +215,9 @@ class LifxFrame(ttk.Frame):
     def save_keybind(self, light, keypress, color):
         def lambda_factory(self, light, color):
             """ https://stackoverflow.com/questions/938429/scope-of-lambda-functions-and-their-parameters """
-            return lambda *_: self.lightsdict[light].set_color(color)
+            return lambda *_: self.lightsdict[light].set_color(color,
+                                                               duration=float(config["AverageColor"]["duration"]))
+
         func = lambda_factory(self, light, color)
         self.keylogger.register_function(keypress, func)
 
@@ -477,7 +480,8 @@ class LightFrame(ttk.Labelframe):
         """ Should be called whenever the bulb wants to change color. Sends bulb command and updates UI accordingly. """
         self.stop_threads()
         try:
-            self.target.set_color(color, rapid=rapid)
+            self.target.set_color(color, duration=0 if rapid else float(config["AverageColor"]["duration"]) * 1000,
+                                  rapid=rapid)
         except WorkflowException as e:
             if rapid:  # If we're going fast we don't care if we miss a packet.
                 pass
@@ -600,7 +604,7 @@ class LightFrame(ttk.Labelframe):
         color = Color(*eval(config["PresetColors"][self.uservar.get()], {}))
         self.user_dropdown.config(bg=tuple2hex(HSBKtoRGB(color)),
                                   activebackground=tuple2hex(HSBKtoRGB(color)))
-        self.set_color(color, False)
+        self.set_color(color, rapid=False)
 
     def update_user_dropdown(self):
         # self.uservar.set('')
@@ -698,6 +702,7 @@ class BulbIconList(Frame):
         # Write the final colorstring to the sprite, then update the GUI
         sprite.put(color_string, (0, 0, sprite.height(), sprite.width()))
         self.canvas.itemconfig(image, image=sprite)
+
 
 root = None
 

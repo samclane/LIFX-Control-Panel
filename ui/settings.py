@@ -196,7 +196,7 @@ class SettingsDisplay(Dialog):
         # Labels
         Label(master, text="Start Minimized?: ").grid(row=0, column=0)
         Label(master, text="Avg. Monitor Default: ").grid(row=1, column=0)
-        Label(master, text="Avg. Transition Time: ").grid(row=2, column=0)
+        Label(master, text="Smooth Transition Time (sec): ").grid(row=2, column=0)
         Label(master, text="Add Preset Color: ").grid(row=3, column=0)
         Label(master, text="Audio Input Source: ").grid(row=4, column=0)
         Label(master, text="Add keyboard shortcut").grid(row=5, column=0)
