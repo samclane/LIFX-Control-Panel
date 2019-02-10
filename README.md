@@ -70,6 +70,11 @@ and on the following LIFX devices:
 * LIFX Z   Firmware v1.22
 * LIFX Mini White Firmware v3.41
 
+# Feedback
+If you have any comments or concerns, please feel free to make a post on the [Issues page](https://github.com/samclane/LIFX-Control-Panel/issues). 
+
+If you enjoy LIFX-Control-Panel, please Like and leave a review on [AlternativeTo](https://alternativeto.net/software/lifx-control-panel/).
+
 # Donate
 LIFX-Control-Panel will always be free and open source. However, if you appreciate the work I'm doing and would like to 
 contribute financially, you can donate below. Thanks for your support!
