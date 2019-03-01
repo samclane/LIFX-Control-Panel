@@ -167,8 +167,9 @@ class LifxFrame(ttk.Frame):
             for l in self.lightsdict.values():
                 self.framesdict[l.label] = LightFrame(self, l)
                 self.logger.info("Building new frame: {}".format(self.framesdict[l.label].get_label()))
+            self.current_lightframe = self.framesdict[l.label]
+            self.bulb_icons.set_selected_bulb(l.label)
 
-        self.current_lightframe = self.framesdict[self.lightvar.get()]
         # Start icon callback
         self.after(HEARTBEAT_RATE, self.update_icons)
 
@@ -202,7 +203,16 @@ class LifxFrame(ttk.Frame):
         x = canvas.canvasx(event.x)
         y = canvas.canvasy(event.y)
         item = canvas.find_closest(x, y)
-        self.lightvar.set(canvas.gettags(item)[0])
+        lightname = canvas.gettags(item)[0]
+        self.lightvar.set(lightname)
+        if not canvas.master.is_group:
+            self.bulb_icons.set_selected_bulb(lightname)
+            if self.group_icons.current_icon:
+                self.group_icons.clear_selected()
+        else:  # I have no self respect
+            self.group_icons.set_selected_bulb(lightname)
+            if self.bulb_icons.current_icon:
+                self.bulb_icons.clear_selected()
 
     def update_icons(self):
         if self.master.winfo_viewable():
@@ -648,6 +658,7 @@ class BulbIconList(Frame):
         self.current_icon_width = 0
         path = self.icon_path()
         self.original_icon = pImage.open(path).load()
+        self.current_icon = None
 
     def icon_path(self):
         if self.is_group:
@@ -696,6 +707,8 @@ class BulbIconList(Frame):
                         self.original_icon[x, y][3] == 255:
                     bulb_color = bulb_color[0], bulb_color[1], bulb_color[2], bulb_color[3]
                     color = HSBKtoRGB(bulb_color)
+                elif all([v in (15, 95) for v in icon_rgb]) and self.original_icon[x, y][3] == 255:
+                    color = sprite.get(x, y)[:3]
                 else:
                     color = icon_rgb
                 color_string += tuple2hex(color) + ' '
@@ -703,6 +716,42 @@ class BulbIconList(Frame):
         # Write the final colorstring to the sprite, then update the GUI
         sprite.put(color_string, (0, 0, sprite.height(), sprite.width()))
         self.canvas.itemconfig(image, image=sprite)
+
+    def set_selected_bulb(self, lightname):
+        if self.current_icon:
+            self.clear_selected()
+        sprite, image, text = self.bulb_dict[lightname]
+        color_string = ''
+        for y in range(sprite.height()):
+            color_string += '{'
+            for x in range(sprite.width()):
+                icon_rgb = sprite.get(x, y)[:3]
+                if all([(v == 15) for v in icon_rgb]) and self.original_icon[x, y][3] == 255:
+                    color = (95, 95, 95)
+                else:
+                    color = icon_rgb
+                color_string += tuple2hex(color) + ' '
+            color_string += '} '
+        sprite.put(color_string, (0, 0, sprite.height(), sprite.width()))
+        self.canvas.itemconfig(image, image=sprite)
+        self.current_icon = lightname
+
+    def clear_selected(self):
+        sprite, image, text = self.bulb_dict[self.current_icon]
+        color_string = ''
+        for y in range(sprite.height()):
+            color_string += '{'
+            for x in range(sprite.width()):
+                icon_rgb = sprite.get(x, y)[:3]
+                if all([(v == 95) for v in icon_rgb]) and self.original_icon[x, y][3] == 255:
+                    color = (15, 15, 15)
+                else:
+                    color = icon_rgb
+                color_string += tuple2hex(color) + ' '
+            color_string += '} '
+        sprite.put(color_string, (0, 0, sprite.height(), sprite.width()))
+        self.canvas.itemconfig(image, image=sprite)
+        self.current_icon = None
 
 
 root = None
