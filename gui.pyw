@@ -141,8 +141,8 @@ class LifxFrame(ttk.Frame):
         # Setup tray icon
         tray_options = (('Adjust Lights', None, lambda *_: self.master.deiconify()),)
 
-        def lambda_factory(self):
-            return lambda *_: self.on_closing()
+        def lambda_factory(self_):
+            return lambda *_: self_.on_closing()
 
         def run_tray_icon():
             SysTrayIcon.SysTrayIcon(resource_path('res/icon_vector_9fv_icon.ico'), "LIFX-Control-Panel", tray_options,
@@ -185,8 +185,9 @@ class LifxFrame(ttk.Frame):
             self.current_lightframe.stop()
             self.logger.debug('Stopping current frame: {}'.format(self.current_lightframe.get_label()))
         self.current_light = self.lightsdict[new_light_label]
+        # loop below removes all other frames; not just the current one (this fixes sync bugs for some reason)
         for frame in self.framesdict.values():
-            frame.grid_remove()  # remove all other frames; not just the current one (this fixes sync bugs for some reason)
+            frame.grid_remove()
         self.framesdict[new_light_label].grid()  # should bring to front
         self.logger.info(
             "Brought existing frame to front: {}".format(self.framesdict[new_light_label].get_label()))
@@ -332,21 +333,21 @@ class LightFrame(ttk.Labelframe):
                        gradient='bw'),
             ColorScale(self, from_=2500, to=9000, variable=self.hsbk[3], command=self.update_color_from_ui,
                        gradient='kelvin'))
-        RELIEF = GROOVE
+        relief = GROOVE
         self.hsbk_display = (
             Canvas(self, background=tuple2hex(HueToRGB(360 * (init_color.hue / 65535))), width=20, height=20,
                    borderwidth=3,
-                   relief=RELIEF),
+                   relief=relief),
             Canvas(self, background=tuple2hex((
                 int(255 * (init_color.saturation / 65535)), int(255 * (init_color.saturation / 65535)),
                 int(255 * (init_color.saturation / 65535)))),
-                   width=20, height=20, borderwidth=3, relief=RELIEF),
+                   width=20, height=20, borderwidth=3, relief=relief),
             Canvas(self, background=tuple2hex((
                 int(255 * (init_color.brightness / 65535)), int(255 * (init_color.brightness / 65535)),
                 int(255 * (init_color.brightness / 65535)))),
-                   width=20, height=20, borderwidth=3, relief=RELIEF),
+                   width=20, height=20, borderwidth=3, relief=relief),
             Canvas(self, background=tuple2hex(KelvinToRGB(init_color.kelvin)), width=20, height=20,
-                   borderwidth=3, relief=RELIEF)
+                   borderwidth=3, relief=relief)
         )
         for key, scale in enumerate(self.hsbk_scale):
             Label(self, text=self.hsbk[key]).grid(row=key + 1, column=0)
@@ -408,8 +409,8 @@ class LightFrame(ttk.Labelframe):
         self.music_button.grid(row=7, column=0)
         self.threads['eyedropper'] = color_thread.ColorThreadRunner(self.target, self.eyedropper, self,
                                                                     continuous=False)
-        Button(self.special_functions_lf, text="Color Eyedropper", command=self.threads['eyedropper'].start).grid(row=7,
-                                                                                                                  column=1)
+        Button(self.special_functions_lf, text="Color Eyedropper", command=self.threads['eyedropper'].start) \
+            .grid(row=7, column=1)
         Button(self.special_functions_lf, text="Stop effects", command=self.stop_threads).grid(row=8, column=0)
         self.special_functions_lf.grid(row=6, columnspan=4)
 
@@ -791,11 +792,11 @@ def main():
     root.logger.addHandler(sh)
     root.logger.info('Logger initialized.')
 
-    def myHandler(type, value, tb):
+    def custom_handler(type_, value, tb):
         global root
-        root.logger.exception("Uncaught exception: {}:{}:{}".format(repr(type), str(value), repr(tb)))
+        root.logger.exception("Uncaught exception: {}:{}:{}".format(repr(type_), str(value), repr(tb)))
 
-    sys.excepthook = myHandler
+    sys.excepthook = custom_handler
 
     mainframe = LifxFrame(root, LifxLAN(verbose=DEBUGGING))
 
