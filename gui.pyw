@@ -205,11 +205,11 @@ class LifxFrame(ttk.Frame):
         item = canvas.find_closest(x, y)
         lightname = canvas.gettags(item)[0]
         self.lightvar.set(lightname)
-        if not canvas.master.is_group:
+        if not canvas.master.is_group:  # Lightframes
             self.bulb_icons.set_selected_bulb(lightname)
             if self.group_icons.current_icon:
                 self.group_icons.clear_selected()
-        else:  # I have no self respect
+        else:
             self.group_icons.set_selected_bulb(lightname)
             if self.bulb_icons.current_icon:
                 self.bulb_icons.clear_selected()
@@ -275,7 +275,7 @@ class LightFrame(ttk.Labelframe):
         except WorkflowException as e:
             messagebox.showerror("Error building LightFrame",
                                  "Error thrown when trying to get label from bulb:\n{}".format(e))
-            return
+            self.master.on_closing()
         ttk.Labelframe.__init__(self, master, padding="3 3 12 12",
                                 labelwidget=Label(master, text=self.label, font=font.Font(size=12), fg="#0046d5",
                                                   relief=RIDGE))
@@ -638,12 +638,24 @@ class LightFrame(ttk.Labelframe):
 
 class BulbIconList(Frame):
     def __init__(self, *args, is_group=False, **kwargs):
+        # Parameters
         self.is_group = is_group
+
+        # Constants
         self.window_width = 285
         self.icon_width = 50
         self.icon_height = 75
-        super().__init__(*args, width=self.window_width, height=self.icon_height, **kwargs)
         self.pad = 5
+        self.highlight_color = 95
+
+        # Icon Coding
+        self.COLOR_CODE = {
+            "BULB_TOP": 11,
+            "BACKGROUND": 15
+        }
+
+        # Initialization
+        super().__init__(*args, width=self.window_width, height=self.icon_height, **kwargs)
         self.scrollx = 0
         self.scrolly = 0
         self.bulb_dict = {}
@@ -703,11 +715,12 @@ class BulbIconList(Frame):
             for x in range(sprite.width()):
                 # If the tick is < brightness, color it. Otherwise, set it back to the default color
                 icon_rgb = self.original_icon[x, y][:3]
-                if all([(v <= brightness_scale or v == 11) for v in icon_rgb]) and \
+                if all([(v <= brightness_scale or v == self.COLOR_CODE["BULB_TOP"]) for v in icon_rgb]) and \
                         self.original_icon[x, y][3] == 255:
                     bulb_color = bulb_color[0], bulb_color[1], bulb_color[2], bulb_color[3]
                     color = HSBKtoRGB(bulb_color)
-                elif all([v in (15, 95) for v in icon_rgb]) and self.original_icon[x, y][3] == 255:
+                elif all([v in (self.COLOR_CODE["BACKGROUND"], self.highlight_color) for v in icon_rgb]) and \
+                        self.original_icon[x, y][3] == 255:
                     color = sprite.get(x, y)[:3]
                 else:
                     color = icon_rgb
@@ -726,8 +739,8 @@ class BulbIconList(Frame):
             color_string += '{'
             for x in range(sprite.width()):
                 icon_rgb = sprite.get(x, y)[:3]
-                if all([(v == 15) for v in icon_rgb]) and self.original_icon[x, y][3] == 255:
-                    color = (95, 95, 95)
+                if all([(v == self.COLOR_CODE["BACKGROUND"]) for v in icon_rgb]) and self.original_icon[x, y][3] == 255:
+                    color = (self.highlight_color,) * 3
                 else:
                     color = icon_rgb
                 color_string += tuple2hex(color) + ' '
@@ -743,8 +756,8 @@ class BulbIconList(Frame):
             color_string += '{'
             for x in range(sprite.width()):
                 icon_rgb = sprite.get(x, y)[:3]
-                if all([(v == 95) for v in icon_rgb]) and self.original_icon[x, y][3] == 255:
-                    color = (15, 15, 15)
+                if all([(v == self.highlight_color) for v in icon_rgb]) and self.original_icon[x, y][3] == 255:
+                    color = (self.COLOR_CODE["BACKGROUND"],) * 3
                 else:
                     color = icon_rgb
                 color_string += tuple2hex(color) + ' '
