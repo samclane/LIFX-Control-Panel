@@ -11,7 +11,7 @@ such as monitoring and changing bulb color, with more advanced ones, like:
  * Keybindings
 
 <p align="center">
-  <img src="screenshot.png" alt="Screenshot" width="306" height=629>
+  <img src="screenshot.png" alt="Screenshot" width="306" height=731>
 </p>
 
 Color Averaging Demo (Click Me):
