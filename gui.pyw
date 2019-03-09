@@ -168,7 +168,10 @@ class LifxFrame(ttk.Frame):
                 self.framesdict[l.label] = LightFrame(self, l)
                 self.logger.info("Building new frame: {}".format(self.framesdict[l.label].get_label()))
             self.current_lightframe = self.framesdict[l.label]
-            self.bulb_icons.set_selected_bulb(l.label)
+            try:
+                self.bulb_icons.set_selected_bulb(l.label)
+            except KeyError:
+                self.group_icons.set_selected_bulb(l.label)
 
         # Start icon callback
         self.after(HEARTBEAT_RATE, self.update_icons)
@@ -671,7 +674,11 @@ class BulbIconList(Frame):
         self.current_icon_width = 0
         path = self.icon_path()
         self.original_icon = pImage.open(path).load()
-        self.current_icon = None
+        self._current_icon = None
+
+    @property
+    def current_icon(self):
+        return self._current_icon
 
     def icon_path(self):
         if self.is_group:
@@ -732,7 +739,7 @@ class BulbIconList(Frame):
         self.canvas.itemconfig(image, image=sprite)
 
     def set_selected_bulb(self, lightname):
-        if self.current_icon:
+        if self._current_icon:
             self.clear_selected()
         sprite, image, text = self.bulb_dict[lightname]
         color_string = ''
@@ -748,10 +755,10 @@ class BulbIconList(Frame):
             color_string += '} '
         sprite.put(color_string, (0, 0, sprite.height(), sprite.width()))
         self.canvas.itemconfig(image, image=sprite)
-        self.current_icon = lightname
+        self._current_icon = lightname
 
     def clear_selected(self):
-        sprite, image, text = self.bulb_dict[self.current_icon]
+        sprite, image, text = self.bulb_dict[self._current_icon]
         color_string = ''
         for y in range(sprite.height()):
             color_string += '{'
@@ -765,7 +772,7 @@ class BulbIconList(Frame):
             color_string += '} '
         sprite.put(color_string, (0, 0, sprite.height(), sprite.width()))
         self.canvas.itemconfig(image, image=sprite)
-        self.current_icon = None
+        self._current_icon = None
 
 
 root = None
