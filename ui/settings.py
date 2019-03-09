@@ -192,7 +192,7 @@ class SettingsDisplay(Dialog):
     def body(self, master):
         self.root_window = master.master.master  # This is really gross. I'm sorry.
         self.logger = logging.getLogger(self.root_window.logger.name + '.SettingsDisplay')
-        self.k = Keystroke_Watcher(self, sticky=True)
+        self.key_listener = Keystroke_Watcher(self, sticky=True)
         # Labels
         Label(master, text="Start Minimized?: ").grid(row=0, column=0)
         Label(master, text="Avg. Monitor Default: ").grid(row=1, column=0)
@@ -288,7 +288,7 @@ class SettingsDisplay(Dialog):
         with open('config.ini', 'w') as cfg:
             config.write(cfg)
 
-        self.k.shutdown()
+        self.key_listener.shutdown()
 
         return 1
 
@@ -310,19 +310,22 @@ class SettingsDisplay(Dialog):
         self.mlb.insert(END, (str(bulb), str(keys), str(color)))
         self.keybind_keys_select.config(state='normal')
         self.keybind_keys_select.delete(0, 'end')
+        self.keybind_keys_select.insert(END, "Add key-combo...")
         self.keybind_keys_select.config(state='readonly')
+        self.preset_color_name.focus_set()  # Set focus to a dummy widget to reset the Entry
+
 
     def on_keybind_keys_click(self, event):
         """ Call when cursor is in key-combo entry """
         self.update()
         self.update_idletasks()
-        self.k.restart()
+        self.key_listener.restart()
         self.keybind_keys_select.config(state='normal')
         self.update()
         self.update_idletasks()
         while self.focus_get() == self.keybind_keys_select:
             self.keybind_keys_select.delete(0, 'end')
-            self.keybind_keys_select.insert(END, self.k.get_key_combo_code())
+            self.keybind_keys_select.insert(END, self.key_listener.get_key_combo_code())
             self.update()
             self.update_idletasks()
 
