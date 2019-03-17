@@ -93,7 +93,12 @@ class LifxFrame(ttk.Frame):
 
         # Setup menu
         self.menubar = Menu(master)
-        self.menubar.add_command(label="Settings", command=self.show_settings)
+        filemenu = Menu(self.menubar, tearoff=0)
+        filemenu.add_command(label="Rescan", command=self.scan_for_lights)
+        filemenu.add_command(label="Settings", command=self.show_settings)
+        filemenu.add_separator()
+        filemenu.add_command(label="Exit", command=self.on_closing)
+        self.menubar.add_cascade(label="File", menu=filemenu)
         self.menubar.add_command(label="About", command=self.show_about)
         self.master.config(menu=self.menubar)
 
@@ -106,23 +111,7 @@ class LifxFrame(ttk.Frame):
         self.bulb_icons = BulbIconList(self)
         self.group_icons = BulbIconList(self, is_group=True)
 
-        for x, light in enumerate(self.lifx.get_lights()):
-            try:
-                product = product_map[light.get_product()]
-                label = light.get_label()
-                light.get_color()
-                self.lightsdict[label] = light
-                self.logger.info('Light found: {}:({})'.format(product, label))
-                self.bulb_icons.draw_bulb_icon(light, label)
-                group_label = light.get_group_label()
-                if not (group_label in self.lightsdict.keys()):
-                    self.lightsdict[group_label] = self.lifx.get_devices_by_group(group_label)
-                    # Giving an attribute here is a bit dirty, but whatever
-                    self.lightsdict[group_label].label = group_label
-                    self.group_icons.draw_bulb_icon(group, group_label)
-                    self.logger.info("Group found: {}".format(group_label))
-            except WorkflowException as e:
-                self.logger.warning("Error when communicating with LIFX device: {}".format(e))
+        self.scan_for_lights()
 
         if len(self.lightsdict):  # if any lights are found
             self.lightvar.set(next(iter(self.lightsdict.keys())))
@@ -153,7 +142,7 @@ class LifxFrame(ttk.Frame):
         self.master.bind('<Unmap>', lambda *_: self.master.withdraw())  # Minimize to taskbar
 
         # Setup keybinding listener
-        self.keylogger = Keystroke_Watcher(self)
+        self.key_listener = Keystroke_Watcher(self)
         for keypress, function in dict(config['Keybinds']).items():
             light, color = function.split(':')
             color = Color(*eval(color, {}))
@@ -179,6 +168,31 @@ class LifxFrame(ttk.Frame):
         # Minimize if in config
         if eval(config["AppSettings"]["start_minimized"], {}):
             self.master.withdraw()
+
+    def scan_for_lights(self):
+        for x, light in enumerate(self.lifx.get_lights()):
+            try:
+                product = product_map[light.get_product()]
+                label = light.get_label()
+                light.get_color()
+                self.lightsdict[label] = light
+                self.logger.info('Light found: {}:({})'.format(product, label))
+                if label not in self.bulb_icons.bulb_dict.keys():
+                    self.bulb_icons.draw_bulb_icon(light, label)
+                if label not in self.framesdict.keys():
+                    self.framesdict[label] = LightFrame(self, light)
+                    self.logger.info("Building new frame: {}".format(self.framesdict[label].get_label()))
+                group_label = light.get_group_label()
+                if group_label not in self.lightsdict.keys():
+                    self.lightsdict[group_label] = self.lifx.get_devices_by_group(group_label)
+                    # Giving an attribute here is a bit dirty, but whatever
+                    self.lightsdict[group_label].label = group_label
+                    self.group_icons.draw_bulb_icon(group, group_label)
+                    self.logger.info("Group found: {}".format(group_label))
+                    self.framesdict[group_label] = LightFrame(self, self.lightsdict[group_label])
+                    self.logger.info("Building new frame: {}".format(self.framesdict[group_label].get_label()))
+            except WorkflowException as e:
+                self.logger.warning("Error when communicating with LIFX device: {}".format(e))
 
     def bulb_changed(self, *args):
         """ Change current display frame when dropdown menu is changed. """
@@ -233,19 +247,19 @@ class LifxFrame(ttk.Frame):
                                                                duration=float(config["AverageColor"]["duration"]))
 
         func = lambda_factory(self, light, color)
-        self.keylogger.register_function(keypress, func)
+        self.key_listener.register_function(keypress, func)
 
     def delete_keybind(self, keycombo):
-        self.keylogger.unregister_function(keycombo)
+        self.key_listener.unregister_function(keycombo)
 
     def show_settings(self):
-        self.keylogger.shutdown()
+        self.key_listener.shutdown()
         s = settings.SettingsDisplay(self, "Settings")
         self.current_lightframe.update_user_dropdown()
         audio.init(config)
         for f in self.framesdict.values():
             f.music_button.config(state='normal' if audio.initialized else 'disabled')
-        self.keylogger.restart()
+        self.key_listener.restart()
 
     def show_about(self):
         messagebox.showinfo("About", "LIFX-Control-Panel\n"
