@@ -21,7 +21,7 @@ from utilities import audio, color_thread
 from utilities.keypress import Keystroke_Watcher
 from utilities.utils import *
 
-RED = [0, 65535, 65535, 3500]  # Overwrite color, which appears black otherwise
+RED = [0, 65535, 65535, 3500]  # Fixes RED from appearing BLACK
 
 audio.init(config)
 
@@ -145,7 +145,8 @@ class LifxFrame(ttk.Frame):
         self.key_listener = Keystroke_Watcher(self)
         for keypress, function in dict(config['Keybinds']).items():
             light, color = function.split(':')
-            color = Color(*eval(color, {}))
+            color = Color(*globals()[color]) if color in globals().keys() else list(
+                map(int, color.strip("()[]").split(",")))
             self.save_keybind(light, keypress, color)
 
         # Stop splashscreen and start main function
@@ -166,7 +167,7 @@ class LifxFrame(ttk.Frame):
         self.after(HEARTBEAT_RATE, self.update_icons)
 
         # Minimize if in config
-        if eval(config["AppSettings"]["start_minimized"], {}):
+        if config.getboolean("AppSettings", "start_minimized"):
             self.master.withdraw()
 
     def scan_for_lights(self):
@@ -377,18 +378,20 @@ class LightFrame(ttk.Labelframe):
         # Add buttons for pre-made colors
         self.preset_colors_lf = ttk.LabelFrame(self, text="Preset Colors", padding="3 3 12 12")
         self.colorVar = StringVar(self, value="Presets")
-        self.default_colors = ["RED",
-                               "ORANGE",
-                               "YELLOW",
-                               "GREEN",
-                               "CYAN",
-                               "BLUE",
-                               "PURPLE",
-                               "PINK",
-                               "WHITE",
-                               "COLD_WHITE",
-                               "WARM_WHITE",
-                               "GOLD"]
+
+        self.default_colors = {"RED": RED,
+                               "ORANGE": ORANGE,
+                               "YELLOW": YELLOW,
+                               "GREEN": GREEN,
+                               "CYAN": CYAN,
+                               "BLUE": BLUE,
+                               "PURPLE": PURPLE,
+                               "PINK": PINK,
+                               "WHITE": WHITE,
+                               "COLD_WHITE": COLD_WHITE,
+                               "WARM_WHITE": WARM_WHITE,
+                               "GOLD": GOLD}
+
         self.preset_dropdown = OptionMenu(self.preset_colors_lf, self.colorVar, *self.default_colors)
         self.preset_dropdown.grid(row=0, column=0)
         self.preset_dropdown.configure(width=13)
@@ -440,14 +443,13 @@ class LightFrame(ttk.Labelframe):
             'y1': Entry(self.screen_region_lf, width=6),
             'y2': Entry(self.screen_region_lf, width=6)
         }
-        if self.label in config["AverageColor"].keys():
-            region = eval(config['AverageColor'][self.label],
-                          {"full": "full", "get_primary_monitor": get_primary_monitor})
+        region = config['AverageColor'][self.label if self.label in config["AverageColor"].keys() else 'defaultmonitor']
+        if region == "full":
+            region = ["full"] * 4  # TODO
+        elif region[:19] == "get_primary_monitor":
+            region = get_primary_monitor()
         else:
-            region = eval(config['AverageColor']['defaultmonitor'],
-                          {"full": "full", "get_primary_monitor": get_primary_monitor})
-        if isinstance(region, str):
-            region = ["full"] * 4
+            region = list(map(int, region.strip("()[]").split(',')))
         self.screen_region_entires['x1'].insert(END, region[0])
         self.screen_region_entires['y1'].insert(END, region[1])
         self.screen_region_entires['x2'].insert(END, region[2])
@@ -624,13 +626,13 @@ class LightFrame(ttk.Labelframe):
         return utils.RGBtoHSBK(color, temperature=self.get_color_values_hsbk().kelvin)
 
     def change_preset_dropdown(self, *args):
-        color = Color(*eval(self.colorVar.get()))
+        color = Color(*globals()[self.colorVar.get()])
         self.preset_dropdown.config(bg=tuple2hex(HSBKtoRGB(color)),
                                     activebackground=tuple2hex(HSBKtoRGB(color)))
         self.set_color(color, False)
 
     def change_user_dropdown(self, *args):
-        color = Color(*eval(config["PresetColors"][self.uservar.get()], {}))
+        color = list(map(int, config["PresetColors"][self.uservar.get()].strip("()[]").split(",")))
         self.user_dropdown.config(bg=tuple2hex(HSBKtoRGB(color)),
                                   activebackground=tuple2hex(HSBKtoRGB(color)))
         self.set_color(color, rapid=False)

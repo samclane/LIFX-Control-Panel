@@ -2,17 +2,15 @@
 # coding=utf-8
 import logging
 import threading
-from statistics import mode
-from functools import lru_cache
 from collections import deque
-
+from functools import lru_cache
+from statistics import mode
 
 from PIL import Image
 from desktopmagic.screengrab_win32 import *
 from lifxlan import utils
 
 from ui.settings import config
-from utilities.utils import get_primary_monitor
 
 
 @lru_cache(maxsize=32)
@@ -22,15 +20,19 @@ def get_monitor_from_bounds(func):
 
 N_POINTS = 3
 window = deque([0, 0, 0, 0] for _ in range(N_POINTS))
+
+
 def column(matrix, i):
     return [row[i] for row in matrix]
+
+
 def avg_screen_color(initial_color, func_bounds=lambda: None):
     global window
     monitor = get_monitor_from_bounds(func_bounds)
     if "full" in monitor:
         im = getScreenAsImage()
     else:
-        im = getRectAsImage(eval(monitor, {'get_primary_monitor': get_primary_monitor}))
+        im = getRectAsImage(list(map(int, monitor.strip("{}[]").split(','))))
     color = im.resize((1, 1), Image.HAMMING).getpixel((0, 0))
     color_hsbk = list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
     window.rotate(1)
@@ -111,7 +113,6 @@ class ColorThreadRunner:
     @staticmethod
     def get_duration():
         return float(config["AverageColor"]["duration"])
-
 
 
 def install_thread_excepthook():

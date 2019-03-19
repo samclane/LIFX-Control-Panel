@@ -1,5 +1,4 @@
 import configparser
-import itertools
 import logging
 import tkinter.ttk as ttk
 from shutil import copyfile
@@ -203,17 +202,17 @@ class SettingsDisplay(Dialog):
 
         # Widgets
         # Starting minimized
-        self.start_mini = BooleanVar(master, value=eval(config["AppSettings"]["start_minimized"], {}))
+        self.start_mini = BooleanVar(master, value=config.getboolean("AppSettings", "start_minimized"))
         self.start_mini_check = Checkbutton(master, variable=self.start_mini)
 
         # Avg monitor color match
         self.avg_monitor = StringVar(master, value=config["AverageColor"]["DefaultMonitor"])
-        options = []
-        lst = getDisplayRects()
-        for i in range(1, len(lst) + 1):
-            els = [list(x) for x in itertools.combinations(lst, i)]
-            options.extend(els)
-        self.avg_monitor_dropdown = OptionMenu(master, self.avg_monitor, *lst, 'full')
+        options = ['full', 'get_primary_monitor', *getDisplayRects()]
+        # lst = getDisplayRects()
+        # for i in range(1, len(lst) + 1):
+        #    els = [list(x) for x in itertools.combinations(lst, i)]
+        #    options.extend(els)
+        self.avg_monitor_dropdown = OptionMenu(master, self.avg_monitor, *options)
 
         self.duration_scale = Scale(master, from_=0, to_=2, resolution=1 / 15, orient=HORIZONTAL)
         self.duration_scale.set(float(config["AverageColor"]["Duration"]))
@@ -301,10 +300,9 @@ class SettingsDisplay(Dialog):
 
     def register_keybinding(self, bulb: str, keys: str, color: str):
         try:
-            color = eval(color, {c: eval(c) for c in self.root_window.framesdict[
-                self.keybind_bulb_selection.get()].default_colors})  # should match color to variable w/ same name
-        except NameError:  # must be using a custom color
-            color = eval(config["PresetColors"][color], {})
+            color = self.root_window.framesdict[self.keybind_bulb_selection.get()].default_colors[color]
+        except KeyError:  # must be using a custom color
+            color = list(map(int, config["PresetColors"][color].strip("{}[]").split(',')))
         self.root_window.save_keybind(bulb, keys, color)
         config["Keybinds"][str(keys)] = str(bulb + ":" + str(color))
         self.mlb.insert(END, (str(bulb), str(keys), str(color)))
@@ -313,7 +311,6 @@ class SettingsDisplay(Dialog):
         self.keybind_keys_select.insert(END, "Add key-combo...")
         self.keybind_keys_select.config(state='readonly')
         self.preset_color_name.focus_set()  # Set focus to a dummy widget to reset the Entry
-
 
     def on_keybind_keys_click(self, event):
         """ Call when cursor is in key-combo entry """
