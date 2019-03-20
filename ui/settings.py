@@ -12,8 +12,8 @@ from lifxlan.utils import RGBtoHSBK
 
 from _constants import *
 from utilities.audio import get_names
-from utilities.keypress import Keystroke_Watcher
-from utilities.utils import resource_path
+from utilities.keypress import KeystrokeWatcher
+from utilities.utils import resource_path, str2list
 
 config = configparser.ConfigParser()
 if not os.path.isfile("config.ini"):
@@ -191,7 +191,7 @@ class SettingsDisplay(Dialog):
     def body(self, master):
         self.root_window = master.master.master  # This is really gross. I'm sorry.
         self.logger = logging.getLogger(self.root_window.logger.name + '.SettingsDisplay')
-        self.key_listener = Keystroke_Watcher(self, sticky=True)
+        self.key_listener = KeystrokeWatcher(self, sticky=True)
         # Labels
         Label(master, text="Start Minimized?: ").grid(row=0, column=0)
         Label(master, text="Avg. Monitor Default: ").grid(row=1, column=0)
@@ -302,7 +302,7 @@ class SettingsDisplay(Dialog):
         try:
             color = self.root_window.framesdict[self.keybind_bulb_selection.get()].default_colors[color]
         except KeyError:  # must be using a custom color
-            color = list(map(int, config["PresetColors"][color].strip("{}[]").split(',')))
+            color = str2list(config["PresetColors"][color], int)
         self.root_window.save_keybind(bulb, keys, color)
         config["Keybinds"][str(keys)] = str(bulb + ":" + str(color))
         self.mlb.insert(END, (str(bulb), str(keys), str(color)))

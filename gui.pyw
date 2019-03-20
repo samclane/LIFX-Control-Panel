@@ -18,7 +18,7 @@ from ui.colorscale import ColorScale
 from ui.settings import config
 from ui.splashscreen import Splash
 from utilities import audio, color_thread
-from utilities.keypress import Keystroke_Watcher
+from utilities.keypress import KeystrokeWatcher
 from utilities.utils import *
 
 RED = [0, 65535, 65535, 3500]  # Fixes RED from appearing BLACK
@@ -142,11 +142,10 @@ class LifxFrame(ttk.Frame):
         self.master.bind('<Unmap>', lambda *_: self.master.withdraw())  # Minimize to taskbar
 
         # Setup keybinding listener
-        self.key_listener = Keystroke_Watcher(self)
+        self.key_listener = KeystrokeWatcher(self)
         for keypress, function in dict(config['Keybinds']).items():
             light, color = function.split(':')
-            color = Color(*globals()[color]) if color in globals().keys() else list(
-                map(int, color.strip("()[]").split(",")))
+            color = Color(*globals()[color]) if color in globals().keys() else str2list(color, int)
             self.save_keybind(light, keypress, color)
 
         # Stop splashscreen and start main function
@@ -446,7 +445,7 @@ class LightFrame(ttk.Labelframe):
         elif region[:19] == "get_primary_monitor":
             region = get_primary_monitor()
         else:
-            region = list(map(int, region.strip("()[]").split(',')))
+            region = str2list(region, int)
         self.screen_region_entires['x1'].insert(END, region[0])
         self.screen_region_entires['y1'].insert(END, region[1])
         self.screen_region_entires['x2'].insert(END, region[2])
@@ -497,7 +496,7 @@ class LightFrame(ttk.Labelframe):
     def update_power(self):
         """ Send new power state to bulb when UI is changed. """
         self.stop_threads()
-        self.target.set_power(self.powervar.get())
+        self.target.set_power(self.powervar.get(), rapid=True)
 
     def update_color_from_ui(self, *args):
         """ Send new color state to bulb when UI is changed. """
@@ -558,42 +557,42 @@ class LightFrame(ttk.Labelframe):
         Periodically update status from the bulb to keep UI in sync.
         :param run_once: Don't call `after` statement at end. Keeps a million workers from being instanced.
         """
-        require_icon_update = False
-        if not self.started:
+        if not self.started or self.is_group:
             return
-        if not self.is_group:
-            try:
-                old_pwr = self.target.power_level
-                new_pwr = self.target.get_power()
-                if new_pwr != old_pwr:
-                    require_icon_update = True
-                self.powervar.set(new_pwr)
-            except OSError:
-                self.logger.warning("Error updating bulb power: OS")
-                return
-            except errors.WorkflowException:
-                self.logger.warning("Error updating bulb power: Workflow")
-                return
-            if self.powervar.get() == 0:
-                # Light is off
-                self.option_off.select()
-                self.option_on.selection_clear()
-            else:
-                self.option_on.select()
-                self.option_off.selection_clear()
-            try:
-                hsbk = self.target.get_color()
-                if hsbk != self.get_color_values_hsbk():
-                    require_icon_update = True
-                for key, val in enumerate(self.hsbk):
-                    self.hsbk[key].set(hsbk[key])
-                    self.update_label(key)
-                    self.update_display(key)
-                self.current_color.config(background=tuple2hex(HSBKtoRGB(hsbk)))
-            except OSError:
-                self.logger.warning("Error updating bulb color: OS")
-            except errors.WorkflowException:
-                self.logger.warning("Error updating bulb color: Workflow")
+
+        require_icon_update = False
+        try:
+            old_pwr = self.target.power_level
+            new_pwr = self.target.get_power()
+            if new_pwr != old_pwr:
+                require_icon_update = True
+            self.powervar.set(new_pwr)
+        except OSError:
+            self.logger.warning("Error updating bulb power: OS")
+            return
+        except errors.WorkflowException:
+            self.logger.warning("Error updating bulb power: Workflow")
+            return
+        if self.powervar.get() == 0:
+            # Light is off
+            self.option_off.select()
+            self.option_on.selection_clear()
+        else:
+            self.option_on.select()
+            self.option_off.selection_clear()
+        try:
+            hsbk = self.target.get_color()
+            if hsbk != self.get_color_values_hsbk():
+                require_icon_update = True
+            for key, val in enumerate(self.hsbk):
+                self.hsbk[key].set(hsbk[key])
+                self.update_label(key)
+                self.update_display(key)
+            self.current_color.config(background=tuple2hex(HSBKtoRGB(hsbk)))
+        except OSError:
+            self.logger.warning("Error updating bulb color: OS")
+        except errors.WorkflowException:
+            self.logger.warning("Error updating bulb color: Workflow")
         if require_icon_update:
             self.trigger_icon_update()
         if self.started and not run_once:
@@ -629,7 +628,7 @@ class LightFrame(ttk.Labelframe):
         self.set_color(color, False)
 
     def change_user_dropdown(self, *args):
-        color = list(map(int, config["PresetColors"][self.uservar.get()].strip("()[]").split(",")))
+        color = str2list(config["PresetColors"][self.uservar.get()], int)
         self.user_dropdown.config(bg=tuple2hex(HSBKtoRGB(color)),
                                   activebackground=tuple2hex(HSBKtoRGB(color)))
         self.set_color(color, rapid=False)
@@ -814,7 +813,7 @@ def main():
 
     def custom_handler(type_, value, tb):
         global root
-        root.logger.exception("Uncaught exception: {}:{}:{}".format(repr(type_), str(value), repr(tb)))
+        root.logger.exception("Uncaught exception: {}:{}:{}".format(repr(type_), str(value), tb.format_exc()))
 
     sys.excepthook = custom_handler
 

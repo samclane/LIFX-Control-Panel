@@ -4,7 +4,7 @@ from PyHook3 import HookManager
 from PyHook3.HookManager import HookConstants
 
 
-class Keystroke_Watcher:
+class KeystrokeWatcher:
     def __init__(self, master, sticky=False):
         self.logger = logging.getLogger(master.logger.name + '.Keystroke_Watcher')
         self.hm = HookManager()
@@ -44,7 +44,7 @@ class Keystroke_Watcher:
                                                                            self.function_map[keycombo].__name__))
                 self.function_map[keycombo]()
         finally:
-            if not self.sticky:
+            if not self.sticky and event.KeyID in self.keys_held:
                 self.keys_held.remove(event.KeyID)
             return True
 

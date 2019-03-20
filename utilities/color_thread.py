@@ -11,7 +11,7 @@ from desktopmagic.screengrab_win32 import *
 from lifxlan import utils
 
 from ui.settings import config
-
+from utilities.utils import str2list
 
 @lru_cache(maxsize=32)
 def get_monitor_from_bounds(func):
@@ -32,7 +32,7 @@ def avg_screen_color(initial_color, func_bounds=lambda: None):
     if "full" in monitor:
         im = getScreenAsImage()
     else:
-        im = getRectAsImage(list(map(int, monitor.strip("{}[]").split(','))))
+        im = getRectAsImage(str2list(monitor, int))
     color = im.resize((1, 1), Image.HAMMING).getpixel((0, 0))
     color_hsbk = list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
     window.rotate(1)

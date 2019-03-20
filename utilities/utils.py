@@ -142,6 +142,10 @@ def tuple2hex(tuple: Tuple[int, int, int]) -> str:
     return '#%02x%02x%02x' % tuple
 
 
+def str2list(string: str, type_func) -> list:
+    return list(map(type_func, string.strip("()[]").split(",")))
+
+
 # Multi monitor methods
 @lru_cache(maxsize=None)
 def get_primary_monitor() -> Tuple[int, int, int, int]:
