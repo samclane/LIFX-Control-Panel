@@ -152,17 +152,6 @@ class LifxFrame(ttk.Frame):
         # Stop splashscreen and start main function
         self.splashscreen.__exit__(None, None, None)
 
-        # if any lights are found, show the first display
-        if len(self.lightsdict):
-            for l in self.lightsdict.values():
-                self.framesdict[l.label] = LightFrame(self, l)
-                self.logger.info("Building new frame: {}".format(self.framesdict[l.label].get_label()))
-            self.current_lightframe = self.framesdict[l.label]
-            try:
-                self.bulb_icons.set_selected_bulb(l.label)
-            except KeyError:
-                self.group_icons.set_selected_bulb(l.label)
-
         # Start icon callback
         self.after(HEARTBEAT_RATE, self.update_icons)
 
@@ -182,10 +171,18 @@ class LifxFrame(ttk.Frame):
                     self.bulb_icons.draw_bulb_icon(light, label)
                 if label not in self.framesdict.keys():
                     self.framesdict[label] = LightFrame(self, light)
+                    if self.current_lightframe:
+                        self.current_lightframe.stop()
+                    self.current_lightframe = self.framesdict[label]
+                    try:
+                        self.bulb_icons.set_selected_bulb(label)
+                    except KeyError:
+                        self.group_icons.set_selected_bulb(label)
                     self.logger.info("Building new frame: {}".format(self.framesdict[label].get_label()))
                 group_label = light.get_group_label()
                 if group_label not in self.lightsdict.keys():
                     self.lightsdict[group_label] = self.lifx.get_devices_by_group(group_label)
+                    self.lightsdict[group_label].get_label = lambda: group_label
                     # Giving an attribute here is a bit dirty, but whatever
                     self.lightsdict[group_label].label = group_label
                     self.group_icons.draw_bulb_icon(group, group_label)
