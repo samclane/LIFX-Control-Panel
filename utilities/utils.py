@@ -143,6 +143,7 @@ def tuple2hex(tuple: Tuple[int, int, int]) -> str:
 
 
 def str2list(string: str, type_func) -> list:
+    """ Takes a Python list-formatted string and returns a list of elements of type type_func """
     return list(map(type_func, string.strip("()[]").split(",")))
 
 

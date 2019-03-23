@@ -496,7 +496,7 @@ class LightFrame(ttk.Labelframe):
     def update_power(self):
         """ Send new power state to bulb when UI is changed. """
         self.stop_threads()
-        self.target.set_power(self.powervar.get(), rapid=True)
+        self.target.set_power(self.powervar.get())
 
     def update_color_from_ui(self, *args):
         """ Send new color state to bulb when UI is changed. """
