@@ -3,7 +3,7 @@ import datetime
 
 bd = datetime.datetime.now().isoformat()
 auth = "Sawyer McLane"
-vers = "1.6.4"
+vers = "1.7.0"
 is_debug = False
 
 # Write version info into _constants.py resource file

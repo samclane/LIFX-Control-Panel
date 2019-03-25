@@ -7,6 +7,7 @@ from tkinter import *
 from tkinter import _setit, messagebox, ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
+import queue
 
 from PIL import Image as pImage
 from lifxlan import *
@@ -25,7 +26,8 @@ RED = [0, 65535, 65535, 3500]  # Fixes RED from appearing BLACK
 
 audio.init(config)
 
-HEARTBEAT_RATE = 3000  # 3 seconds
+HEARTBEAT_RATE_MS = 3000  # 3 seconds
+FRAME_PERIOD_MS = 1500  # 1.5 seconds
 LOGFILE = 'lifx-control-panel.log'
 
 # determine if application is a script file or frozen exe
@@ -69,6 +71,48 @@ class Color:
                 self.brightness,
                 self.kelvin
                 ].__repr__()
+
+    def __eq__(self, other):
+        return self.hue == other.hue and \
+               self.brightness == other.brightness and \
+               self.saturation == other.saturation and \
+               self.kelvin == other.kelvin
+
+
+class AsyncBulbInterface(threading.Thread):
+    """ Asynchronous networking layer between LIFX devices and the GUI. """
+
+    def __init__(self, event):
+        threading.Thread.__init__(self)
+        self.stopped: threading.Event = event
+        self.device_list = []
+        self.color_queue = {}
+        self.color_cache = {}
+        self.power_queue = {}
+        self.power_cache = {}
+
+    def set_device_list(self, device_list):
+        self.device_list = device_list
+        for d in device_list:
+            self.color_queue[d.get_label()] = queue.Queue()
+            self.color_cache[d.label] = d.color
+            self.power_queue[d.label] = queue.Queue()
+            self.power_cache[d.label] = d.power_level
+
+    def run(self):
+        while not self.stopped.wait(HEARTBEAT_RATE_MS / 1000):
+            try:
+                for d in self.device_list:
+                    pwr = d.get_power()
+                    if pwr != self.power_cache[d.label]:
+                        self.power_queue[d.label].put(pwr)
+                        self.power_cache[d.label] = pwr
+                    clr = d.get_color()
+                    if clr != self.color_cache[d.label]:
+                        self.color_queue[d.label].put(clr)
+                        self.color_cache[d.label] = clr
+            except WorkflowException:
+                continue
 
 
 class LifxFrame(ttk.Frame):
@@ -152,14 +196,22 @@ class LifxFrame(ttk.Frame):
         self.splashscreen.__exit__(None, None, None)
 
         # Start icon callback
-        self.after(HEARTBEAT_RATE, self.update_icons)
+        self.after(FRAME_PERIOD_MS, self.update_icons)
 
         # Minimize if in config
         if config.getboolean("AppSettings", "start_minimized"):
             self.master.withdraw()
 
     def scan_for_lights(self):
-        for x, light in enumerate(self.lifx.get_lights()):
+        global bulb_interface
+        if not stopEvent.isSet():
+            stopEvent.set()
+        device_list = self.lifx.get_lights()
+        bulb_interface = AsyncBulbInterface(stopEvent)
+        bulb_interface.set_device_list(device_list)
+        stopEvent.clear()
+        bulb_interface.start()
+        for x, light in enumerate(device_list):
             try:
                 product = product_map[light.get_product()]
                 label = light.get_label()
@@ -192,7 +244,7 @@ class LifxFrame(ttk.Frame):
                 self.logger.warning("Error when communicating with LIFX device: {}".format(e))
 
     def bulb_changed(self, *args):
-        """ Change current display frame when dropdown menu is changed. """
+        """ Change current display frame when bulb icon is clicked. """
         self.master.unbind('<Unmap>')  # unregister unmap so grid_remove doesn't trip it
         new_light_label = self.lightvar.get()
         if self.current_lightframe is not None:
@@ -235,7 +287,7 @@ class LifxFrame(ttk.Frame):
                 if not fr.is_group and fr.icon_update_flag:
                     self.bulb_icons.update_icon(fr.target)
                     fr.icon_update_flag = False
-        self.after(HEARTBEAT_RATE, self.update_icons)
+        self.after(FRAME_PERIOD_MS, self.update_icons)
 
     def save_keybind(self, light, keypress, color):
         def lambda_factory(self, light, color):
@@ -269,6 +321,7 @@ class LifxFrame(ttk.Frame):
     def on_closing(self):
         self.logger.info('Shutting down.\n')
         self.master.destroy()
+        stopEvent.set()
         sys.exit(0)
 
 
@@ -559,44 +612,32 @@ class LightFrame(ttk.Labelframe):
         """
         if not self.started or self.is_group:
             return
-
         require_icon_update = False
-        try:
-            old_pwr = self.target.power_level
-            new_pwr = self.target.get_power()
-            if new_pwr != old_pwr:
-                require_icon_update = True
-            self.powervar.set(new_pwr)
-        except OSError:
-            self.logger.warning("Error updating bulb power: OS")
-            return
-        except errors.WorkflowException:
-            self.logger.warning("Error updating bulb power: Workflow")
-            return
-        if self.powervar.get() == 0:
-            # Light is off
-            self.option_off.select()
-            self.option_on.selection_clear()
-        else:
-            self.option_on.select()
-            self.option_off.selection_clear()
-        try:
-            hsbk = self.target.get_color()
-            if hsbk != self.get_color_values_hsbk():
-                require_icon_update = True
+        if not bulb_interface.power_queue[self.label].empty():
+            power = bulb_interface.power_queue[self.label].get()
+            require_icon_update = True
+            self.powervar.set(power)
+            if self.powervar.get() == 0:
+                # Light is off
+                self.option_off.select()
+                self.option_on.selection_clear()
+            else:
+                self.option_on.select()
+                self.option_off.selection_clear()
+
+        if not bulb_interface.color_queue[self.label].empty():
+            hsbk = bulb_interface.color_queue[self.label].get()
+            require_icon_update = True
             for key, val in enumerate(self.hsbk):
                 self.hsbk[key].set(hsbk[key])
                 self.update_label(key)
                 self.update_display(key)
             self.current_color.config(background=tuple2hex(HSBKtoRGB(hsbk)))
-        except OSError:
-            self.logger.warning("Error updating bulb color: OS")
-        except errors.WorkflowException:
-            self.logger.warning("Error updating bulb color: Workflow")
+
         if require_icon_update:
             self.trigger_icon_update()
         if self.started and not run_once:
-            self.after(HEARTBEAT_RATE, self.update_status_from_bulb)
+            self.after(FRAME_PERIOD_MS, self.update_status_from_bulb)
 
     def eyedropper(self, initial_color):
         """ Allows user to select a color pixel from the screen. """
@@ -721,11 +762,13 @@ class BulbIconList(Frame):
         if self.is_group:
             return
         try:
-            bulb_color = bulb.get_color()
-            bulb_power = bulb.get_power()
+            # this is ugly, but only way to update icon accurately
+            bulb_color = bulb_interface.color_cache[bulb.label]
+            bulb_power = bulb_interface.power_cache[bulb.label]
             bulb_brightness = bulb_color[2]
             sprite, image, text = self.bulb_dict[bulb.label]
-        except WorkflowException:
+        except TypeError:
+            # First run will give us None; Is immidiately corrected on next pass
             return
         # Calculate what number, 0-11, corresponds to current brightness
         brightness_scale = (int((bulb_brightness / 65535) * 10) * (bulb_power > 0)) - 1
@@ -788,10 +831,12 @@ class BulbIconList(Frame):
 
 
 root = None
+bulb_interface = None
+stopEvent = threading.Event()
 
 
 def main():
-    global root
+    global root, bulb_interface, stopEvent
     root = Tk()
     root.title("LIFX-Control-Panel")
     root.resizable(False, False)
@@ -817,7 +862,11 @@ def main():
 
     sys.excepthook = custom_handler
 
-    mainframe = LifxFrame(root, LifxLAN(verbose=DEBUGGING))
+    bulb_interface = AsyncBulbInterface(stopEvent)
+    ll = LifxLAN(verbose=DEBUGGING)
+    # bulb_interface.set_device_list(ll.get_devices())
+    # bulb_interface.start()
+    mainframe = LifxFrame(root, ll)
 
     # Run main app
     root.mainloop()
