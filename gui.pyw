@@ -1,4 +1,6 @@
+import concurrent.futures
 import logging
+import queue
 import threading
 import tkinter.font as font
 import traceback
@@ -7,11 +9,9 @@ from tkinter import *
 from tkinter import _setit, messagebox, ttk
 from tkinter.colorchooser import *
 from win32gui import GetCursorPos
-import queue
 
 from PIL import Image as pImage
 from lifxlan import *
-from lifxlan import errors
 
 from _constants import *
 from ui import SysTrayIcon, settings
@@ -99,20 +99,23 @@ class AsyncBulbInterface(threading.Thread):
             self.power_queue[d.label] = queue.Queue()
             self.power_cache[d.label] = d.power_level
 
+    def query_device(self, device):
+        try:
+            pwr = device.get_power()
+            if pwr != self.power_cache[device.label]:
+                self.power_queue[device.label].put(pwr)
+                self.power_cache[device.label] = pwr
+            clr = device.get_color()
+            if clr != self.color_cache[device.label]:
+                self.color_queue[device.label].put(clr)
+                self.color_cache[device.label] = clr
+        except WorkflowException:
+            pass
+
     def run(self):
-        while not self.stopped.wait(HEARTBEAT_RATE_MS / 1000):
-            try:
-                for d in self.device_list:
-                    pwr = d.get_power()
-                    if pwr != self.power_cache[d.label]:
-                        self.power_queue[d.label].put(pwr)
-                        self.power_cache[d.label] = pwr
-                    clr = d.get_color()
-                    if clr != self.color_cache[d.label]:
-                        self.color_queue[d.label].put(clr)
-                        self.color_cache[d.label] = clr
-            except WorkflowException:
-                continue
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.device_list)) as executor:
+            while not self.stopped.wait(HEARTBEAT_RATE_MS / 1000):
+                executor.map(self.query_device, self.device_list)
 
 
 class LifxFrame(ttk.Frame):
@@ -768,7 +771,7 @@ class BulbIconList(Frame):
             bulb_brightness = bulb_color[2]
             sprite, image, text = self.bulb_dict[bulb.label]
         except TypeError:
-            # First run will give us None; Is immidiately corrected on next pass
+            # First run will give us None; Is immediately corrected on next pass
             return
         # Calculate what number, 0-11, corresponds to current brightness
         brightness_scale = (int((bulb_brightness / 65535) * 10) * (bulb_power > 0)) - 1
