@@ -7,6 +7,44 @@ from typing import Union, Tuple
 from desktopmagic.screengrab_win32 import *
 
 
+class Color:
+    __slots__ = ['hue', 'saturation', 'brightness', 'kelvin']
+
+    def __init__(self, hue, saturation, brightness, kelvin):
+        self.hue = hue
+        self.saturation = saturation
+        self.brightness = brightness
+        self.kelvin = kelvin
+
+    def __getitem__(self, item):
+        return self.__getattribute__(self.__slots__[item])
+
+    def __len__(self):
+        return 4
+
+    def __setitem__(self, key, value):
+        self.__setattr__(self.__slots__[key], value)
+
+    def __str__(self):
+        return "[{}, {}, {}, {}]".format(self.hue,
+                                         self.saturation,
+                                         self.brightness,
+                                         self.kelvin)
+
+    def __repr__(self):
+        return [self.hue,
+                self.saturation,
+                self.brightness,
+                self.kelvin
+                ].__repr__()
+
+    def __eq__(self, other):
+        return self.hue == other.hue and \
+               self.brightness == other.brightness and \
+               self.saturation == other.saturation and \
+               self.kelvin == other.kelvin
+
+
 def HSBKtoRGB(hsvk: Tuple[int, int, int, int]) -> Tuple[int, int, int]:
     """ Converted from PHP https://gist.github.com/joshrp/5200913 """
     iH, iS, iV, iK = hsvk

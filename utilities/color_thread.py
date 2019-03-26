@@ -18,7 +18,7 @@ def get_monitor_from_bounds(func):
     return func() or config["AverageColor"]["DefaultMonitor"]
 
 
-N_POINTS = 3
+N_POINTS = 1  # Maybe make this a setting in the future
 window = deque([0, 0, 0, 0] for _ in range(N_POINTS))
 
 

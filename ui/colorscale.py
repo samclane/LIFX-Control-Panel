@@ -44,7 +44,7 @@ class ColorScale(tk.Canvas):
 
         self.bind('<Configure>', lambda e: self._draw_gradient(val))
         self.bind('<ButtonPress-1>', self._on_click)
-        self.bind('<ButtonRelease-1>', self._on_release)
+        # self.bind('<ButtonRelease-1>', self._on_release)
         self.bind('<B1-Motion>', self._on_move)
 
     def _draw_gradient(self, val):
@@ -98,18 +98,15 @@ class ColorScale(tk.Canvas):
 
     def _on_move(self, event):
         """Make selection cursor follow the cursor."""
-        if event.x >= 0:
+        x = event.x
+        if x >= 0:
             w = self.winfo_width()
-            x = min(max(abs(event.x), 0), w)
+            x = min(max(abs(x), 0), w)
             for s in self.find_withtag("cursor"):
                 self.coords(s, x, 0, x, self.winfo_height())
             self._variable.set(round((float(self.range) * x) / w + self.min, 2))
             if self.command is not None:
                 self.command()
-
-    def _on_release(self, event):
-        """ Tell the master BulbIconList to update immediately after value is changed. """
-        self.master.master.update_icons()
 
     def _update_val(self, *args):
         val = int(self._variable.get())

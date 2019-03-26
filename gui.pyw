@@ -41,44 +41,6 @@ LOGFILE = os.path.join(application_path, LOGFILE)
 SPLASHFILE = resource_path('res//splash_vector_png.png')
 
 
-class Color:
-    __slots__ = ['hue', 'saturation', 'brightness', 'kelvin']
-
-    def __init__(self, hue, saturation, brightness, kelvin):
-        self.hue = hue
-        self.saturation = saturation
-        self.brightness = brightness
-        self.kelvin = kelvin
-
-    def __getitem__(self, item):
-        return self.__getattribute__(self.__slots__[item])
-
-    def __len__(self):
-        return 4
-
-    def __setitem__(self, key, value):
-        self.__setattr__(self.__slots__[key], value)
-
-    def __str__(self):
-        return "[{}, {}, {}, {}]".format(self.hue,
-                                         self.saturation,
-                                         self.brightness,
-                                         self.kelvin)
-
-    def __repr__(self):
-        return [self.hue,
-                self.saturation,
-                self.brightness,
-                self.kelvin
-                ].__repr__()
-
-    def __eq__(self, other):
-        return self.hue == other.hue and \
-               self.brightness == other.brightness and \
-               self.saturation == other.saturation and \
-               self.kelvin == other.kelvin
-
-
 class AsyncBulbInterface(threading.Thread):
     """ Asynchronous networking layer between LIFX devices and the GUI. """
 
@@ -230,8 +192,6 @@ class LifxFrame(ttk.Frame):
                     self.bulb_icons.draw_bulb_icon(light, label)
                 if label not in self.framesdict.keys():
                     self.framesdict[label] = LightFrame(self, light)
-                    if self.current_lightframe:
-                        self.current_lightframe.stop()
                     self.current_lightframe = self.framesdict[label]
                     try:
                         self.bulb_icons.set_selected_bulb(label)
@@ -255,9 +215,6 @@ class LifxFrame(ttk.Frame):
         """ Change current display frame when bulb icon is clicked. """
         self.master.unbind('<Unmap>')  # unregister unmap so grid_remove doesn't trip it
         new_light_label = self.lightvar.get()
-        if self.current_lightframe is not None:
-            self.current_lightframe.stop()
-            self.logger.debug('Stopping current frame: {}'.format(self.current_lightframe.get_label()))
         self.current_light = self.lightsdict[new_light_label]
         # loop below removes all other frames; not just the current one (this fixes sync bugs for some reason)
         for frame in self.framesdict.values():
@@ -524,17 +481,11 @@ class LightFrame(ttk.Labelframe):
         self.screen_region_lf.grid(row=7, columnspan=4)
 
         # Start update loop
-        self.started = True
         self.update_status_from_bulb()
 
     def restart(self):
-        self.started = True
         self.update_status_from_bulb()
         self.logger.info("Light frame Restarted.")
-
-    def stop(self):
-        self.started = False
-        self.logger.info("Light frame Stopped.")
 
     def get_label(self):
         return self.label
@@ -575,7 +526,7 @@ class LightFrame(ttk.Labelframe):
                 pass
             else:
                 raise e
-        self.update_status_from_bulb(run_once=True)  # Force UI to update from bulb
+        # self.update_status_from_bulb(run_once=True)  # Force UI to update from bulb
         if not rapid:
             self.logger.debug('Color changed to HSBK: {}'.format(color))  # Don't pollute log with rapid color changes
 
@@ -618,7 +569,7 @@ class LightFrame(ttk.Labelframe):
         Periodically update status from the bulb to keep UI in sync.
         :param run_once: Don't call `after` statement at end. Keeps a million workers from being instanced.
         """
-        if not self.started or self.is_group:
+        if self.is_group:
             return
         require_icon_update = False
         if not bulb_interface.power_queue[self.label].empty():
@@ -644,7 +595,7 @@ class LightFrame(ttk.Labelframe):
 
         if require_icon_update:
             self.trigger_icon_update()
-        if self.started and not run_once:
+        if not run_once:
             self.after(FRAME_PERIOD_MS, self.update_status_from_bulb)
 
     def eyedropper(self, initial_color):
