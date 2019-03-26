@@ -119,7 +119,7 @@ class AsyncBulbInterface(threading.Thread):
 
 
 class LifxFrame(ttk.Frame):
-    def __init__(self, master, lifx_instance):  # We take a lifx instance so we can theoretically inject our own.
+    def __init__(self, master, lifx_instance):  # We take a lifx instance so we can inject our own for testing.
         self.splashscreen = Splash(master, SPLASHFILE)
         self.splashscreen.__enter__()
         # Setup frame and grid
@@ -207,13 +207,18 @@ class LifxFrame(ttk.Frame):
 
     def scan_for_lights(self):
         global bulb_interface
+
+        # Stop and restart the bulb interface
         if not stopEvent.isSet():
             stopEvent.set()
         device_list = self.lifx.get_lights()
+        if bulb_interface:
+            del bulb_interface
         bulb_interface = AsyncBulbInterface(stopEvent)
         bulb_interface.set_device_list(device_list)
         stopEvent.clear()
         bulb_interface.start()
+
         for x, light in enumerate(device_list):
             try:
                 product = product_map[light.get_product()]
@@ -833,14 +838,14 @@ class BulbIconList(Frame):
         self._current_icon = None
 
 
-root = None
-bulb_interface = None
+root = Tk()
 stopEvent = threading.Event()
+bulb_interface = AsyncBulbInterface(stopEvent)
 
 
 def main():
     global root, bulb_interface, stopEvent
-    root = Tk()
+    # root =
     root.title("LIFX-Control-Panel")
     root.resizable(False, False)
 
@@ -865,10 +870,7 @@ def main():
 
     sys.excepthook = custom_handler
 
-    bulb_interface = AsyncBulbInterface(stopEvent)
     ll = LifxLAN(verbose=DEBUGGING)
-    # bulb_interface.set_device_list(ll.get_devices())
-    # bulb_interface.start()
     mainframe = LifxFrame(root, ll)
 
     # Run main app
