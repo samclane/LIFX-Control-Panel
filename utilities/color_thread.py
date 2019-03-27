@@ -13,6 +13,7 @@ from lifxlan import utils
 from ui.settings import config
 from utilities.utils import str2list
 
+
 @lru_cache(maxsize=32)
 def get_monitor_from_bounds(func):
     return func() or config["AverageColor"]["DefaultMonitor"]

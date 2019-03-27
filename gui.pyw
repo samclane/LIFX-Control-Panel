@@ -178,6 +178,7 @@ class LifxFrame(ttk.Frame):
             del bulb_interface
         bulb_interface = AsyncBulbInterface(stopEvent)
         bulb_interface.set_device_list(device_list)
+        bulb_interface.daemon = True
         stopEvent.clear()
         bulb_interface.start()
 

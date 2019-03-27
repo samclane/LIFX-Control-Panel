@@ -8,3 +8,4 @@ icons/
 *.log
 archive_viewer.spec
 config.ini
+pyinstaller/
