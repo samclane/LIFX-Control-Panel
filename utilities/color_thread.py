@@ -2,7 +2,6 @@
 # coding=utf-8
 import logging
 import threading
-from collections import deque
 from functools import lru_cache
 from statistics import mode
 
@@ -19,16 +18,7 @@ def get_monitor_from_bounds(func):
     return func() or config["AverageColor"]["DefaultMonitor"]
 
 
-N_POINTS = 1  # Maybe make this a setting in the future
-window = deque([0, 0, 0, 0] for _ in range(N_POINTS))
-
-
-def column(matrix, i):
-    return [row[i] for row in matrix]
-
-
 def avg_screen_color(initial_color, func_bounds=lambda: None):
-    global window
     monitor = get_monitor_from_bounds(func_bounds)
     if "full" in monitor:
         im = getScreenAsImage()
@@ -36,11 +26,6 @@ def avg_screen_color(initial_color, func_bounds=lambda: None):
         im = getRectAsImage(str2list(monitor, int))
     color = im.resize((1, 1), Image.HAMMING).getpixel((0, 0))
     color_hsbk = list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
-    window.rotate(1)
-    window[0] = color_hsbk
-    # Take the sliding window across each parameter
-    for p in range(1, 4):  # Skip Hue ([0]); averaging it only makes things weird
-        color_hsbk[p] = int(sum(column(window, p)) / N_POINTS)
     return color_hsbk
 
 
@@ -87,7 +72,7 @@ class ColorThreadRunner:
         while not self.t.stopped():
             try:
                 color = self.color_function(initial_color=self.prev_color, **self.kwargs)
-                bulb.set_color(color, duration=0 if self.continuous else self.get_duration() * 1000,
+                bulb.set_color(color, duration=self.get_duration() * 1000,
                                rapid=self.continuous)
                 self.prev_color = color
             except OSError:
