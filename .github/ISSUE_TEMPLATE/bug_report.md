@@ -21,7 +21,8 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Desktop (please complete the following information):**
- - OS: [e.g. iOS]
+ - Lifx-Control-Panel Version: [Found in the "About" menu. e.g. "1.2.0"]
+ - OS: [e.g. Windows 7, Windows 10, Plan 9]
 
 **Please attach your logfile (lifx-control-panel.log)**
 Attempt to reproduce the problem, then attach your `lifx_ctrl.log` file. This will give us the most information about what went wrong.
