@@ -97,7 +97,7 @@ class AsyncBulbInterface(threading.Thread):
 class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
     """ Parent frame of application. Holds icons for each Device/Group. """
 
-    def __init__(self, master, lifx_instance):
+    def __init__(self, master, lifx_instance, bulb_interface):
         # We take a lifx instance so we can inject our own for testing.
 
         # Start showing splash_screen while processing
@@ -112,6 +112,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         self.lifx = lifx_instance
+        self.bulb_interface = bulb_interface
 
         # Setup logger
         self.logger = logging.getLogger(master.logger.name + '.' + self.__class__.__name__)
@@ -160,9 +161,11 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         tray_options = (('Adjust Lights', None, lambda *_: self.master.deiconify()),)
 
         def lambda_factory(self_):
+            """ Build an anonymous function call w/ correct 'self' scope"""
             return lambda *_: self_.on_closing()
 
         def run_tray_icon():
+            """ Allow SysTrayIcon in a separate thread """
             SysTrayIcon.SysTrayIcon(resource_path('res/icon_vector_9fv_icon.ico'), "LIFX-Control-Panel", tray_options,
                                     on_quit=lambda_factory(self))
 
@@ -189,19 +192,18 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
 
     def scan_for_lights(self):
         """ Communicating with the interface Thread, attempt to find any new devices """
-        global bulb_interface
-
         # Stop and restart the bulb interface
-        if not stopEvent.isSet():
-            stopEvent.set()
+        stop_event = self.bulb_interface.stopped
+        if not stop_event.isSet():
+            stop_event.set()
         device_list = self.lifx.get_lights()
-        if bulb_interface:
-            del bulb_interface
-        bulb_interface = AsyncBulbInterface(stopEvent)
-        bulb_interface.set_device_list(device_list)
-        bulb_interface.daemon = True
-        stopEvent.clear()
-        bulb_interface.start()
+        if self.bulb_interface:
+            del self.bulb_interface
+        self.bulb_interface = AsyncBulbInterface(stop_event)
+        self.bulb_interface.set_device_list(device_list)
+        self.bulb_interface.daemon = True
+        stop_event.clear()
+        self.bulb_interface.start()
 
         for x, light in enumerate(device_list):
             try:
@@ -316,7 +318,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         """ Should always be called before the application exits. Shuts down all threads and closes the program. """
         self.logger.info('Shutting down.\n')
         self.master.destroy()
-        stopEvent.set()
+        self.bulb_interface.stopped.set()
         sys.exit(0)
 
 
@@ -602,8 +604,8 @@ class LightFrame(ttk.Labelframe):
         if self.is_group:
             return
         require_icon_update = False
-        if not bulb_interface.power_queue[self.label].empty():
-            power = bulb_interface.power_queue[self.label].get()
+        if not self.master.bulb_interface.power_queue[self.label].empty():
+            power = self.master.bulb_interface.power_queue[self.label].get()
             require_icon_update = True
             self.powervar.set(power)
             if self.powervar.get() == 0:
@@ -614,8 +616,8 @@ class LightFrame(ttk.Labelframe):
                 self.option_on.select()
                 self.option_off.selection_clear()
 
-        if not bulb_interface.color_queue[self.label].empty():
-            hsbk = bulb_interface.color_queue[self.label].get()
+        if not self.master.bulb_interface.color_queue[self.label].empty():
+            hsbk = self.master.bulb_interface.color_queue[self.label].get()
             require_icon_update = True
             for key, val in enumerate(self.hsbk):
                 self.hsbk[key].set(hsbk[key])
@@ -752,8 +754,8 @@ class BulbIconList(Frame):
             return
         try:
             # this is ugly, but only way to update icon accurately
-            bulb_color = bulb_interface.color_cache[bulb.label]
-            bulb_power = bulb_interface.power_cache[bulb.label]
+            bulb_color = self.master.bulb_interface.color_cache[bulb.label]
+            bulb_power = self.master.bulb_interface.power_cache[bulb.label]
             bulb_brightness = bulb_color[2]
             sprite, image, text = self.bulb_dict[bulb.label]
         except TypeError:
@@ -819,48 +821,40 @@ class BulbIconList(Frame):
         self._current_icon = None
 
 
-root = Tk()
-stopEvent = threading.Event()
-bulb_interface = AsyncBulbInterface(stopEvent)
-
-
 def main():
-    global root, bulb_interface, stopEvent
-    # root =
-    root.title("LIFX-Control-Panel")
-    root.resizable(False, False)
-
-    # Setup main_icon
-    root.iconbitmap(resource_path('res/icon_vector_9fv_icon.ico'))
-
-    root.logger = logging.getLogger('root')
-    root.logger.setLevel(logging.DEBUG)
-    fh = logging.FileHandler(LOGFILE, mode='w')
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    fh.setFormatter(formatter)
-    root.logger.addHandler(fh)
-    sh = logging.StreamHandler()
-    sh.setLevel(logging.DEBUG)
-    sh.setFormatter(formatter)
-    root.logger.addHandler(sh)
-    root.logger.info('Logger initialized.')
-
-    def custom_handler(type_, value, tb):
-        global root
-        root.logger.exception("Uncaught exception: {}:{}:{}".format(repr(type_), str(value), tb.format_exc()))
-
-    sys.excepthook = custom_handler
-
-    ll = LifxLAN(verbose=DEBUGGING)
-    mainframe = LifxFrame(root, ll)
-
-    # Run main app
-    root.mainloop()
-
-
-if __name__ == "__main__":
     try:
-        main()
+        root = Tk()
+        stop_event = threading.Event()
+        bulb_interface = AsyncBulbInterface(stop_event)
+        root.title("LIFX-Control-Panel")
+        root.resizable(False, False)
+
+        # Setup main_icon
+        root.iconbitmap(resource_path('res/icon_vector_9fv_icon.ico'))
+
+        root.logger = logging.getLogger('root')
+        root.logger.setLevel(logging.DEBUG)
+        fh = logging.FileHandler(LOGFILE, mode='w')
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        root.logger.addHandler(fh)
+        sh = logging.StreamHandler()
+        sh.setLevel(logging.DEBUG)
+        sh.setFormatter(formatter)
+        root.logger.addHandler(sh)
+        root.logger.info('Logger initialized.')
+
+        def custom_handler(type_, value, tb):
+            global root
+            root.logger.exception("Uncaught exception: {}:{}:{}".format(repr(type_), str(value), tb.format_exc()))
+
+        sys.excepthook = custom_handler
+
+        ll = LifxLAN(verbose=DEBUGGING)
+        mainframe = LifxFrame(root, ll, bulb_interface)
+
+        # Run main app
+        root.mainloop()
     except Exception as e:
         root.logger.exception(e)
         messagebox.showerror("Unhandled Exception", "Unhandled runtime exception: {}\n\n"
@@ -868,3 +862,7 @@ if __name__ == "__main__":
                                                                                        r"https://github.com/samclane"
                                                                                        r"/LIFX-Control-Panel/issues"))
         os._exit(1)
+
+
+if __name__ == "__main__":
+    main()
