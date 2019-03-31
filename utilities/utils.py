@@ -1,10 +1,20 @@
+# -*- coding: utf-8 -*-
+"""General utilty classes and functions
+
+Contains several classes and functions for quality of life. Used indiscriminately throughout the module.
+
+Notes
+-----
+    Functions should attempt to not contain stateful information, as this module will be called by other modules
+    throughout the program, including other Threads, and as such states may not be coherent.
+"""
 from functools import lru_cache
 from math import log, floor
 import os
 import sys
 from typing import Union, Tuple
 
-from desktopmagic.screengrab_win32 import *
+from desktopmagic.screengrab_win32 import getDisplayRects
 
 
 class Color:
@@ -35,8 +45,7 @@ class Color:
         return [self.hue,
                 self.saturation,
                 self.brightness,
-                self.kelvin
-                ].__repr__()
+                self.kelvin].__repr__()
 
     def __eq__(self, other):
         return self.hue == other.hue and \

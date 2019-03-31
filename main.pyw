@@ -44,6 +44,7 @@ from ui.settings import config
 from ui.splashscreen import Splash
 from utilities import audio, color_thread
 from utilities.keypress import KeystrokeWatcher
+from desktopmagic.screengrab_win32 import getScreenAsImage, normalizeRects
 
 RED = [0, 65535, 65535, 3500]  # Fixes RED from appearing BLACK
 
@@ -522,7 +523,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         region = config['AverageColor'][self.label if self.label in config["AverageColor"].keys() else 'defaultmonitor']
         if region == "full":
             region = ["full"] * 4
-        elif region[:19] == "utilities.utils.get_primary_monitor":
+        elif region[:19] == "get_primary_monitor":
             region = utilities.utils.get_primary_monitor()
         else:
             region = utilities.utils.str2list(region, int)
@@ -679,11 +680,11 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                     break
             lifxlan.sleep(0.001)
         # tkinter.Button state changed
-        screen_img = utilities.utils.getScreenAsImage()
+        screen_img = getScreenAsImage()
         cursor_pos = GetCursorPos()
         # Convert display coords to image coords
-        cursor_pos = utilities.utils.normalizeRects(utilities.utils.getDisplayRects() +
-                                                    [(cursor_pos[0], cursor_pos[1], 0, 0)])[-1][:2]
+        cursor_pos = normalizeRects(utilities.utils.getDisplayRects() +
+                                    [(cursor_pos[0], cursor_pos[1], 0, 0)])[-1][:2]
         color = screen_img.getpixel(cursor_pos)
         self.master.master.deiconify()  # Reshow window
         self.logger.info("Eyedropper color found RGB %s", color)
