@@ -172,11 +172,11 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.group_icons.canvas.bind('<Button-1>', self.on_bulb_canvas_click)
 
         # Setup tray icon
-        tray_options = (('Adjust Lights', None, lambda *_: self.master.deiconify()),)
+        tray_options = (('Adjust Lights', None, lambda *_, **__: self.master.deiconify()),)
 
         def lambda_factory(self_):
             """ Build an anonymous function call w/ correct 'self' scope"""
-            return lambda *_: self_.on_closing()
+            return lambda *_, **__: self_.on_closing()
 
         def run_tray_icon():
             """ Allow SysTrayIcon in a separate thread """
@@ -186,7 +186,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
 
         self.systray_thread = threading.Thread(target=run_tray_icon, daemon=True)
         self.systray_thread.start()
-        self.master.bind('<Unmap>', lambda *_: self.master.withdraw())  # Minimize to taskbar
+        self.master.bind('<Unmap>', lambda *_, **__: self.master.withdraw())  # Minimize to taskbar
 
         # Setup keybinding listener
         self.key_listener = KeystrokeWatcher(self)
@@ -251,7 +251,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
             except lifxlan.WorkflowException as exc:
                 self.logger.warning("Error when communicating with LIFX device: %s", exc)
 
-    def bulb_changed(self, *_):
+    def bulb_changed(self, *_, **__):
         """ Change current display frame when bulb icon is clicked. """
         self.master.unbind('<Unmap>')  # unregister unmap so grid_remove doesn't trip it
         new_light_label = self.lightvar.get()
@@ -267,7 +267,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         if not self.current_lightframe.get_label() == self.lightvar.get():
             self.logger.error("Mismatch between LightFrame (%s) and Dropdown (%s)", self.current_lightframe.get_label(),
                               self.lightvar.get())
-        self.master.bind('<Unmap>', lambda *_: self.master.withdraw())  # reregister callback
+        self.master.bind('<Unmap>', lambda *_, **__: self.master.withdraw())  # reregister callback
 
     def on_bulb_canvas_click(self, event):
         """ Called whenever somebody clicks on one of the Device/Group icons. Switches LightFrame being shown. """
@@ -301,8 +301,8 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
 
         def lambda_factory(self, light, color):
             """ https://stackoverflow.com/questions/938429/scope-of-lambda-functions-and-their-parameters """
-            return lambda *_: self.lightsdict[light].set_color(color,
-                                                               duration=float(config["AverageColor"]["duration"]))
+            return lambda *_, **__: self.lightsdict[light].set_color(color,
+                                                                     duration=float(config["AverageColor"]["duration"]))
 
         func = lambda_factory(self, light, color)
         self.key_listener.register_function(keypress, func)
@@ -554,7 +554,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         """ Getter method for the label attribute. Often is monkey-patched. """
         return self.label
 
-    def trigger_icon_update(self, *_):
+    def trigger_icon_update(self, *_, **__):
         """ Just sets a flag for now. Could be more advanced in the future. """
         self.icon_update_flag = True
 
@@ -574,7 +574,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.stop_threads()
         self.target.set_power(self.powervar.get())
 
-    def update_color_from_ui(self, *_):
+    def update_color_from_ui(self, *_, **__):
         """ Send new color state to bulb when UI is changed. """
         self.stop_threads()
         self.set_color(self.get_color_values_hsbk(), rapid=True)
@@ -689,14 +689,14 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.logger.info("Eyedropper color found RGB %s", color)
         return lifxlan.RGBtoHSBK(color, temperature=self.get_color_values_hsbk().kelvin)
 
-    def change_preset_dropdown(self, *_):
+    def change_preset_dropdown(self, *_, **__):
         """ Change device color to selected preset option. """
         color = utilities.utils.Color(*globals()[self.color_var.get()])
         self.preset_dropdown.config(bg=utilities.utils.tuple2hex(utilities.utils.HSBKtoRGB(color)),
                                     activebackground=utilities.utils.tuple2hex(utilities.utils.HSBKtoRGB(color)))
         self.set_color(color, False)
 
-    def change_user_dropdown(self, *_):
+    def change_user_dropdown(self, *_, **__):
         """ Change device color to selected user-defined option. """
         color = utilities.utils.str2list(config["PresetColors"][self.uservar.get()], int)
         self.user_dropdown.config(bg=utilities.utils.tuple2hex(utilities.utils.HSBKtoRGB(color)),
