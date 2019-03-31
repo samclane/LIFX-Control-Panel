@@ -1,6 +1,6 @@
 # LIFX-Control-Panel 
 
-<img align="right" width="120" height="120" title="LIFX-Control-Panel Logo" src="icon.png">
+<img align="right" width="120" height="120" title="LIFX-Control-Panel Logo" src="./res/icon.png">
      
 LIFX-Control-Panel is an open source application for controlling your LIFX brand lights. It integrates simple features, 
 such as monitoring and changing bulb color, with more advanced ones, like:
@@ -11,7 +11,7 @@ such as monitoring and changing bulb color, with more advanced ones, like:
  * Keybindings
 
 <p align="center">
-  <img src="screenshot.png" alt="Screenshot" width="306" height=731>
+  <img src="./res/screenshot.png" alt="Screenshot" width="306" height=731>
 </p>
 
 Color Averaging Demo (Click Me):

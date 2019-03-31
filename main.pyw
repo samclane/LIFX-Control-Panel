@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+"""Main LIFX-Control-Panel GUI control
+
+This module contains several ugly God-classes that control the GUI functions and reactions.
+
+Notes
+-----
+    This is the "main" function of the app, and can be run simply with 'python main.pyw'
+"""
 import concurrent.futures
 import logging
 import queue
@@ -32,11 +41,13 @@ LOGFILE = 'lifx-control-panel.log'
 
 # determine if application is a script file or frozen exe
 if getattr(sys, 'frozen', False):
-    application_path = os.path.dirname(sys.executable)
+    APPLICATION_PATH = os.path.dirname(sys.executable)
 elif __file__:
-    application_path = os.path.dirname(__file__)
+    APPLICATION_PATH = os.path.dirname(__file__)
+else:
+    raise Exception("Application path not set. This should never happen.")
 
-LOGFILE = os.path.join(application_path, LOGFILE)
+LOGFILE = os.path.join(APPLICATION_PATH, LOGFILE)
 
 SPLASHFILE = resource_path('res//splash_vector_png.png')
 
@@ -54,36 +65,45 @@ class AsyncBulbInterface(threading.Thread):
         self.power_cache = {}
 
     def set_device_list(self, device_list):
+        """ Set internet device list to passed list of LIFX devices. """
         self.device_list = device_list
-        for d in device_list:
-            self.color_queue[d.get_label()] = queue.Queue()
-            self.color_cache[d.label] = d.color
-            self.power_queue[d.label] = queue.Queue()
-            self.power_cache[d.label] = d.power_level
+        for dev in device_list:
+            self.color_queue[dev.get_label()] = queue.Queue()
+            self.color_cache[dev.label] = dev.color
+            self.power_queue[dev.label] = queue.Queue()
+            self.power_cache[dev.label] = dev.power_level
 
-    def query_device(self, device):
+    def query_device(self, target):
+        """ Check if target has new state. If it does, push it to the queue and cache the value. """
         try:
-            pwr = device.get_power()
-            if pwr != self.power_cache[device.label]:
-                self.power_queue[device.label].put(pwr)
-                self.power_cache[device.label] = pwr
-            clr = device.get_color()
-            if clr != self.color_cache[device.label]:
-                self.color_queue[device.label].put(clr)
-                self.color_cache[device.label] = clr
+            pwr = target.get_power()
+            if pwr != self.power_cache[target.label]:
+                self.power_queue[target.label].put(pwr)
+                self.power_cache[target.label] = pwr
+            clr = target.get_color()
+            if clr != self.color_cache[target.label]:
+                self.color_queue[target.label].put(clr)
+                self.color_cache[target.label] = clr
         except WorkflowException:
             pass
 
     def run(self):
+        """ Continuous loop that has a thread query each device every HEARTBEAT ms. """
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.device_list)) as executor:
             while not self.stopped.wait(HEARTBEAT_RATE_MS / 1000):
                 executor.map(self.query_device, self.device_list)
 
 
-class LifxFrame(ttk.Frame):
-    def __init__(self, master, lifx_instance):  # We take a lifx instance so we can inject our own for testing.
+class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
+    """ Parent frame of application. Holds icons for each Device/Group. """
+
+    def __init__(self, master, lifx_instance):
+        # We take a lifx instance so we can inject our own for testing.
+
+        # Start showing splash_screen while processing
         self.splashscreen = Splash(master, SPLASHFILE)
         self.splashscreen.__enter__()
+
         # Setup frame and grid
         ttk.Frame.__init__(self, master, padding="3 3 12 12")
         self.master = master
@@ -95,10 +115,10 @@ class LifxFrame(ttk.Frame):
 
         # Setup logger
         self.logger = logging.getLogger(master.logger.name + '.' + self.__class__.__name__)
-        self.logger.info('Root logger initialized: {}'.format(self.logger.name))
-        self.logger.info('Binary Version: {}'.format(VERSION))
-        self.logger.info('Config Version: {}'.format(config["Info"]["Version"]))
-        self.logger.info('Build time: {}'.format(config["Info"]["BuildDate"]))
+        self.logger.info('Root logger initialized: %s', self.logger.name)
+        self.logger.info('Binary Version: %s', VERSION)
+        self.logger.info('Config Version: %s', config["Info"]["Version"])
+        self.logger.info('Build time: %s', config["Info"]["BuildDate"])
 
         # Setup menu
         self.menubar = Menu(master)
@@ -122,7 +142,7 @@ class LifxFrame(ttk.Frame):
 
         self.scan_for_lights()
 
-        if len(self.lightsdict):  # if any lights are found
+        if any(self.lightsdict):
             self.lightvar.set(next(iter(self.lightsdict.keys())))
             self.current_light = self.lightsdict[self.lightvar.get()]
         else:
@@ -168,6 +188,7 @@ class LifxFrame(ttk.Frame):
             self.master.withdraw()
 
     def scan_for_lights(self):
+        """ Communicating with the interface Thread, attempt to find any new devices """
         global bulb_interface
 
         # Stop and restart the bulb interface
@@ -188,7 +209,7 @@ class LifxFrame(ttk.Frame):
                 label = light.get_label()
                 light.get_color()
                 self.lightsdict[label] = light
-                self.logger.info('Light found: {}:({})'.format(product, label))
+                self.logger.info('Light found: %s: "%s"', product, label)
                 if label not in self.bulb_icons.bulb_dict.keys():
                     self.bulb_icons.draw_bulb_icon(light, label)
                 if label not in self.framesdict.keys():
@@ -198,7 +219,7 @@ class LifxFrame(ttk.Frame):
                         self.bulb_icons.set_selected_bulb(label)
                     except KeyError:
                         self.group_icons.set_selected_bulb(label)
-                    self.logger.info("Building new frame: {}".format(self.framesdict[label].get_label()))
+                    self.logger.info("Building new frame: %s", self.framesdict[label].get_label())
                 group_label = light.get_group_label()
                 if group_label not in self.lightsdict.keys():
                     self.lightsdict[group_label] = self.lifx.get_devices_by_group(group_label)
@@ -206,11 +227,11 @@ class LifxFrame(ttk.Frame):
                     # Giving an attribute here is a bit dirty, but whatever
                     self.lightsdict[group_label].label = group_label
                     self.group_icons.draw_bulb_icon(group, group_label)
-                    self.logger.info("Group found: {}".format(group_label))
+                    self.logger.info("Group found: %s", group_label)
                     self.framesdict[group_label] = LightFrame(self, self.lightsdict[group_label])
-                    self.logger.info("Building new frame: {}".format(self.framesdict[group_label].get_label()))
+                    self.logger.info("Building new frame: %s", self.framesdict[group_label].get_label())
             except WorkflowException as e:
-                self.logger.warning("Error when communicating with LIFX device: {}".format(e))
+                self.logger.warning("Error when communicating with LIFX device: %s", e)
 
     def bulb_changed(self, *args):
         """ Change current display frame when bulb icon is clicked. """
@@ -222,15 +243,16 @@ class LifxFrame(ttk.Frame):
             frame.grid_remove()
         self.framesdict[new_light_label].grid()  # should bring to front
         self.logger.info(
-            "Brought existing frame to front: {}".format(self.framesdict[new_light_label].get_label()))
+            "Brought existing frame to front: %s", self.framesdict[new_light_label].get_label())
         self.current_lightframe = self.framesdict[new_light_label]
         self.current_lightframe.restart()
         if not self.current_lightframe.get_label() == self.lightvar.get():
-            self.logger.error("Mismatch between LightFrame ({}) and Dropdown ({})".format(
-                self.current_lightframe.get_label(), self.lightvar.get()))
+            self.logger.error("Mismatch between LightFrame (%s) and Dropdown (%s)", self.current_lightframe.get_label(),
+                              self.lightvar.get())
         self.master.bind('<Unmap>', lambda *_: self.master.withdraw())  # reregister callback
 
     def on_bulb_canvas_click(self, event):
+        """ Called whenever somebody clicks on one of the Device/Group icons. Switches LightFrame being shown. """
         canvas = event.widget
         # Convert to Canvas coords as we are using a Scrollbar, so Frame coords doesn't always match up.
         x = canvas.canvasx(event.x)
@@ -248,6 +270,7 @@ class LifxFrame(ttk.Frame):
                 self.bulb_icons.clear_selected()
 
     def update_icons(self):
+        """ If the window isn't minimized, redraw icons to reflect their current power/color state. """
         if self.master.winfo_viewable():
             for fr in self.framesdict.values():
                 if not fr.is_group and fr.icon_update_flag:
@@ -256,6 +279,8 @@ class LifxFrame(ttk.Frame):
         self.after(FRAME_PERIOD_MS, self.update_icons)
 
     def save_keybind(self, light, keypress, color):
+        """ Builds a new anonymous function changing light to color when keypress is entered. """
+
         def lambda_factory(self, light, color):
             """ https://stackoverflow.com/questions/938429/scope-of-lambda-functions-and-their-parameters """
             return lambda *_: self.lightsdict[light].set_color(color,
@@ -265,9 +290,11 @@ class LifxFrame(ttk.Frame):
         self.key_listener.register_function(keypress, func)
 
     def delete_keybind(self, keycombo):
+        """ Deletes anyonymous function from key_listener. Don't know why this is needed. """
         self.key_listener.unregister_function(keycombo)
 
     def show_settings(self):
+        """ Show the settings dialog box over the master window. """
         self.key_listener.shutdown()
         s = settings.SettingsDisplay(self, "Settings")
         self.current_lightframe.update_user_dropdown()
@@ -277,6 +304,7 @@ class LifxFrame(ttk.Frame):
         self.key_listener.restart()
 
     def show_about(self):
+        """ Show the about info-box above the master window. """
         messagebox.showinfo("About", "LIFX-Control-Panel\n"
                                      "Version {}\n"
                                      "{}, {}\n"
@@ -285,6 +313,7 @@ class LifxFrame(ttk.Frame):
                             .format(VERSION, AUTHOR, BUILD_DATE))
 
     def on_closing(self):
+        """ Should always be called before the application exits. Shuts down all threads and closes the program. """
         self.logger.info('Shutting down.\n')
         self.master.destroy()
         stopEvent.set()
@@ -323,7 +352,7 @@ class LightFrame(ttk.Labelframe):
             self.master.logger.name + '.' + self.__class__.__name__ + '({})'.format(self.label))
         self.logger.setLevel(logging.DEBUG)
         self.logger.info(
-            'LightFrame logger initialized: {} // Device: {}'.format(self.logger.name, self.label))
+            'LightFrame logger initialized: %s // Device: %s', self.logger.name, self.label)
 
         # Initialize vars to hold on/off state
         self.powervar = BooleanVar(self)
@@ -341,7 +370,7 @@ class LightFrame(ttk.Labelframe):
         self.option_off.grid(row=0, column=1)
 
         # Initialize vars to hold and display bulb color
-        self.logger.info('Initial light color HSBK: {}'.format(init_color))
+        self.logger.info('Initial light color HSBK: %s', init_color)
         self.current_color = Canvas(self, background=tuple2hex(HSBKtoRGB(init_color)), width=40, height=20,
                                     borderwidth=3,
                                     relief=GROOVE)
@@ -460,7 +489,7 @@ class LightFrame(ttk.Labelframe):
         }
         region = config['AverageColor'][self.label if self.label in config["AverageColor"].keys() else 'defaultmonitor']
         if region == "full":
-            region = ["full"] * 4  # TODO
+            region = ["full"] * 4
         elif region[:19] == "get_primary_monitor":
             region = get_primary_monitor()
         else:
@@ -529,7 +558,7 @@ class LightFrame(ttk.Labelframe):
                 raise e
         # self.update_status_from_bulb(run_once=True)  # Force UI to update from bulb
         if not rapid:
-            self.logger.debug('Color changed to HSBK: {}'.format(color))  # Don't pollute log with rapid color changes
+            self.logger.debug('Color changed to HSBK: %s', color)  # Don't pollute log with rapid color changes
 
     def update_label(self, key):
         """ Update scale labels, formatted accordingly. """
@@ -563,7 +592,7 @@ class LightFrame(ttk.Labelframe):
             # RGBtoHBSK sometimes returns >65535, so we have to truncate
             hsbk = [min(c, 65535) for c in utils.RGBtoHSBK(color, self.hsbk[3].get())]
             self.set_color(hsbk)
-            self.logger.info("Color set to HSBK {} from palette.".format(hsbk))
+            self.logger.info("Color set to HSBK %s from palette.", hsbk)
 
     def update_status_from_bulb(self, run_once=False):
         """
@@ -615,11 +644,11 @@ class LightFrame(ttk.Labelframe):
         # Button state changed
         im = getScreenAsImage()
         cursorpos = GetCursorPos()
-        cursorpos = normalizeRects(getDisplayRects() + [(cursorpos[0], cursorpos[1], 0, 0)])[-1][
-                    :2]  # Convert display coords to image coords
+        # Convert display coords to image coords
+        cursorpos = normalizeRects(getDisplayRects() + [(cursorpos[0], cursorpos[1], 0, 0)])[-1][:2]
         color = im.getpixel(cursorpos)
         self.master.master.deiconify()  # Reshow window
-        self.logger.info("Eyedropper color found RGB {}".format(color))
+        self.logger.info("Eyedropper color found RGB %s", color)
         return utils.RGBtoHSBK(color, temperature=self.get_color_values_hsbk().kelvin)
 
     def change_preset_dropdown(self, *args):
@@ -836,5 +865,6 @@ if __name__ == "__main__":
         root.logger.exception(e)
         messagebox.showerror("Unhandled Exception", "Unhandled runtime exception: {}\n\n"
                                                     "Please report this at: {}".format(traceback.format_exc(),
-                                                                                       r"https://github.com/samclane/LIFX-Control-Panel/issues"))
+                                                                                       r"https://github.com/samclane"
+                                                                                       r"/LIFX-Control-Panel/issues"))
         os._exit(1)
