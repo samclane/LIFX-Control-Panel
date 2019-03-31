@@ -8,16 +8,17 @@ Notes
     Functions should attempt to not contain stateful information, as this module will be called by other modules
     throughout the program, including other Threads, and as such states may not be coherent.
 """
-from functools import lru_cache
-from math import log, floor
 import os
 import sys
+from functools import lru_cache
+from math import log, floor
 from typing import Union, Tuple
 
 from desktopmagic.screengrab_win32 import getDisplayRects
 
 
 class Color:
+    """ Container class for a single color vector in HSBK color-space. """
     __slots__ = ['hue', 'saturation', 'brightness', 'kelvin']
 
     def __init__(self, hue, saturation, brightness, kelvin):
@@ -55,7 +56,9 @@ class Color:
 
 
 def HSBKtoRGB(hsvk: Tuple[int, int, int, int]) -> Tuple[int, int, int]:
-    """ Converted from PHP https://gist.github.com/joshrp/5200913 """
+    """ Convert Tuple in HSBK color-space to RGB space.
+    Converted from PHP https://gist.github.com/joshrp/5200913 """
+    # pylint: disable=invalid-name
     iH, iS, iV, iK = hsvk
     dS = (100 * iS / 65535) / 100.0  # Saturation: 0.0-1.0
     dV = (100 * iV / 65535) / 100.0  # Lightness: 0.0-1.0
@@ -116,6 +119,8 @@ def HSBKtoRGB(hsvk: Tuple[int, int, int, int]) -> Tuple[int, int, int]:
 
 
 def HueToRGB(h: int, s: int = 1, v: int = 1) -> Tuple[int, int, int]:
+    """ Convert a Hue-angle to an RGB value for display. """
+    # pylint: disable=invalid-name
     h = float(h)
     s = float(s)
     v = float(v)
@@ -144,6 +149,8 @@ def HueToRGB(h: int, s: int = 1, v: int = 1) -> Tuple[int, int, int]:
 
 
 def KelvinToRGB(temperature: int) -> Tuple[int, int, int]:
+    """ Convert a Kelvin (K) color-temperature to an RGB value for display."""
+    # pylint: disable=invalid-name
     temperature /= 100
     # calc red
     if temperature < 66:
@@ -151,8 +158,10 @@ def KelvinToRGB(temperature: int) -> Tuple[int, int, int]:
     else:
         red = temperature - 60
         red = 329.698727446 * (red ** -0.1332047592)
-        if red < 0: red = 0
-        if red > 255: red = 255
+        if red < 0:
+            red = 0
+        if red > 255:
+            red = 255
     # calc green
     if temperature < 66:
         green = temperature
@@ -184,9 +193,9 @@ def KelvinToRGB(temperature: int) -> Tuple[int, int, int]:
     return int(red), int(green), int(blue)
 
 
-def tuple2hex(tuple: Tuple[int, int, int]) -> str:
+def tuple2hex(tuple_: Tuple[int, int, int]) -> str:
     """ Takes a color in tuple form an converts it to hex. """
-    return '#%02x%02x%02x' % tuple
+    return '#%02x%02x%02x' % tuple_
 
 
 def str2list(string: str, type_func) -> list:
@@ -197,6 +206,7 @@ def str2list(string: str, type_func) -> list:
 # Multi monitor methods
 @lru_cache(maxsize=None)
 def get_primary_monitor() -> Tuple[int, int, int, int]:
+    """ Return the system's default primary monitor rectangle bounds. """
     return [rect for rect in getDisplayRects() if rect[:2] == (0, 0)][0]  # primary monitor has top left as 0, 0
 
 
@@ -204,8 +214,8 @@ def resource_path(relative_path) -> Union[int, bytes]:
     """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
+        base_path = sys._MEIPASS  # pylint: disable=protected-access
+    except Exception:  # pylint: disable=broad-except
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
