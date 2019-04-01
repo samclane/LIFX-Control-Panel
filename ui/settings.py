@@ -1,27 +1,42 @@
+# -*- coding: utf-8 -*-
+"""UI Logic and Interface Elements for Settings
+
+This module contains several ugly God-classes that control the settings GUI functions and reactions.
+
+Notes
+-----
+    Uses a really funky design pattern for a dialog that I copied from an old project. It's bad and I should probably
+    ript it out
+"""
 import configparser
 import logging
+import os
 import tkinter.ttk as ttk
+from datetime import datetime
 from shutil import copyfile
-from tkinter import *
+from tkinter import (Tk, Toplevel, Frame, Button, ACTIVE, LEFT, YES, Label, Listbox, FLAT, X, BOTH, RAISED, FALSE,
+                     VERTICAL, Y, Scrollbar, END, BooleanVar, Checkbutton, StringVar, OptionMenu, Scale, HORIZONTAL,
+                     Entry)
 from tkinter import messagebox
-from tkinter.colorchooser import *
+from tkinter.colorchooser import askcolor
 
 from desktopmagic.screengrab_win32 import getDisplayRects
-from lifxlan import *
 from lifxlan.utils import RGBtoHSBK
 
-from _constants import *
+from _constants import BUILD_DATE
 from utilities.keypress import KeybindManager
 from utilities.utils import resource_path, str2list
 
-config = configparser.ConfigParser()
+config = configparser.ConfigParser()  # pylint: disable=invalid-name
 if not os.path.isfile("config.ini"):
     copyfile(resource_path("default.ini"), "config.ini")
 config.read("config.ini")
+
+# Compare datetimes
+DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 if not config.has_section("Info") or datetime.strptime(config["Info"]["builddate"],
-                                                       "%Y-%m-%dT%H:%M:%S.%f") < datetime.strptime(BUILD_DATE,
-                                                                                                   "%Y-%m-%dT%H:%M:%S.%f"):
-    root = Tk()  # temp root window
+                                                       DATE_FORMAT) < datetime.strptime(BUILD_DATE, DATE_FORMAT):
+    root = Tk()  # Temp root window. pylint: disable=invalid-name
     root.withdraw()
     messagebox.showerror("Old config detected", "Your old config file is old. Replacing with newer.")
     root.destroy()
@@ -33,6 +48,8 @@ if not config.has_section("Info") or datetime.strptime(config["Info"]["builddate
 
 # boilerplate code from http://effbot.org/tkinterbook/tkinter-dialog-windows.htm
 class Dialog(Toplevel):
+    """ Template for dialogs that include an Ok and Cancel button, and return validated user input data. """
+
     def __init__(self, parent, title=None):
         Toplevel.__init__(self, parent)
         self.transient(parent)
@@ -55,24 +72,25 @@ class Dialog(Toplevel):
 
     # construction hooks
     def body(self, master):
-        # create dialog body.  return widget that should have initial focus. This method should be overridden
+        """create dialog body.  return widget that should have initial focus. This method should be overridden"""
         pass
 
     def buttonbox(self):
-        # add standard button box. override if you don't want the standard buttons
+        """ add standard button box. override if you don't want the standard buttons """
         box = Frame(self)
-        w = Button(box, text="OK", width=10, command=self.ok, default=ACTIVE)
-        w.pack(side=LEFT, padx=5, pady=5)
-        w = Button(box, text="Cancel", width=10, command=self.cancel)
-        w.pack(side=LEFT, padx=5, pady=5)
+        # pylint: disable=invalid-name
+        ok = Button(box, text="OK", width=10, command=self.ok, default=ACTIVE)
+        ok.pack(side=LEFT, padx=5, pady=5)
+        cancel = Button(box, text="Cancel", width=10, command=self.cancel)
+        cancel.pack(side=LEFT, padx=5, pady=5)
 
         self.bind("<Return>", self.ok)
         self.bind("<Escape>", self.cancel)
 
         box.pack()
 
-    # standard button semantics
-    def ok(self, event=None):
+    def ok(self, _=None):  # pylint: disable=invalid-name
+        """ Standard ok semantics """
         if not self.validate():
             self.initial_focus.focus_set()  # put focus back
             return
@@ -81,112 +99,135 @@ class Dialog(Toplevel):
         self.apply()
         self.cancel()
 
-    def cancel(self, event=None):
-        # put focus back to the parent window
+    def cancel(self, _=None):
+        """put focus back to the parent window"""
         self.parent.focus_set()
         self.destroy()
         return 0
 
     # command hooks
-    def validate(self):
+    def validate(self):  # pylint: disable=no-self-use
+        """ Override """
         return 1  # override
 
     def apply(self):
+        """ Override """
         pass  # override
 
 
-class MultiListbox(Frame):
-    """ https://www.safaribooksonline.com/library/view/python-cookbook/0596001673/ch09s05.html """
+class MultiListbox(Frame):  # pylint: disable=too-many-ancestors
+    """ Shows information about items in a column-format
+    https://www.safaribooksonline.com/library/view/python-cookbook/0596001673/ch09s05.html """
 
     def __init__(self, master, lists):
         Frame.__init__(self, master)
         self.lists = []
-        for l, w in lists:
-            frame = Frame(self);
+        for list_, widget in lists:
+            frame = Frame(self)
             frame.pack(side=LEFT, expand=YES, fill=BOTH)
-            Label(frame, text=l, borderwidth=1, relief=RAISED).pack(fill=X)
-            lb = Listbox(frame, width=w, borderwidth=0, selectborderwidth=0,
-                         relief=FLAT, exportselection=FALSE)
-            lb.pack(expand=YES, fill=BOTH)
-            self.lists.append(lb)
-            lb.bind('<B1-Motion>', lambda e, s=self: s._select(e.y))
-            lb.bind('<Button-1>', lambda e, s=self: s._select(e.y))
-            lb.bind('<Leave>', lambda e: 'break')
-            lb.bind('<B2-Motion>', lambda e, s=self: s._b2motion(e.x, e.y))
-            lb.bind('<Button-2>', lambda e, s=self: s._button2(e.x, e.y))
-        frame = Frame(self);
+            Label(frame, text=list_, borderwidth=1, relief=RAISED).pack(fill=X)
+            list_box = Listbox(frame, width=widget, borderwidth=0, selectborderwidth=0,
+                               relief=FLAT, exportselection=FALSE)
+            list_box.pack(expand=YES, fill=BOTH)
+            self.lists.append(list_box)
+            list_box.bind('<B1-Motion>', lambda e, s=self: s._select(e.y))
+            list_box.bind('<Button-1>', lambda e, s=self: s._select(e.y))
+            list_box.bind('<Leave>', lambda e: 'break')
+            list_box.bind('<B2-Motion>', lambda e, s=self: s._b2motion(e.x, e.y))
+            list_box.bind('<Button-2>', lambda e, s=self: s._button2(e.x, e.y))
+        frame = Frame(self)
         frame.pack(side=LEFT, fill=Y)
         Label(frame, borderwidth=1, relief=RAISED).pack(fill=X)
-        sb = Scrollbar(frame, orient=VERTICAL, command=self._scroll)
-        sb.pack(expand=YES, fill=Y)
-        self.lists[0]['yscrollcommand'] = sb.set
+        scroll = Scrollbar(frame, orient=VERTICAL, command=self._scroll)
+        scroll.pack(expand=YES, fill=Y)
+        self.lists[0]['yscrollcommand'] = scroll.set
 
-    def _select(self, y):
+    def _select(self, y):  # pylint: disable=invalid-name
+        """ Select a row when clicked """
         row = self.lists[0].nearest(y)
         self.selection_clear(0, END)
         self.selection_set(row)
         return 'break'
 
-    def _button2(self, x, y):
-        for l in self.lists: l.scan_mark(x, y)
+    def _button2(self, x, y):  # pylint: disable=invalid-name
+        """ TODO Docs """
+        for list_ in self.lists:
+            list_.scan_mark(x, y)
         return 'break'
 
-    def _b2motion(self, x, y):
-        for l in self.lists: l.scan_dragto(x, y)
+    def _b2motion(self, x, y):  # pylint: disable=invalid-name
+        """ TODO Docs """
+        for list_ in self.lists:
+            list_.scan_dragto(x, y)
         return 'break'
 
     def _scroll(self, *args):
-        for l in self.lists:
-            l.yview(*args)
+        """ Move the list down """
+        for list_ in self.lists:
+            list_.yview(*args)
 
     def curselection(self):
+        """ Return currently selected list item """
         return self.lists[0].curselection()
 
     def delete(self, first, last=None):
-        for l in self.lists:
-            l.delete(first, last)
+        """ Remove an item from the list and GUI """
+        for list_ in self.lists:
+            list_.delete(first, last)
 
     def get(self, first, last=None):
+        """ Get specific item from the list """
         result = []
-        for l in self.lists:
-            result.append(l.get(first, last))
-        if last: return map(*([None] + result))
+        for list_ in self.lists:
+            result.append(list_.get(first, last))
+        if last:
+            return map(*([None] + result))
         return result
 
     def index(self, index):
+        """ Get index of item at index"""
         self.lists[0].index(index)
 
     def insert(self, index, *elements):
-        for e in elements:
+        """ Insert element into list"""
+        for elm in elements:
             i = 0
-            for l in self.lists:
-                l.insert(index, e[i])
+            for list_ in self.lists:
+                list_.insert(index, elm[i])
                 i = i + 1
 
     def size(self):
+        """ Size of internal list at call time """
         return self.lists[0].size()
 
     def see(self, index):
-        for l in self.lists:
-            l.see(index)
+        """ Wrapper for see function that calls on each list """
+        for list_ in self.lists:
+            list_.see(index)
 
     def selection_anchor(self, index):
-        for l in self.lists:
-            l.selection_anchor(index)
+        """ TODO Docs """
+        for list_ in self.lists:
+            list_.selection_anchor(index)
 
     def selection_clear(self, first, last=None):
-        for l in self.lists:
-            l.selection_clear(first, last)
+        """ Clear selection highlight """
+        for list_ in self.lists:
+            list_.selection_clear(first, last)
 
     def selection_includes(self, index):
+        """ Check if item at index is in user selection """
         return self.lists[0].selection_includes(index)
 
     def selection_set(self, first, last=None):
-        for l in self.lists:
-            l.selection_set(first, last)
+        """ Manually change the selection """
+        for list_ in self.lists:
+            list_.selection_set(first, last)
 
 
 class SettingsDisplay(Dialog):
+    """ Settings form User Interface"""
+
     def body(self, master):
         self.root_window = master.master.master  # This is really gross. I'm sorry.
         self.logger = logging.getLogger(self.root_window.logger.name + '.SettingsDisplay')
@@ -247,7 +288,7 @@ class SettingsDisplay(Dialog):
                                                  *self.root_window.framesdict[
                                                      self.keybind_bulb_selection.get()].default_colors,
                                                  *(
-                                                     [*config["PresetColors"].keys()] if len(
+                                                     [*config["PresetColors"].keys()] if any(
                                                          config["PresetColors"].keys()) else [None])
                                                  )
         self.keybind_add_button = Button(master, text="Add keybind",
@@ -292,6 +333,7 @@ class SettingsDisplay(Dialog):
         return 1
 
     def get_color(self):
+        """ Present user with color pallette dialog and return color in HSBK """
         color = askcolor()[0]
         if color:
             # RGBtoHBSK sometimes returns >65535, so we have to clamp
@@ -299,6 +341,7 @@ class SettingsDisplay(Dialog):
             config["PresetColors"][self.preset_color_name.get()] = str(hsbk)
 
     def register_keybinding(self, bulb: str, keys: str, color: str):
+        """ Get the keybind from the input box and pass the color off to the root window. """
         try:
             color = self.root_window.framesdict[self.keybind_bulb_selection.get()].default_colors[color]
         except KeyError:  # must be using a custom color
@@ -327,6 +370,7 @@ class SettingsDisplay(Dialog):
             self.update_idletasks()
 
     def delete_keybind(self):
+        """ Delete keybind currently selected in the multi-list box. """
         _, keybind, _ = self.mlb.get(ACTIVE)
         self.mlb.delete(ACTIVE)
         self.root_window.delete_keybind(keybind)
