@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import threading
 import queue
 import lifxlan
