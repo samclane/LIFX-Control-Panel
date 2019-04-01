@@ -27,7 +27,8 @@ N_POINTS = 15  # Length of sliding average window for smoothing
 
 
 class AudioInterface:
-
+    """ Instantiate a connection to audio device (selected in Settings). Also provides a color-following function for
+     music intensity. """
     def __init__(self):
         self.interface = pyaudio.PyAudio()
         self.num_devices = 0
@@ -36,6 +37,8 @@ class AudioInterface:
         self.window = deque([0] * N_POINTS)
 
     def init_audio(self, config):
+        """ Attempt to make a connection to the audio device given in config.ini or Stereo Mix. Will attempt
+         to automatically find a Stereo Mix """
         if self.initialized:
             self.interface.close(self.stream)
             self.num_devices = 0
@@ -43,6 +46,7 @@ class AudioInterface:
             # Find input device index
             info = self.interface.get_host_api_info_by_index(0)
             self.num_devices = info.get('deviceCount')
+            # If a setting is found, use it. Otherwise try and find Stereo Mix
             if config.has_option("Audio", "InputIndex"):
                 input_device_index = int(config["Audio"]["InputIndex"])
             else:
@@ -81,6 +85,8 @@ class AudioInterface:
         return devices
 
     def get_music_color(self, initial_color, alpha=0.99):
+        """ Calculate the RMS power of the waveform, and return that as the initial_color with the calculated brightness
+        """
         data = self.stream.read(CHUNK)
         frame_rms = audioop.rms(data, 2)
         level = min(frame_rms / (2.0 ** 16) * SCALE, 1.0)
@@ -89,5 +95,5 @@ class AudioInterface:
         self.window.rotate(1)  # FILO Queue
         # window = deque([a*x for x in window])  # exp decay
         self.window[0] = level
-        power = ceil(sum(self.window) / N_POINTS)
-        return initial_color[0], initial_color[1], power, initial_color[3]
+        brightness = ceil(sum(self.window) / N_POINTS)
+        return initial_color[0], initial_color[1], brightness, initial_color[3]
