@@ -7,10 +7,8 @@ Notes
 -----
     This is the "main" function of the app, and can be run simply with 'python main.pyw'
 """
-import concurrent.futures
 import logging
 import os
-import queue
 import sys
 import threading
 import tkinter
@@ -24,6 +22,7 @@ from win32gui import GetCursorPos
 
 import lifxlan
 from PIL import Image as pImage
+from desktopmagic.screengrab_win32 import getScreenAsImage, normalizeRects
 from lifxlan import (ORANGE,
                      YELLOW,
                      GREEN,
@@ -43,8 +42,8 @@ from ui.colorscale import ColorScale
 from ui.settings import config
 from ui.splashscreen import Splash
 from utilities import audio, color_thread
+from utilities.async_bulb_interface import AsyncBulbInterface
 from utilities.keypress import KeybindManager
-from desktopmagic.screengrab_win32 import getScreenAsImage, normalizeRects
 
 RED = [0, 65535, 65535, 3500]  # Fixes RED from appearing BLACK
 
@@ -63,48 +62,6 @@ else:
 LOGFILE = os.path.join(APPLICATION_PATH, LOGFILE)
 
 SPLASHFILE = utilities.utils.resource_path('res//splash_vector.png')
-
-
-class AsyncBulbInterface(threading.Thread):
-    """ Asynchronous networking layer between LIFX devices and the GUI. """
-
-    def __init__(self, event):
-        threading.Thread.__init__(self)
-        self.stopped = event
-        self.device_list = []
-        self.color_queue = {}
-        self.color_cache = {}
-        self.power_queue = {}
-        self.power_cache = {}
-
-    def set_device_list(self, device_list):
-        """ Set internet device list to passed list of LIFX devices. """
-        self.device_list = device_list
-        for dev in device_list:
-            self.color_queue[dev.get_label()] = queue.Queue()
-            self.color_cache[dev.label] = dev.color
-            self.power_queue[dev.label] = queue.Queue()
-            self.power_cache[dev.label] = dev.power_level
-
-    def query_device(self, target):
-        """ Check if target has new state. If it does, push it to the queue and cache the value. """
-        try:
-            pwr = target.get_power()
-            if pwr != self.power_cache[target.label]:
-                self.power_queue[target.label].put(pwr)
-                self.power_cache[target.label] = pwr
-            clr = target.get_color()
-            if clr != self.color_cache[target.label]:
-                self.color_queue[target.label].put(clr)
-                self.color_cache[target.label] = clr
-        except lifxlan.WorkflowException:
-            pass
-
-    def run(self):
-        """ Continuous loop that has a thread query each device every HEARTBEAT ms. """
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.device_list)) as executor:
-            while not self.stopped.wait(HEARTBEAT_RATE_MS / 1000):
-                executor.map(self.query_device, self.device_list)
 
 
 class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
@@ -216,7 +173,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         device_list = self.lifx.get_lights()
         if self.bulb_interface:
             del self.bulb_interface
-        self.bulb_interface = AsyncBulbInterface(stop_event)
+        self.bulb_interface = AsyncBulbInterface(stop_event, HEARTBEAT_RATE_MS)
         self.bulb_interface.set_device_list(device_list)
         self.bulb_interface.daemon = True
         stop_event.clear()
@@ -344,6 +301,10 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     """ Holds control and state information about a single device. """
 
     def __init__(self, master, target):
+        ttk.Labelframe.__init__(self, master, padding="3 3 12 12",
+                                labelwidget=tkinter.Label(master, text="<LABEL_ERR>", font=font.Font(size=12),
+                                                          fg="#0046d5",
+                                                          relief=tkinter.RIDGE))
         self.is_group = isinstance(target, lifxlan.Group)
         self.icon_update_flag = True
         # Initialize frame
@@ -361,10 +322,12 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             messagebox.showerror("Error building LightFrame",
                                  "Error thrown when trying to get label from bulb:\n{}".format(exc))
             self.master.on_closing()
-        ttk.Labelframe.__init__(self, master, padding="3 3 12 12",
-                                labelwidget=tkinter.Label(master, text=self.label, font=font.Font(size=12),
-                                                          fg="#0046d5",
-                                                          relief=tkinter.RIDGE))
+            # TODO Let this fail safely and try again later
+
+        # Reconfigure label with correct name
+        self.configure(labelwidget=tkinter.Label(master, text=self.label, font=font.Font(size=12),
+                                                 fg="#0046d5",
+                                                 relief=tkinter.RIDGE))
         self.grid(column=1, row=0, sticky=(tkinter.N, tkinter.W, tkinter.E, tkinter.S))
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
@@ -900,7 +863,7 @@ def main():
 
         sys.excepthook = custom_handler
 
-        LifxFrame(root, lifxlan.LifxLAN(verbose=DEBUGGING), AsyncBulbInterface(threading.Event()))
+        LifxFrame(root, lifxlan.LifxLAN(verbose=DEBUGGING), AsyncBulbInterface(threading.Event(), HEARTBEAT_RATE_MS))
 
         # Run main app
         root.mainloop()
