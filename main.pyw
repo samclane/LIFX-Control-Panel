@@ -62,7 +62,7 @@ else:
 
 LOGFILE = os.path.join(APPLICATION_PATH, LOGFILE)
 
-SPLASHFILE = utilities.utils.resource_path('res//splash_vector_png.png')
+SPLASHFILE = utilities.utils.resource_path('res//splash_vector.png')
 
 
 class AsyncBulbInterface(threading.Thread):
@@ -181,7 +181,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
 
         def run_tray_icon():
             """ Allow SysTrayIcon in a separate thread """
-            SysTrayIcon.SysTrayIcon(utilities.utils.resource_path('res/icon_vector_9fv_icon.ico'), "LIFX-Control-Panel",
+            SysTrayIcon.SysTrayIcon(utilities.utils.resource_path('res/icon_vector.ico'), "LIFX-Control-Panel",
                                     tray_options,
                                     on_quit=lambda_factory(self))
 
@@ -879,7 +879,7 @@ def main():
         root.resizable(False, False)
 
         # Setup main_icon
-        root.iconbitmap(utilities.utils.resource_path('res/icon_vector_9fv_icon.ico'))
+        root.iconbitmap(utilities.utils.resource_path('res/icon_vector.ico'))
 
         root.logger = logging.getLogger('root')
         root.logger.setLevel(logging.DEBUG)

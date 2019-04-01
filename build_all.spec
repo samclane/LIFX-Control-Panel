@@ -42,8 +42,8 @@ for d in a.datas:
         a.datas.remove(d)
         break
 
-a.datas += [('res//splash_vector_png.png', 'res/splash_vector_png.png', 'Data')]
-a.datas += [('res//icon_vector_9fv_icon.ico', 'res/icon_vector_9fv_icon.ico', 'Data')]
+a.datas += [('res//splash_vector.png', 'res/splash_vector.png', 'Data')]
+a.datas += [('res//icon_vector.ico', 'res/icon_vector.ico', 'Data')]
 a.datas += [('res//lightbulb.png', 'res/lightbulb.png', 'Data')]
 a.datas += [('res//group.png', 'res/group.png', 'Data')]
 a.datas += [('default.ini', 'default.ini', '.')]
@@ -66,7 +66,7 @@ exe = EXE(pyz,
           upx=True,
           runtime_tmpdir=None,
           console=is_debug,
-          icon='icons//icon_vector_9fv_icon.ico')
+          icon='icons//icon_vector.ico')
 
 ################################################################################
 # Debug
@@ -92,7 +92,7 @@ exe = EXE(pyz,
           upx=True,
           runtime_tmpdir=None,
           console=is_debug,
-          icon='icons//icon_vector_9fv_icon.ico')
+          icon='icons//icon_vector.ico')
 
 ################################################################################
 # Demo
@@ -118,8 +118,8 @@ for d in a.datas:
         a.datas.remove(d)
         break
 
-a.datas += [('res//splash_vector_png.png', 'res/splash_vector_png.png', 'Data')]
-a.datas += [('res//icon_vector_9fv_icon.ico', 'res/icon_vector_9fv_icon.ico', 'Data')]
+a.datas += [('res//splash_vector.png', 'res/splash_vector.png', 'Data')]
+a.datas += [('res//icon_vector.ico', 'res/icon_vector.ico', 'Data')]
 a.datas += [('res//lightbulb.png', 'res/lightbulb.png', 'Data')]
 a.datas += [('res//group.png', 'res/group.png', 'Data')]
 a.datas += [('default.ini', 'default.ini', '.')]
@@ -137,4 +137,4 @@ exe = EXE(pyz,
           upx=True,
           runtime_tmpdir=None,
           console=is_debug,
-          icon='icons//icon_vector_9fv_icon.ico')
+          icon='icons//icon_vector.ico')

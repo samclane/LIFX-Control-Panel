@@ -447,7 +447,7 @@ def main():
     root.title("LIFX-Control-Panel")
 
     # Setup main_icon
-    root.iconbitmap(resource_path('res//icon_vector_9fv_icon.ico'))
+    root.iconbitmap(resource_path('res//icon_vector.ico'))
 
     root.logger = logging.getLogger('root')
     root.logger.setLevel(logging.DEBUG)
