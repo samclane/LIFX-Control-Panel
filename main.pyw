@@ -48,8 +48,6 @@ from desktopmagic.screengrab_win32 import getScreenAsImage, normalizeRects
 
 RED = [0, 65535, 65535, 3500]  # Fixes RED from appearing BLACK
 
-audio.init(config)
-
 HEARTBEAT_RATE_MS = 3000  # 3 seconds
 FRAME_PERIOD_MS = 1500  # 1.5 seconds
 LOGFILE = 'lifx-control-panel.log'
@@ -128,6 +126,8 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.rowconfigure(0, weight=1)
         self.lifx = lifx_instance
         self.bulb_interface = bulb_interface
+        self.audio_interface = audio.AudioInterface()
+        self.audio_interface.init_audio(config)
 
         # Setup logger
         self.logger = logging.getLogger(master.logger.name + '.' + self.__class__.__name__)
@@ -317,9 +317,9 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.key_listener.shutdown()
         settings.SettingsDisplay(self, "Settings")
         self.current_lightframe.update_user_dropdown()
-        audio.init(config)
+        self.audio_interface.init_audio(config)
         for frame in self.framesdict.values():
-            frame.music_button.config(state='normal' if audio.initialized else 'disabled')
+            frame.music_button.config(state='normal' if self.audio_interface.initialized else 'disabled')
         self.key_listener.restart()
 
     @staticmethod
@@ -494,7 +494,8 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.avg_screen_btn.grid(row=6, column=0)
         tkinter.Button(self.special_functions_lf, text="Pick Color", command=self.get_color_from_palette).grid(row=6,
                                                                                                                column=1)
-        self.threads['audio'] = color_thread.ColorThreadRunner(self.target, audio.get_music_color, self)
+        self.threads['audio'] = color_thread.ColorThreadRunner(self.target, self.master.audio_interface.get_music_color,
+                                                               self)
 
         def start_audio():
             """ Allow the audio to be run in a separate thread. Also turns button green while running. """
@@ -502,7 +503,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             self.threads['audio'].start()
 
         self.music_button = tkinter.Button(self.special_functions_lf, text="Music Color", command=start_audio,
-                                           state='normal' if audio.initialized else 'disabled')
+                                           state='normal' if self.master.audio_interface.initialized else 'disabled')
         self.music_button.grid(row=7, column=0)
         self.threads['eyedropper'] = color_thread.ColorThreadRunner(self.target, self.eyedropper, self,
                                                                     continuous=False)

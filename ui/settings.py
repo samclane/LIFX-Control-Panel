@@ -11,7 +11,6 @@ from lifxlan import *
 from lifxlan.utils import RGBtoHSBK
 
 from _constants import *
-from utilities.audio import get_names
 from utilities.keypress import KeybindManager
 from utilities.utils import resource_path, str2list
 
@@ -223,13 +222,14 @@ class SettingsDisplay(Dialog):
         self.preset_color_button = Button(master, text="Choose and add!", command=self.get_color)
 
         # Audio dropdown
+        device_names = self.master.audio_interface.get_device_names()
         try:
-            init_string = " " + config["Audio"]["InputIndex"] + " " + get_names()[int(config["Audio"]["InputIndex"])]
+            init_string = " " + config["Audio"]["InputIndex"] + " " + device_names[int(config["Audio"]["InputIndex"])]
         except ValueError:
             init_string = " None"
         self.audio_source = StringVar(master,
                                       init_string)  # AudioSource index is grabbed from [1], so add a space at [0]
-        as_choices = get_names().items()
+        as_choices = device_names.items()
         self.as_dropdown = OptionMenu(master, self.audio_source, *as_choices)
 
         # Add keybindings
