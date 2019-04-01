@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""General utilty classes and functions
+"""General utility classes and functions
 
 Contains several classes and functions for quality of life. Used indiscriminately throughout the module.
 
@@ -109,7 +109,7 @@ def HSBKtoRGB(hsvk: Tuple[int, int, int, int]) -> Tuple[int, int, int]:
     # Adopted from:
     # https://github.com/tort32/LightServer/blob/master/src/main/java/com/github/tort32/api/nodemcu/protocol/RawColor.java#L125
     rgb_hsb = int(dR * 255), int(dG * 255), int(dB * 255)
-    rgb_k = KelvinToRGB(iK)
+    rgb_k = kelvinToRGB(iK)
     a = iS / 65535.0
     b = (1.0 - a) / 255
     x = int(rgb_hsb[0] * (a + rgb_k[0] * b))
@@ -118,7 +118,7 @@ def HSBKtoRGB(hsvk: Tuple[int, int, int, int]) -> Tuple[int, int, int]:
     return x, y, z
 
 
-def HueToRGB(h: int, s: int = 1, v: int = 1) -> Tuple[int, int, int]:
+def hueToRGB(h: int, s: int = 1, v: int = 1) -> Tuple[int, int, int]:
     """ Convert a Hue-angle to an RGB value for display. """
     # pylint: disable=invalid-name
     h = float(h)
@@ -148,7 +148,7 @@ def HueToRGB(h: int, s: int = 1, v: int = 1) -> Tuple[int, int, int]:
     return r, g, b
 
 
-def KelvinToRGB(temperature: int) -> Tuple[int, int, int]:
+def kelvinToRGB(temperature: int) -> Tuple[int, int, int]:
     """ Convert a Kelvin (K) color-temperature to an RGB value for display."""
     # pylint: disable=invalid-name
     temperature /= 100

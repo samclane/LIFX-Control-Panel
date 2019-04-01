@@ -12,7 +12,7 @@ from lifxlan.utils import RGBtoHSBK
 
 from _constants import *
 from utilities.audio import get_names
-from utilities.keypress import KeystrokeWatcher
+from utilities.keypress import KeybindManager
 from utilities.utils import resource_path, str2list
 
 config = configparser.ConfigParser()
@@ -191,7 +191,7 @@ class SettingsDisplay(Dialog):
     def body(self, master):
         self.root_window = master.master.master  # This is really gross. I'm sorry.
         self.logger = logging.getLogger(self.root_window.logger.name + '.SettingsDisplay')
-        self.key_listener = KeystrokeWatcher(self, sticky=True)
+        self.key_listener = KeybindManager(self, sticky=True)
         # Labels
         Label(master, text="Start Minimized?: ").grid(row=0, column=0)
         Label(master, text="Avg. Monitor Default: ").grid(row=1, column=0)

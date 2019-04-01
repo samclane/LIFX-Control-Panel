@@ -1,5 +1,8 @@
-#!/usr/bin/env python
-# coding=utf-8
+# -*- coding: utf-8 -*-
+"""Multi-Threaded Color Changer
+
+Contains several basic "Color-Following" functions, as well as custom Stop/Start threads for these effects.
+"""
 import logging
 import threading
 from functools import lru_cache

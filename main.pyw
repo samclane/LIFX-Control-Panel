@@ -43,7 +43,7 @@ from ui.colorscale import ColorScale
 from ui.settings import config
 from ui.splashscreen import Splash
 from utilities import audio, color_thread
-from utilities.keypress import KeystrokeWatcher
+from utilities.keypress import KeybindManager
 from desktopmagic.screengrab_win32 import getScreenAsImage, normalizeRects
 
 RED = [0, 65535, 65535, 3500]  # Fixes RED from appearing BLACK
@@ -190,7 +190,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.master.bind('<Unmap>', lambda *_, **__: self.master.withdraw())  # Minimize to taskbar
 
         # Setup keybinding listener
-        self.key_listener = KeystrokeWatcher(self)
+        self.key_listener = KeybindManager(self)
         for keypress, function in dict(config['Keybinds']).items():
             light, color = function.split(':')
             color = utilities.utils.Color(*globals()[color]) if color in globals().keys() else utilities.utils.str2list(
@@ -425,7 +425,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         relief = tkinter.GROOVE
         self.hsbk_display = (
             tkinter.Canvas(self, background=utilities.utils.tuple2hex(
-                utilities.utils.HueToRGB(360 * (init_color.hue / 65535))), width=20, height=20,
+                utilities.utils.hueToRGB(360 * (init_color.hue / 65535))), width=20, height=20,
                            borderwidth=3,
                            relief=relief),
             tkinter.Canvas(self, background=utilities.utils.tuple2hex((
@@ -436,7 +436,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                 int(255 * (init_color.brightness / 65535)), int(255 * (init_color.brightness / 65535)),
                 int(255 * (init_color.brightness / 65535)))),
                            width=20, height=20, borderwidth=3, relief=relief),
-            tkinter.Canvas(self, background=utilities.utils.tuple2hex(utilities.utils.KelvinToRGB(init_color.kelvin)),
+            tkinter.Canvas(self, background=utilities.utils.tuple2hex(utilities.utils.kelvinToRGB(init_color.kelvin)),
                            width=20, height=20,
                            borderwidth=3, relief=relief)
         )
@@ -610,7 +610,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         h, s, b, k = self.get_color_values_hsbk()  # pylint: disable=invalid-name
         if key == 0:
             self.hsbk_display[0].config(
-                background=utilities.utils.tuple2hex(utilities.utils.HueToRGB(360 * (h / 65535))))
+                background=utilities.utils.tuple2hex(utilities.utils.hueToRGB(360 * (h / 65535))))
         elif key == 1:
             s = 65535 - s  # pylint: disable=invalid-name
             self.hsbk_display[1].config(
@@ -621,7 +621,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                 background=utilities.utils.tuple2hex(
                     (int(255 * (b / 65535)), int(255 * (b / 65535)), int(255 * (b / 65535)))))
         elif key == 3:
-            self.hsbk_display[3].config(background=utilities.utils.tuple2hex(utilities.utils.KelvinToRGB(k)))
+            self.hsbk_display[3].config(background=utilities.utils.tuple2hex(utilities.utils.kelvinToRGB(k)))
 
     def get_color_from_palette(self):
         """ Asks users for color selection using standard color palette dialog. """

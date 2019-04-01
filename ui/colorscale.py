@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from utilities.utils import tuple2hex, HueToRGB, KelvinToRGB
+from utilities.utils import tuple2hex, hueToRGB, kelvinToRGB
 
 
 class ColorScale(tk.Canvas):
@@ -67,10 +67,10 @@ class ColorScale(tk.Canvas):
                 line.append(tuple2hex((int((1 - (float(i) / width)) * 255),) * 3))
         elif self.color_grad == 'kelvin':
             def f(i):
-                line.append(tuple2hex(KelvinToRGB(((float(i) / width) * self.range) + self.min)))
+                line.append(tuple2hex(kelvinToRGB(((float(i) / width) * self.range) + self.min)))
         elif self.color_grad == 'hue':
             def f(i):
-                line.append(tuple2hex(HueToRGB(float(i) / width * 360)))
+                line.append(tuple2hex(hueToRGB(float(i) / width * 360)))
         else:
             raise ValueError("gradient value {} not recognized".format(self.color_grad))
 
