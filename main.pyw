@@ -503,7 +503,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.screen_region_entries['y1'].grid(row=8, column=1, padx=(0, 10))
         tkinter.Label(self.screen_region_lf, text="y2").grid(row=8, column=2)
         self.screen_region_entries['y2'].grid(row=8, column=3)
-        self.save_region = tkinter.Button(self.screen_region_lf, text="Save", command=self.save_monitor_bounds) \
+        tkinter.Button(self.screen_region_lf, text="Save", command=self.save_monitor_bounds) \
             .grid(row=9, column=1, sticky='w')
         self.screen_region_lf.grid(row=7, columnspan=4)
 
