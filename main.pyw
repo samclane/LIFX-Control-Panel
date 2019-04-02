@@ -51,6 +51,7 @@ from utilities.utils import (resource_path,
                              kelvinToRGB,
                              get_primary_monitor,
                              str2list,
+                             str2tuple,
                              getDisplayRects)
 
 RED = [0, 65535, 65535, 3500]  # Fixes RED from appearing BLACK
@@ -158,7 +159,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.key_listener = KeybindManager(self)
         for keypress, function in dict(config['Keybinds']).items():
             light, color = function.split(':')
-            color = Color(*globals()[color]) if color in globals().keys() else str2list(
+            color = Color(*globals()[color]) if color in globals().keys() else str2tuple(
                 color, int)
             self.save_keybind(light, keypress, color)
 
@@ -671,7 +672,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
 
     def change_user_dropdown(self, *_, **__):
         """ Change device color to selected user-defined option. """
-        color = str2list(config["PresetColors"][self.uservar.get()], int)
+        color = str2tuple(config["PresetColors"][self.uservar.get()], int)
         self.user_dropdown.config(bg=tuple2hex(HSBKtoRGB(color)),
                                   activebackground=tuple2hex(HSBKtoRGB(color)))
         self.set_color(color, rapid=False)

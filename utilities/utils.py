@@ -21,41 +21,46 @@ class Color:
     """ Container class for a single color vector in HSBK color-space. """
     __slots__ = ['hue', 'saturation', 'brightness', 'kelvin']
 
-    def __init__(self, hue, saturation, brightness, kelvin):
+    def __init__(self, hue: int, saturation: int, brightness: int, kelvin: int):
         self.hue = hue
         self.saturation = saturation
         self.brightness = brightness
         self.kelvin = kelvin
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> int:
         return self.__getattribute__(self.__slots__[item])
 
-    def __len__(self):
+    def __len__(self) -> int:
         return 4
 
     def __setitem__(self, key, value):
         self.__setattr__(self.__slots__[key], value)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "[{}, {}, {}, {}]".format(self.hue,
                                          self.saturation,
                                          self.brightness,
                                          self.kelvin)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return [self.hue,
                 self.saturation,
                 self.brightness,
                 self.kelvin].__repr__()
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.hue == other.hue and \
                self.brightness == other.brightness and \
                self.saturation == other.saturation and \
                self.kelvin == other.kelvin
 
 
-def HSBKtoRGB(hsvk: Tuple[int, int, int, int]) -> Tuple[int, int, int]:
+# Derived types
+TypeRGB = Union[Tuple[int, int, int], Color]
+TypeHSBK = Union[Tuple[int, int, int, int], Color]
+
+
+def HSBKtoRGB(hsvk: TypeHSBK) -> TypeRGB:
     """ Convert Tuple in HSBK color-space to RGB space.
     Converted from PHP https://gist.github.com/joshrp/5200913 """
     # pylint: disable=invalid-name
@@ -118,7 +123,7 @@ def HSBKtoRGB(hsvk: Tuple[int, int, int, int]) -> Tuple[int, int, int]:
     return x, y, z
 
 
-def hueToRGB(h: int, s: int = 1, v: int = 1) -> Tuple[int, int, int]:
+def hueToRGB(h: int, s: int = 1, v: int = 1) -> TypeRGB:
     """ Convert a Hue-angle to an RGB value for display. """
     # pylint: disable=invalid-name
     h = float(h)
@@ -148,7 +153,7 @@ def hueToRGB(h: int, s: int = 1, v: int = 1) -> Tuple[int, int, int]:
     return r, g, b
 
 
-def kelvinToRGB(temperature: int) -> Tuple[int, int, int]:
+def kelvinToRGB(temperature: int) -> TypeRGB:
     """ Convert a Kelvin (K) color-temperature to an RGB value for display."""
     # pylint: disable=invalid-name
     temperature /= 100
@@ -193,7 +198,7 @@ def kelvinToRGB(temperature: int) -> Tuple[int, int, int]:
     return int(red), int(green), int(blue)
 
 
-def tuple2hex(tuple_: Tuple[int, int, int]) -> str:
+def tuple2hex(tuple_: TypeRGB) -> str:
     """ Takes a color in tuple form an converts it to hex. """
     return '#%02x%02x%02x' % tuple_
 
@@ -201,6 +206,11 @@ def tuple2hex(tuple_: Tuple[int, int, int]) -> str:
 def str2list(string: str, type_func) -> list:
     """ Takes a Python list-formatted string and returns a list of elements of type type_func """
     return list(map(type_func, string.strip("()[]").split(",")))
+
+
+def str2tuple(string: str, type_func) -> tuple:
+    """ Takes a Python list-formatted string and returns a tuple of type type_func """
+    return tuple(map(type_func, string.strip("()[]").split(",")))
 
 
 # Multi monitor methods
@@ -214,7 +224,7 @@ def resource_path(relative_path) -> Union[int, bytes]:
     """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS  # pylint: disable=protected-access
+        base_path = sys._MEIPASS  # pylint: disable=protected-access,no-member
     except Exception:  # pylint: disable=broad-except
         base_path = os.path.abspath(".")
 
