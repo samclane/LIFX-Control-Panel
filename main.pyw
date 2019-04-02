@@ -700,6 +700,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
 
 def main():
     """ Start the GUI, bulb_interface, loggers, exception handling, and finally run the app """
+    root = None
     try:
         root = tkinter.Tk()
         root.title("LIFX-Control-Panel")
@@ -733,7 +734,10 @@ def main():
         root.mainloop()
 
     except Exception as exc:  # pylint: disable=broad-except
-        root.logger.exception(exc)
+        if root:
+            root.logger.exception(exc)
+        else:
+            logging.exception(exc)
         messagebox.showerror("Unhandled Exception", "Unhandled runtime exception: {}\n\n"
                                                     "Please report this at: {}".format(traceback.format_exc(),
                                                                                        r"https://github.com/samclane"
