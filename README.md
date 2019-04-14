@@ -14,7 +14,8 @@ such as monitoring and changing bulb color, with more advanced ones, like:
   <img src="./res/screenshot.png" alt="Screenshot" width="306" height=731>
 </p>
 
-Color Averaging Demo (Click Me):
+#### Color Averaging Demo (Click for Video):
+
 [![Avg Test Youtube](https://img.youtube.com/vi/C-jZISM9MC0/0.jpg)](https://youtu.be/C-jZISM9MC0) 
 
 The application uses [mclarkk](https://github.com/mclarkk)'s [lifxlan](https://github.com/mclarkk/lifxlan) module to 
