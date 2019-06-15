@@ -1,8 +1,10 @@
-import unittest
-from tests.dummy_devices import *
-from gui import Color
 import random
 import string
+import unittest
+
+from gui import Color
+
+from tests.dummy_devices import *
 
 
 def rand_color():

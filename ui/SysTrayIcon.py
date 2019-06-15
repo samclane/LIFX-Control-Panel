@@ -10,7 +10,7 @@
 For now, the demo at the bottom shows how to use it...'''
 
 import os
-import sys
+
 import win32api  # package pywin32
 import win32con
 import win32gui_struct

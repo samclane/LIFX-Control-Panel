@@ -1,17 +1,17 @@
 """ This is not a standard test file (yet), but used to simulate a multi-device environment. """
 
-import time
-from random import randint, sample, randrange, choice
-from tkinter import messagebox
-from tkinter import *
-import traceback
 import logging
 import os
-from lifxlan import product_map, Group
+import time
+import traceback
+from random import randint, sample, randrange, choice
+from tkinter import *
+from tkinter import messagebox
 
 from gui import Color as DummyColor
-from utilities.utils import resource_path
+from lifxlan import product_map, Group
 
+from utilities.utils import resource_path
 
 LOGFILE = 'lifx-control-panel.log'
 

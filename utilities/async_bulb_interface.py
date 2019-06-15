@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-import threading
-import queue
-import lifxlan
 import concurrent.futures
+import queue
+import threading
+
+import lifxlan
 
 
 class AsyncBulbInterface(threading.Thread):

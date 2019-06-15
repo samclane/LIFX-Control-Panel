@@ -9,10 +9,10 @@ Notes
 """
 import audioop
 from collections import deque
-from math import ceil
 from tkinter import messagebox
 
 import pyaudio
+from math import ceil
 
 # Audio processing constants
 CHUNK = 1024
@@ -29,6 +29,7 @@ N_POINTS = 15  # Length of sliding average window for smoothing
 class AudioInterface:
     """ Instantiate a connection to audio device (selected in Settings). Also provides a color-following function for
      music intensity. """
+
     def __init__(self):
         self.interface = pyaudio.PyAudio()
         self.num_devices = 0

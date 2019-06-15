@@ -13,7 +13,7 @@ from desktopmagic.screengrab_win32 import getRectAsImage, getScreenAsImage, getD
 from lifxlan import utils
 
 from ui.settings import config
-from utilities.utils import str2list
+from utilities.utils import str2list, timeit
 
 
 @lru_cache(maxsize=32)
@@ -23,6 +23,7 @@ def get_monitor_bounds(func):
     return func() or config["AverageColor"]["DefaultMonitor"]
 
 
+@timeit  # TODO Remove before release
 def avg_screen_color(initial_color, func_bounds=lambda: None):
     """ Capture an image of the monitor defined by func_bounds, then get the average color of the image in HSBK"""
     monitor = get_monitor_bounds(func_bounds)
