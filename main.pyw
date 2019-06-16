@@ -453,7 +453,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
 
         # Add buttons for special routines
         self.special_functions_lf = ttk.LabelFrame(self, text="Special Functions", padding="3 3 12 12")
-        self.threads['screen'] = color_thread.ColorThreadRunner(self.target, color_thread.avg_screen_color, self,
+        self.threads['screen'] = color_thread.ColorThreadRunner(self.target, color_thread.unique_screen_color, self,
                                                                 func_bounds=self.get_monitor_bounds)
 
         def start_screen_avg():

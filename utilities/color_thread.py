@@ -6,10 +6,11 @@ Contains several basic "Color-Following" functions, as well as custom Stop/Start
 import logging
 import threading
 from functools import lru_cache
-from statistics import mode
 
+import numexpr as ne
+import numpy as np
 from PIL import Image
-from desktopmagic.screengrab_win32 import getRectAsImage, getScreenAsImage, getDisplayRects
+from desktopmagic.screengrab_win32 import getRectAsImage, getScreenAsImage
 from lifxlan import utils
 
 from ui.settings import config
@@ -37,12 +38,27 @@ def avg_screen_color(initial_color, func_bounds=lambda: None):
     return color_hsbk
 
 
-def mode_screen_color(initial_color):  # UNUSED
-    """ Probably a more accurate way to get screen color, but is incredibly slow. """
-    screenshot = getRectAsImage(getDisplayRects()[1]).resize((500, 500))
-    color = mode(screenshot.load()[x, y] for x in range(screenshot.width) for y in range(screenshot.height) if
-                 screenshot.load()[x, y] != (255, 255, 255) and screenshot.load()[x, y] != (0, 0, 0))
-    return utils.RGBtoHSBK(color, temperature=initial_color[3])
+@timeit  # TODO Remove before release
+def unique_screen_color(initial_color, func_bounds=lambda: None):
+    """
+    https://stackoverflow.com/questions/50899692/most-dominant-color-in-rgb-image-opencv-numpy-python
+    """
+    monitor = get_monitor_bounds(func_bounds)
+    if "full" in monitor:
+        screenshot = getScreenAsImage()
+    else:
+        screenshot = getRectAsImage(str2list(monitor, int))
+    screenshot = screenshot.resize((screenshot.width // 4, screenshot.height // 4), Image.HAMMING)
+    a = np.array(screenshot)
+    a2D = a.reshape(-1, a.shape[-1])
+    col_range = (256, 256, 256)  # generically : a2D.max(0)+1
+    eval_params = {'a0': a2D[:, 0], 'a1': a2D[:, 1], 'a2': a2D[:, 2],
+                   's0': col_range[0], 's1': col_range[1]}
+    a1D = ne.evaluate('a0*s0*s1+a1*s0+a2', eval_params)
+    color = np.unravel_index(np.bincount(a1D).argmax(), col_range)
+    color_hsbk = list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
+    # color_hsbk[2] = initial_color[2]  # TODO Decide this
+    return color_hsbk
 
 
 class ColorThread(threading.Thread):
