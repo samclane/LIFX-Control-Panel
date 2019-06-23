@@ -24,7 +24,6 @@ def get_monitor_bounds(func):
     return func() or config["AverageColor"]["DefaultMonitor"]
 
 
-@timeit  # TODO Remove before release
 def avg_screen_color(initial_color, func_bounds=lambda: None):
     """ Capture an image of the monitor defined by func_bounds, then get the average color of the image in HSBK"""
     monitor = get_monitor_bounds(func_bounds)
@@ -38,8 +37,7 @@ def avg_screen_color(initial_color, func_bounds=lambda: None):
     return color_hsbk
 
 
-@timeit  # TODO Remove before release
-def unique_screen_color(initial_color, func_bounds=lambda: None):
+def dominant_screen_color(initial_color, func_bounds=lambda: None):
     """
     https://stackoverflow.com/questions/50899692/most-dominant-color-in-rgb-image-opencv-numpy-python
     """

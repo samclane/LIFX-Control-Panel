@@ -453,7 +453,10 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
 
         # Add buttons for special routines
         self.special_functions_lf = ttk.LabelFrame(self, text="Special Functions", padding="3 3 12 12")
-        self.threads['screen'] = color_thread.ColorThreadRunner(self.target, color_thread.unique_screen_color, self,
+        ####
+
+        # Screen Avg.
+        self.threads['screen'] = color_thread.ColorThreadRunner(self.target, color_thread.avg_screen_color, self,
                                                                 func_bounds=self.get_monitor_bounds)
 
         def start_screen_avg():
@@ -466,6 +469,19 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.avg_screen_btn.grid(row=6, column=0)
         tkinter.Button(self.special_functions_lf, text="Pick Color", command=self.get_color_from_palette).grid(row=6,
                                                                                                                column=1)
+        # Screen Dominant
+        self.threads['dominant'] = color_thread.ColorThreadRunner(self.target, color_thread.dominant_screen_color, self,
+                                                                  func_bounds=self.get_monitor_bounds)
+
+        def start_screen_dominant():
+            self.dominant_screen_btn.config(bg="Green")
+            self.threads['dominant'].start()
+
+        self.dominant_screen_btn = tkinter.Button(self.special_functions_lf, text="Dominant Screen Color",
+                                                  command=start_screen_dominant)
+        self.dominant_screen_btn.grid(row=7, column=0)
+
+        # Audio
         self.threads['audio'] = color_thread.ColorThreadRunner(self.target, self.master.audio_interface.get_music_color,
                                                                self)
 
@@ -476,14 +492,15 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
 
         self.music_button = tkinter.Button(self.special_functions_lf, text="Music Color", command=start_audio,
                                            state='normal' if self.master.audio_interface.initialized else 'disabled')
-        self.music_button.grid(row=7, column=0)
+        self.music_button.grid(row=8, column=0)
         self.threads['eyedropper'] = color_thread.ColorThreadRunner(self.target, self.eyedropper, self,
                                                                     continuous=False)
         tkinter.Button(self.special_functions_lf, text="Color Eyedropper", command=self.threads['eyedropper'].start) \
             .grid(row=7, column=1)
-        tkinter.Button(self.special_functions_lf, text="Stop effects", command=self.stop_threads).grid(row=8, column=0)
+        tkinter.Button(self.special_functions_lf, text="Stop effects", command=self.stop_threads).grid(row=8, column=1)
         self.special_functions_lf.grid(row=6, columnspan=4)
 
+        ####
         # Add custom screen region (real ugly)
         self.screen_region_lf = ttk.LabelFrame(self, text="Screen Avg. Region", padding="3 3 12 12")
 
@@ -540,6 +557,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         """ Stop all ColorRunner threads """
         self.music_button.config(bg="SystemButtonFace")
         self.avg_screen_btn.config(bg="SystemButtonFace")
+        self.dominant_screen_btn.config(bg="SystemButtonFace")
         for thread in self.threads.values():
             thread.stop()
 
