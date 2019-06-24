@@ -3,7 +3,7 @@ desktopmagic
 win32gui
 pyaudio
 Pillow
-lifxlan
+lifxlan==1.2.5
 pywin32
 numexpr
 numpy
