@@ -14,7 +14,7 @@ from desktopmagic.screengrab_win32 import getRectAsImage, getScreenAsImage
 from lifxlan import utils
 
 from ui.settings import config
-from utilities.utils import str2list, timeit
+from utilities.utils import str2list
 
 
 @lru_cache(maxsize=32)
@@ -102,6 +102,7 @@ class ColorThreadRunner:
         while not self.thread.stopped():
             try:
                 color = self.color_function(initial_color=self.prev_color, **self.kwargs)
+                color[2] = min(color[2] + self.get_brightness_offset(), 65535)
                 bulb.set_color(color, duration=self.get_duration() * 1000,
                                rapid=self.continuous)
                 self.prev_color = color
@@ -132,6 +133,11 @@ class ColorThreadRunner:
     def get_duration():
         """ Read the transition duration from the config file. """
         return float(config["AverageColor"]["duration"])
+
+    @staticmethod
+    def get_brightness_offset():
+        """ Read the brightness offset from the config file. """
+        return int(config["AverageColor"]["brightnessoffset"])
 
 
 def install_thread_excepthook():

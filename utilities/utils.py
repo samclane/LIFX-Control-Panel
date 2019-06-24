@@ -55,6 +55,15 @@ class Color:
                self.saturation == other.saturation and \
                self.kelvin == other.kelvin
 
+    def __add__(self, other):
+        return Color(self.hue + other[0],
+                     self.saturation + other[1],
+                     self.brightness + other[2],
+                     self.kelvin + other[3])
+
+    def __sub__(self, other):
+        return self.__add__([-v for v in other])
+
 
 # Derived types
 TypeRGB = Union[Tuple[int, int, int], Color]

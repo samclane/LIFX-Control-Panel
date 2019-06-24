@@ -236,9 +236,10 @@ class SettingsDisplay(Dialog):
         Label(master, text="Start Minimized?: ").grid(row=0, column=0)
         Label(master, text="Avg. Monitor Default: ").grid(row=1, column=0)
         Label(master, text="Smooth Transition Time (sec): ").grid(row=2, column=0)
-        Label(master, text="Add Preset Color: ").grid(row=3, column=0)
-        Label(master, text="Audio Input Source: ").grid(row=4, column=0)
-        Label(master, text="Add keyboard shortcut").grid(row=5, column=0)
+        Label(master, text="Brightness Offset: ").grid(row=3, column=0)
+        Label(master, text="Add Preset Color: ").grid(row=4, column=0)
+        Label(master, text="Audio Input Source: ").grid(row=5, column=0)
+        Label(master, text="Add keyboard shortcut").grid(row=6, column=0)
 
         # Widgets
         # Starting minimized
@@ -256,6 +257,9 @@ class SettingsDisplay(Dialog):
 
         self.duration_scale = Scale(master, from_=0, to_=2, resolution=1 / 15, orient=HORIZONTAL)
         self.duration_scale.set(float(config["AverageColor"]["Duration"]))
+
+        self.brightness_offset = Scale(master, from_=0, to_=65535, resolution=1, orient=HORIZONTAL)
+        self.brightness_offset.set(int(config["AverageColor"]["brightnessoffset"]))
 
         # Custom preset color
         self.preset_color_name = Entry(master)
@@ -302,27 +306,29 @@ class SettingsDisplay(Dialog):
         ttk.Separator(master, orient=HORIZONTAL).grid(row=0, sticky='esw', columnspan=100)
         self.avg_monitor_dropdown.grid(row=1, column=1)
         self.duration_scale.grid(row=2, column=1)
-        ttk.Separator(master, orient=HORIZONTAL).grid(row=2, sticky='esw', columnspan=100)
-        self.preset_color_name.grid(row=3, column=1)
-        self.preset_color_button.grid(row=3, column=2)
+        self.brightness_offset.grid(row=3, column=1)
         ttk.Separator(master, orient=HORIZONTAL).grid(row=3, sticky='esw', columnspan=100)
-        self.as_dropdown.grid(row=4, column=1)
+        self.preset_color_name.grid(row=4, column=1)
+        self.preset_color_button.grid(row=4, column=2)
         ttk.Separator(master, orient=HORIZONTAL).grid(row=4, sticky='esw', columnspan=100)
-        self.keybind_bulb_dropdown.grid(row=5, column=1)
-        self.keybind_keys_select.grid(row=5, column=2)
-        self.keybind_color_dropdown.grid(row=5, column=3)
-        self.keybind_add_button.grid(row=5, column=4)
+        self.as_dropdown.grid(row=5, column=1)
+        ttk.Separator(master, orient=HORIZONTAL).grid(row=5, sticky='esw', columnspan=100)
+        self.keybind_bulb_dropdown.grid(row=6, column=1)
+        self.keybind_keys_select.grid(row=6, column=2)
+        self.keybind_color_dropdown.grid(row=6, column=3)
+        self.keybind_add_button.grid(row=6, column=4)
         self.mlb = MultiListbox(master, (('Bulb', 5), ('Keybind', 5), ('Color', 5)))
         for keypress, fnx in dict(config['Keybinds']).items():
             label, color = fnx.split(':')
             self.mlb.insert(END, (label, keypress, color))
-        self.mlb.grid(row=6, columnspan=100, sticky='esw')
-        self.keybind_delete_button.grid(row=7, column=0)
+        self.mlb.grid(row=7, columnspan=100, sticky='esw')
+        self.keybind_delete_button.grid(row=8, column=0)
 
     def validate(self):
-        config["AverageColor"]["DefaultMonitor"] = str(self.avg_monitor.get())
         config["AppSettings"]["start_minimized"] = str(self.start_mini.get())
+        config["AverageColor"]["DefaultMonitor"] = str(self.avg_monitor.get())
         config["AverageColor"]["Duration"] = str(self.duration_scale.get())
+        config["AverageColor"]["BrightnessOffset"] = str(self.brightness_offset.get())
         config["Audio"]["InputIndex"] = str(self.audio_source.get()[1])
         # Write to config file
         with open('config.ini', 'w') as cfg:
