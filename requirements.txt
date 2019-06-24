@@ -1,4 +1,4 @@
-PyHook3
+PyHook3==1.6.1
 desktopmagic
 win32gui
 pyaudio
