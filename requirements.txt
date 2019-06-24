@@ -1,7 +1,7 @@
 PyHook3
 desktopmagic
 win32gui
-pyaudio
+pyaudio==0.2.11
 Pillow
 lifxlan
 pywin32
