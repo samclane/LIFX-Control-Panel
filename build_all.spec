@@ -13,15 +13,6 @@ with open('_constants.py', 'w') as f:
     f.write("AUTHOR = \"{}\"\n".format(auth))
     f.write("DEBUGGING = {}".format(str(is_debug)))
 
-# Write version info into default config file
-with open('default.ini', 'r') as f:
-    initdata = f.readlines()
-initdata[-1] = "builddate = {}\n".format(bd)
-initdata[-2] = "author = {}\n".format(auth)
-initdata[-3] = "version = {}\n".format(vers)
-with open('default.ini', 'w') as f:
-    f.writelines(initdata)
-
 block_cipher = None
 
 a = Analysis(['main.pyw', 'utilities//color_thread.py', 'utilities//audio.py', 'ui//settings.py', 'ui//SysTrayIcon.py',

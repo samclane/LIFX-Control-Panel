@@ -10,40 +10,23 @@ Notes
 """
 import configparser
 import logging
-import os
 import tkinter.ttk as ttk
-from datetime import datetime
-from shutil import copyfile
-from tkinter import (Tk, Toplevel, Frame, Button, ACTIVE, LEFT, YES, Label, Listbox, FLAT, X, BOTH, RAISED, FALSE,
+from tkinter import (Toplevel, Frame, Button, ACTIVE, LEFT, YES, Label, Listbox, FLAT, X, BOTH, RAISED, FALSE,
                      VERTICAL, Y, Scrollbar, END, BooleanVar, Checkbutton, StringVar, OptionMenu, Scale, HORIZONTAL,
                      Entry)
-from tkinter import messagebox
 from tkinter.colorchooser import askcolor
 
 from desktopmagic.screengrab_win32 import getDisplayRects
 from lifxlan.utils import RGBtoHSBK
 
-from _constants import BUILD_DATE
 from utilities.keypress import KeybindManager
 from utilities.utils import resource_path, str2list
 
 config = configparser.ConfigParser()  # pylint: disable=invalid-name
-if not os.path.isfile("config.ini"):
-    copyfile(resource_path("default.ini"), "config.ini")
-config.read("config.ini")
+config.read([resource_path("default.ini"), "config.ini"])
 
 # Compare datetimes
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
-if not config.has_section("Info") or datetime.strptime(config["Info"]["builddate"],
-                                                       DATE_FORMAT) < datetime.strptime(BUILD_DATE, DATE_FORMAT):
-    root = Tk()  # Temp root window. pylint: disable=invalid-name
-    root.withdraw()
-    messagebox.showerror("Old config detected", "Your old config file is old. Replacing with newer.")
-    root.destroy()
-    # reread new config (don't keep old data)
-    copyfile(resource_path("default.ini"), "config.ini")
-    config.clear()
-    config.read("config.ini")
 
 
 # boilerplate code from http://effbot.org/tkinterbook/tkinter-dialog-windows.htm

@@ -17,6 +17,7 @@ import tkinter.font as font
 import traceback
 import win32api
 from collections import OrderedDict
+from logging.handlers import RotatingFileHandler
 from tkinter import _setit, messagebox, ttk
 from win32gui import GetCursorPos
 
@@ -99,8 +100,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.logger = logging.getLogger(master.logger.name + '.' + self.__class__.__name__)
         self.logger.info('Root logger initialized: %s', self.logger.name)
         self.logger.info('Binary Version: %s', VERSION)
-        self.logger.info('Config Version: %s', config["Info"]["Version"])
-        self.logger.info('Build time: %s', config["Info"]["BuildDate"])
+        self.logger.info('Build time: %s', BUILD_DATE)
 
         # Setup menu
         self.menubar = tkinter.Menu(master)
@@ -730,7 +730,7 @@ def main():
 
         root.logger = logging.getLogger('root')
         root.logger.setLevel(logging.DEBUG)
-        file_handler = logging.FileHandler(LOGFILE, mode='w')
+        file_handler = RotatingFileHandler(LOGFILE, maxBytes=5 * 1024 * 1024, backupCount=1)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         file_handler.setFormatter(formatter)
         root.logger.addHandler(file_handler)
