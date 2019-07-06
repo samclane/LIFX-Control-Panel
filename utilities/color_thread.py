@@ -9,6 +9,7 @@ from functools import lru_cache
 
 import numexpr as ne
 import numpy as np
+# from lib.color_functions import dominant_color
 from PIL import Image
 from desktopmagic.screengrab_win32 import getRectAsImage, getScreenAsImage
 from lifxlan import utils
@@ -46,7 +47,10 @@ def dominant_screen_color(initial_color, func_bounds=lambda: None):
         screenshot = getScreenAsImage()
     else:
         screenshot = getRectAsImage(str2list(monitor, int))
-    screenshot = screenshot.resize((screenshot.width // 4, screenshot.height // 4), Image.HAMMING)
+
+    downscale_width, downscale_height = screenshot.width // 4, screenshot.height // 4
+    screenshot = screenshot.resize((downscale_width, downscale_height), Image.HAMMING)
+
     a = np.array(screenshot)
     a2D = a.reshape(-1, a.shape[-1])
     col_range = (256, 256, 256)  # generically : a2D.max(0)+1
@@ -54,6 +58,7 @@ def dominant_screen_color(initial_color, func_bounds=lambda: None):
                    's0': col_range[0], 's1': col_range[1]}
     a1D = ne.evaluate('a0*s0*s1+a1*s0+a2', eval_params)
     color = np.unravel_index(np.bincount(a1D).argmax(), col_range)
+
     color_hsbk = list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
     # color_hsbk[2] = initial_color[2]  # TODO Decide this
     return color_hsbk
