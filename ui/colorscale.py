@@ -29,7 +29,7 @@ class ColorScale(tk.Canvas):
         self._variable = variable
         self.command = command
         self.color_grad = gradient
-        self.logger = logging.getLogger(self.parent.__name__ + ".ColorScale")
+        self.logger = logging.getLogger(self.parent.__class__.__name__ + ".ColorScale")
         if variable is not None:
             try:
                 val = int(variable.get())

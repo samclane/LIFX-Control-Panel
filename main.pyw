@@ -753,7 +753,7 @@ def main():
         root.mainloop()
 
     except Exception as exc:  # pylint: disable=broad-except
-        if root:
+        if root and hasattr(root, "logger"):
             root.logger.exception(exc)
         else:
             logging.exception(exc)
