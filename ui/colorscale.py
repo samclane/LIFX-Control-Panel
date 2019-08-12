@@ -1,5 +1,5 @@
 import tkinter as tk
-
+import logging
 from utilities.utils import tuple2hex, hueToRGB, kelvinToRGB
 
 
@@ -29,11 +29,12 @@ class ColorScale(tk.Canvas):
         self._variable = variable
         self.command = command
         self.color_grad = gradient
+        self.logger = logging.getLogger(self.parent.__name__ + ".ColorScale")
         if variable is not None:
             try:
                 val = int(variable.get())
             except Exception as e:
-                print(e)
+                self.logger.exception(e)
         else:
             self._variable = tk.IntVar(self)
         val = max(min(self.max, val), self.min)

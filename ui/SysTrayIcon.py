@@ -5,11 +5,12 @@
 # Date       : 13 February 2018
 # Notes      : Based on (i.e. ripped off from) Mark Hammond's
 #              win32gui_taskbar.py and win32gui_menu.py demos from PyWin32
-'''TODO
+'''
 
 For now, the demo at the bottom shows how to use it...'''
 
 import os
+import logging
 
 import win32api  # package pywin32
 import win32con
@@ -35,6 +36,8 @@ class SysTrayIcon(object):
                  on_quit=None,
                  default_menu_index=None,
                  window_class_name=None, ):
+
+        self.logger = logging.getLogger("root.SysIcon")
 
         self.icon = icon
         self.hover_text = hover_text
@@ -95,7 +98,7 @@ class SysTrayIcon(object):
                                self._add_ids_to_menu_options(option_action),
                                self._next_action_id))
             else:
-                print('Unknown item', option_text, option_icon, option_action)
+                self.logger.exception(''.join(['Unknown item', option_text, option_icon, option_action]))
             self._next_action_id += 1
         return result
 
@@ -111,7 +114,7 @@ class SysTrayIcon(object):
                                        0,
                                        icon_flags)
         else:
-            print("Can't find icon file - using default.")
+            self.logger.exception("Can't find icon file - using default.")
             hicon = win32gui.LoadIcon(0, win32con.IDI_APPLICATION)
 
         if self.notify_id:
