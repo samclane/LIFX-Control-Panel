@@ -22,4 +22,5 @@ setup(name='lifx_control_panel',
             'pywin32',
             'numexpr',
             'numpy'
-      ])
+      ],
+      download_url="https://github.com/samclane/LIFX-Control-Panel/archive/1.7.4.tar.gz")

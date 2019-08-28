@@ -22,7 +22,11 @@ The application uses [mclarkk](https://github.com/mclarkk)'s [lifxlan](https://g
 discover and send commands to the lights.
 
 # Quick Start
-Go over to [releases](https://github.com/samclane/LIFX-Control-Panel/releases) and download the latest `.exe` file.
+There are 2 ways to install:
+
+1. Go over to [releases](https://github.com/samclane/LIFX-Control-Panel/releases) and download the latest `.exe` file.
+
+2. Run `pip install lifx-control-panel`. To start run `python -m lifx_control_panel`. 
 
 The `LIFX-Control-Panel-debug.exe` is a debug version that runs with a console in the background, and uses a verbose
 `lifxlan` network logger.
@@ -30,10 +34,13 @@ The `LIFX-Control-Panel-debug.exe` is a debug version that runs with a console i
 `LIFX-Control-Panel-demo.exe` features several "Dummy" bulbs in addition to any real devices on your network. You can use
 this distribution to test the software on computers that do not have a LIFX device on the LAN. 
 
+
 Starting the program takes a moment, as it first must scan your LAN for any LIFX devices. 
 
 # Running the source code
-To install the dependencies, run `pip install -r requirements.txt`. PyHook3 has given me some grief installing from pip
+You can now install through PyPI, by running `pip install lifx-control-panel`. This will automatically install dependencies.
+
+To manually install the dependencies, run `pip install -r requirements.txt`. PyHook3 has given me some grief installing from pip
 in the past, but your millage may vary. 
 
 To run the code from source, simply run `python gui.pyw` from the command line. To run with "Dummy" devices included, 
@@ -41,23 +48,20 @@ run `python dummy_devices.py`.
 
 # Building
 LIFX-Control-Panel uses PyInstaller. After downloading the repository, open a command window in the `LIFX-Control-Panel`
-directory, and run `pyinstaller gui.pyw`. This should generate the necessary file structure to build the project.
+directory, and run `pyinstaller __main__.pyw`. This should generate the necessary file structure to build the project.
 Note: Delete `gui.spec`, we will be using one of the following `.spec` files included in the repository:
 
-* `main.spec`
+* `main`
   * This is the file that is used to build the main binary. The console, as well as verbose logging methods, are disabled.
-* `debug.spec`
+* `debug`
   * This spec file enables the console to run in the background, as well as verbose logging.
-* `demo.spec`
+* `demo`
   * The demo mode simulates adding several "dummy" lights to the LAN, allowing the software to be demonstrated on networks
   that do not have any LIFX devices on them.
 
-To build the project, simply open a command window in the same folder and run `pyinstaller --onefile <FILE>.spec`, where
-`<FILE>` is the name of the build you want (`main`, `debug`, or `demo`). This should generate an `.exe` in the `/dist` 
+To build the project, simply open a command window in the same folder and run `build_all.bat` in the command prompt. It will 
+call `pyinstaller` on all 3 `spec` files previously mentioned. This should generate an `.exe` in the `/dist` 
 folder of the project. 
-
-If you want all 3 builds quickly, and you're on Windows, simply run `build_all.bat` in the command prompt. It will 
-call `pyinstaller` on all 3 `spec` files previously mentioned. 
 
 If you need help using PyInstaller, more instructions are located [here](https://pythonhosted.org/PyInstaller/usage.html).
 
