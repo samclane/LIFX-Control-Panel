@@ -19,8 +19,8 @@ from tkinter.colorchooser import askcolor
 from desktopmagic.screengrab_win32 import getDisplayRects
 from lifxlan.utils import RGBtoHSBK
 
-from utilities.keypress import KeybindManager
-from utilities.utils import resource_path, str2list
+from ..utilities.keypress import KeybindManager
+from ..utilities.utils import resource_path, str2list
 
 config = configparser.ConfigParser()  # pylint: disable=invalid-name
 config.read([resource_path("default.ini"), "config.ini"])

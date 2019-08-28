@@ -14,8 +14,8 @@ from PIL import Image
 from desktopmagic.screengrab_win32 import getRectAsImage, getScreenAsImage
 from lifxlan import utils
 
-from ui.settings import config
-from utilities.utils import str2list
+from ..ui.settings import config
+from .utils import str2list
 
 
 @lru_cache(maxsize=32)
@@ -106,7 +106,7 @@ class ColorThreadRunner:
         self.prev_color = self.parent.get_color_values_hsbk()  # coupling to LightFrame from gui.py here
         while not self.thread.stopped():
             try:
-                color = self.color_function(initial_color=self.prev_color, **self.kwargs)
+                color = list(self.color_function(initial_color=self.prev_color, **self.kwargs))
                 color[2] = min(color[2] + self.get_brightness_offset(), 65535)
                 bulb.set_color(color, duration=self.get_duration() * 1000,
                                rapid=self.continuous)

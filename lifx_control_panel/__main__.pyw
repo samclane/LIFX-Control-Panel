@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Main LIFX-Control-Panel GUI control
+"""Main lifx_control_panel GUI control
 
 This module contains several ugly God-classes that control the GUI functions and reactions.
 
@@ -21,6 +21,10 @@ from logging.handlers import RotatingFileHandler
 from tkinter import _setit, messagebox, ttk
 from win32gui import GetCursorPos
 
+import numpy.random.common
+import numpy.random.bounded_integers
+import numpy.random.entropy
+
 import lifxlan
 from desktopmagic.screengrab_win32 import getScreenAsImage, normalizeRects
 from lifxlan import (ORANGE,
@@ -35,16 +39,16 @@ from lifxlan import (ORANGE,
                      WARM_WHITE,
                      GOLD)
 
-from _constants import BUILD_DATE, AUTHOR, DEBUGGING, VERSION
-from ui import SysTrayIcon, settings
-from ui.colorscale import ColorScale
-from ui.icon_list import BulbIconList
-from ui.settings import config
-from ui.splashscreen import Splash
-from utilities import audio, color_thread
-from utilities.async_bulb_interface import AsyncBulbInterface
-from utilities.keypress import KeybindManager
-from utilities.utils import (resource_path,
+from lifx_control_panel._constants import BUILD_DATE, AUTHOR, DEBUGGING, VERSION
+from lifx_control_panel.ui import SysTrayIcon, settings
+from lifx_control_panel.ui.colorscale import ColorScale
+from lifx_control_panel.ui.icon_list import BulbIconList
+from lifx_control_panel.ui.settings import config
+from lifx_control_panel.ui.splashscreen import Splash
+from lifx_control_panel.utilities import audio, color_thread
+from lifx_control_panel.utilities.async_bulb_interface import AsyncBulbInterface
+from lifx_control_panel.utilities.keypress import KeybindManager
+from lifx_control_panel.utilities.utils import (resource_path,
                              Color,
                              tuple2hex,
                              HSBKtoRGB,
@@ -147,7 +151,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
 
         def run_tray_icon():
             """ Allow SysTrayIcon in a separate thread """
-            SysTrayIcon.SysTrayIcon(resource_path('res/icon_vector.ico'), "LIFX-Control-Panel",
+            SysTrayIcon.SysTrayIcon(resource_path('res/icon_vector.ico'), "lifx_control_panel",
                                     tray_options,
                                     on_quit=lambda_factory(self))
 
@@ -291,7 +295,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
     @staticmethod
     def show_about():
         """ Show the about info-box above the master window. """
-        messagebox.showinfo("About", "LIFX-Control-Panel\n"
+        messagebox.showinfo("About", "lifx_control_panel\n"
                                      "Version {}\n"
                                      "{}, {}\n"
                                      "Bulb Icons by Quixote\n"
@@ -722,7 +726,7 @@ def main():
     root = None
     try:
         root = tkinter.Tk()
-        root.title("LIFX-Control-Panel")
+        root.title("lifx_control_panel")
         root.resizable(False, False)
 
         # Setup main_icon
@@ -760,7 +764,7 @@ def main():
         messagebox.showerror("Unhandled Exception", "Unhandled runtime exception: {}\n\n"
                                                     "Please report this at: {}".format(traceback.format_exc(),
                                                                                        r"https://github.com/samclane"
-                                                                                       r"/LIFX-Control-Panel/issues"))
+                                                                                       r"/lifx_control_panel/issues"))
         os._exit(1)  # pylint: disable=protected-access
 
 

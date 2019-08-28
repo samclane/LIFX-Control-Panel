@@ -8,10 +8,10 @@ from random import randint, sample, randrange, choice
 from tkinter import *
 from tkinter import messagebox
 
-from gui import Color as DummyColor
+from ..utilities.utils import Color as DummyColor
 from lifxlan import product_map, Group
 
-from utilities.utils import resource_path
+from ..utilities.utils import resource_path
 
 LOGFILE = 'lifx-control-panel.log'
 
@@ -426,7 +426,7 @@ class DummyGroup:
 
 def main():
     from lifxlan import LifxLAN
-    from gui import LifxFrame
+    from ..__main__ import LifxFrame
 
     # Build mixed list of fake and real lights
     lifx = LifxLANDummy()
@@ -444,7 +444,7 @@ def main():
         lifx.add_dummy_light(light)
 
     root = Tk()
-    root.title("LIFX-Control-Panel")
+    root.title("lifx_control_panel")
 
     # Setup main_icon
     root.iconbitmap(resource_path('res//icon_vector.ico'))

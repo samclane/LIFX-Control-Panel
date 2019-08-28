@@ -1,6 +1,6 @@
 import tkinter as tk
 import logging
-from utilities.utils import tuple2hex, hueToRGB, kelvinToRGB
+from ..utilities.utils import tuple2hex, hueToRGB, kelvinToRGB
 
 
 class ColorScale(tk.Canvas):

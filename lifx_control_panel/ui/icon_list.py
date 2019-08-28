@@ -3,8 +3,7 @@ import tkinter
 import lifxlan
 from PIL import Image as pImage
 
-import utilities.utils
-
+from ..utilities import utils
 
 class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
     """ Holds the dynamic icons for each Device and Group """
@@ -52,9 +51,9 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
     def icon_path(self):
         """ Returns the correct icon path for single Device or Group """
         if self.is_group:
-            path = utilities.utils.resource_path("res/group.png")
+            path = utils.resource_path("res/group.png")
         else:
-            path = utilities.utils.resource_path("res/lightbulb.png")
+            path = utils.resource_path("res/lightbulb.png")
         return path
 
     def draw_bulb_icon(self, bulb, label):
@@ -99,13 +98,13 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
                 if all([(v <= brightness_scale or v == self.color_code["BULB_TOP"]) for v in icon_rgb]) and \
                         self.original_icon[x, y][3] == 255:
                     bulb_color = bulb_color[0], bulb_color[1], bulb_color[2], bulb_color[3]
-                    color = utilities.utils.HSBKtoRGB(bulb_color)
+                    color = utils.HSBKtoRGB(bulb_color)
                 elif all([v in (self.color_code["BACKGROUND"], self.highlight_color) for v in icon_rgb]) and \
                         self.original_icon[x, y][3] == 255:
                     color = sprite.get(x, y)[:3]
                 else:
                     color = icon_rgb
-                color_string += utilities.utils.tuple2hex(color) + ' '
+                color_string += utils.tuple2hex(color) + ' '
             color_string += '} '
         # Write the final colorstring to the sprite, then update the GUI
         sprite.put(color_string, (0, 0, sprite.height(), sprite.width()))
@@ -125,7 +124,7 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
                     color = (self.highlight_color,) * 3
                 else:
                     color = icon_rgb
-                color_string += utilities.utils.tuple2hex(color) + ' '
+                color_string += utils.tuple2hex(color) + ' '
             color_string += '} '
         sprite.put(color_string, (0, 0, sprite.height(), sprite.width()))
         self.canvas.itemconfig(image, image=sprite)
@@ -143,7 +142,7 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
                     color = (self.color_code["BACKGROUND"],) * 3
                 else:
                     color = icon_rgb
-                color_string += utilities.utils.tuple2hex(color) + ' '
+                color_string += utils.tuple2hex(color) + ' '
             color_string += '} '
         sprite.put(color_string, (0, 0, sprite.height(), sprite.width()))
         self.canvas.itemconfig(image, image=sprite)

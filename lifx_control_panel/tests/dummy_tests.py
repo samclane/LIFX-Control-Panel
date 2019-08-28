@@ -2,8 +2,8 @@ import random
 import string
 import unittest
 
-from tests.dummy_devices import *
-from utilities.utils import Color
+from .dummy_devices import *
+from ..utilities.utils import Color
 
 
 def rand_color():

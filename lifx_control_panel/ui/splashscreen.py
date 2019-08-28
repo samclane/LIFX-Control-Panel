@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Splash-screen class
 
-Displays LIFX-Control-Panel's icon while GUI loads
+Displays lifx_control_panel's icon while GUI loads
 """
 from tkinter import Toplevel, Canvas, PhotoImage
 
