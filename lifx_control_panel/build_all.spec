@@ -3,7 +3,7 @@ import datetime
 
 bd = datetime.datetime.now().isoformat()
 auth = "Sawyer McLane"
-vers = "1.7.4"
+vers = "1.7.5"
 is_debug = False
 
 # Write version info into _constants.py resource file
@@ -130,3 +130,10 @@ exe = EXE(pyz,
           runtime_tmpdir=None,
           console=is_debug,
           icon='icons//icon_vector.ico')
+
+# Set debugging back to false
+with open('_constants.py', 'w') as f:
+    f.write("VERSION = \"{}\"\n".format(vers))
+    f.write("BUILD_DATE = \"{}\"\n".format(bd))
+    f.write("AUTHOR = \"{}\"\n".format(auth))
+    f.write("DEBUGGING = {}".format(str(False)))
