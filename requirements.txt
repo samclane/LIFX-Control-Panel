@@ -4,6 +4,6 @@ win32gui
 pyaudio
 Pillow
 lifxlan
-pywin32
+pywin32==226
 numexpr
 numpy
