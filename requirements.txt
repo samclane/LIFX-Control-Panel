@@ -6,4 +6,4 @@ Pillow
 lifxlan
 pywin32
 numexpr
-numpy
+numpy==1.18.1
