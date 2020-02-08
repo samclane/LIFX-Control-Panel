@@ -5,5 +5,5 @@ pyaudio
 Pillow
 lifxlan
 pywin32
-numexpr==2.7.1
+numexpr
 numpy
