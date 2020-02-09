@@ -21,10 +21,6 @@ from logging.handlers import RotatingFileHandler
 from tkinter import _setit, messagebox, ttk
 from win32gui import GetCursorPos
 
-import numpy.random.common
-import numpy.random.bounded_integers
-import numpy.random.entropy
-
 import lifxlan
 from desktopmagic.screengrab_win32 import getScreenAsImage, normalizeRects
 from lifxlan import (ORANGE,

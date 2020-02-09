@@ -1,12 +1,11 @@
 from setuptools import setup, find_packages
 from lifx_control_panel._constants import VERSION
 
-with open('README.md') as f:
-    long_description = str(f)
-
+with open('README.md', 'r') as f:
+    long_description = f.read()
 
 setup(name='lifx_control_panel',
-      version=VERSION,
+      version=str(VERSION),
       description='An open source application for controlling your LIFX brand lights',
       url='http://github.com/samclane/LIFX-Control-Panel',
       author='Sawyer McLane',
@@ -28,7 +27,7 @@ setup(name='lifx_control_panel',
           'numexpr',
           'numpy'
       ],
-      download_url=f"https://github.com/samclane/LIFX-Control-Panel/archive/{VERSION}.tar.gz",
+      download_url=f"https://github.com/samclane/LIFX-Control-Panel/archive/" + str(VERSION) + ".tar.gz",
       long_description_content_type="text/markdown",
       long_description=long_description,
       )

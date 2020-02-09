@@ -1,0 +1,63 @@
+name: lifx_control_panel
+
+on: [push]
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v1
+        with:
+          python-version: '3.6.x' # Semantic version range syntax or exact version of a Python version
+          architecture: 'x64' # Optional - x64 or x86, defaults to x64
+      - name: Cache pip
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pip # This path is specific to Ubuntu
+          # Look to see if there is a cache hit for the corresponding requirements file
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+            ${{ runner.os }}-
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Build Project
+      - run: |
+          cd ./lifx_control_panel || exit
+          export PYTHONOPTIMIZE=1 && ../venv/Scripts/pyinstaller.exe --onefile --noupx build_all.spec
+          cd ..
+      - name: Publish Package on PYPI
+        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && success()
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_password }}
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Changes:
+            - Change 1
+            - Change 2
+          draft: false
+          prerelease: false
+      - name: Upload Release Binaries
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./lifx_control_panel/dist/lifx_control_panel.exe
+          asset_name: lifx_control_panel.exe
+          asset_content_type: vnd.microsoft.portable-executable
