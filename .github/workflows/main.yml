@@ -1,6 +1,6 @@
-name: lifx_control_panel
-
+name: Build
 on: [push]
+
 jobs:
   build:
 
