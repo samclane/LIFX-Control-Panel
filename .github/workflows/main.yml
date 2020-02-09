@@ -1,11 +1,11 @@
-name: Build and Deploy
+name: Build-And-Deploy
 on: push
   branches:
     - master
 
 jobs:
   build:
-
+    name: Build and Deploy
     runs-on: windows-latest
 
     steps:
@@ -40,12 +40,6 @@ jobs:
           cd ./lifx_control_panel
           set PYTHONOPTIMIZE=1 && ../venv/Scripts/pyinstaller.exe --onefile --noupx build_all.spec
           cd ..
-
-  deploy:
-
-    runs-on: windows-latest
-
-    steps:
       - name: Publish Package on PYPI
         if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && success()
         uses: pypa/gh-action-pypi-publish@master
