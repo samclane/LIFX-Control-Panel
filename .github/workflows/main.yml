@@ -1,6 +1,6 @@
 name: Build and Deploy
 on: push
-  braches:
+  branches:
     - master
 
 jobs:
