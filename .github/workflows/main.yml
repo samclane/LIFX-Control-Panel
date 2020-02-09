@@ -4,7 +4,7 @@ on: [push]
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v2
@@ -28,8 +28,8 @@ jobs:
           pip install -r requirements.txt
       - name: Build Project
         run: |
-          cd ./lifx_control_panel || exit
-          export PYTHONOPTIMIZE=1 && ../venv/Scripts/pyinstaller.exe --onefile --noupx build_all.spec
+          cd ./lifx_control_panel
+          set PYTHONOPTIMIZE=1 && ../venv/Scripts/pyinstaller.exe --onefile --noupx build_all.spec
           cd ..
       - name: Publish Package on PYPI
         if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && success()
