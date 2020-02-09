@@ -1,13 +1,14 @@
 name: Build-And-Deploy
-on: push
-  branches:
-    - master
+
+on:
+  push:
+    branches:
+      -master
 
 jobs:
   build:
     name: Build and Deploy
     runs-on: windows-latest
-
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.x
