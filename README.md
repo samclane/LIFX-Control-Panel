@@ -22,11 +22,13 @@ The application uses [mclarkk](https://github.com/mclarkk)'s [lifxlan](https://g
 discover and send commands to the lights.
 
 # Quick Start
-There are 2 ways to install:
+There are ~~2~~ **3** ways to install:
 
 1. Go over to [releases](https://github.com/samclane/LIFX-Control-Panel/releases) and download the latest `.exe` file.
 
 2. Run `pip install lifx-control-panel`. To start run `python -m lifx_control_panel`. 
+
+3. Head on over to [SourceForge](https://sourceforge.net/projects/lifx-control-panel/)
 
 The `LIFX-Control-Panel-debug.exe` is a debug version that runs with a console in the background, and uses a verbose
 `lifxlan` network logger.
