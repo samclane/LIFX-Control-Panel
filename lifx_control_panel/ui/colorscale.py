@@ -1,5 +1,6 @@
-import tkinter as tk
 import logging
+import tkinter as tk
+
 from ..utilities.utils import tuple2hex, hueToRGB, kelvinToRGB
 
 

@@ -14,8 +14,8 @@ from PIL import Image
 from desktopmagic.screengrab_win32 import getRectAsImage, getScreenAsImage
 from lifxlan import utils
 
-from ..ui.settings import config
 from .utils import str2list
+from ..ui.settings import config
 
 
 @lru_cache(maxsize=32)

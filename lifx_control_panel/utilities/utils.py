@@ -12,10 +12,10 @@ import os
 import sys
 import time
 from functools import lru_cache
+from math import log, floor
 from typing import Union, Tuple
 
 from desktopmagic.screengrab_win32 import getDisplayRects
-from math import log, floor
 
 
 class Color:

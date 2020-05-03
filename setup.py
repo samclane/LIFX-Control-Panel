@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+
 from lifx_control_panel._constants import VERSION
 
 with open('README.md', 'r') as f:

@@ -15,13 +15,12 @@ import tkinter
 import tkinter.colorchooser
 import tkinter.font as font
 import traceback
-import win32api
 from collections import OrderedDict
 from logging.handlers import RotatingFileHandler
 from tkinter import _setit, messagebox, ttk
-from win32gui import GetCursorPos
 
 import lifxlan
+import win32api
 from desktopmagic.screengrab_win32 import getScreenAsImage, normalizeRects
 from lifxlan import (ORANGE,
                      YELLOW,
@@ -34,6 +33,7 @@ from lifxlan import (ORANGE,
                      COLD_WHITE,
                      WARM_WHITE,
                      GOLD)
+from win32gui import GetCursorPos
 
 from lifx_control_panel._constants import BUILD_DATE, AUTHOR, DEBUGGING, VERSION
 from lifx_control_panel.ui import SysTrayIcon, settings
@@ -45,15 +45,15 @@ from lifx_control_panel.utilities import audio, color_thread
 from lifx_control_panel.utilities.async_bulb_interface import AsyncBulbInterface
 from lifx_control_panel.utilities.keypress import KeybindManager
 from lifx_control_panel.utilities.utils import (resource_path,
-                             Color,
-                             tuple2hex,
-                             HSBKtoRGB,
-                             hueToRGB,
-                             kelvinToRGB,
-                             get_primary_monitor,
-                             str2list,
-                             str2tuple,
-                             getDisplayRects)
+                                                Color,
+                                                tuple2hex,
+                                                HSBKtoRGB,
+                                                hueToRGB,
+                                                kelvinToRGB,
+                                                get_primary_monitor,
+                                                str2list,
+                                                str2tuple,
+                                                getDisplayRects)
 
 RED = [0, 65535, 65535, 3500]  # Fixes RED from appearing BLACK
 
@@ -707,7 +707,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     def get_monitor_bounds(self):
         """ Return the 4 rectangle coordinates from the entry boxes in the UI """
         return f"[{self.screen_region_entries['x1'].get()}, {self.screen_region_entries['y1'].get()}, " \
-            f"{self.screen_region_entries['x2'].get()}, {self.screen_region_entries['y2'].get()}]"
+               f"{self.screen_region_entries['x2'].get()}, {self.screen_region_entries['y2'].get()}]"
 
     def save_monitor_bounds(self):
         """ Write monitor bounds entered in the UI into the config file. """

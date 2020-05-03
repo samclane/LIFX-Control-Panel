@@ -9,8 +9,8 @@
 
 For now, the demo at the bottom shows how to use it...'''
 
-import os
 import logging
+import os
 
 import win32api  # package pywin32
 import win32con

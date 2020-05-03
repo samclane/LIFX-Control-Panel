@@ -9,10 +9,10 @@ Notes
 """
 import audioop
 from collections import deque
+from math import ceil
 from tkinter import messagebox
 
 import pyaudio
-from math import ceil
 
 # Audio processing constants
 CHUNK = 1024

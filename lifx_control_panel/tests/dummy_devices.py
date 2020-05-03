@@ -8,9 +8,9 @@ from random import randint, sample, randrange, choice
 from tkinter import *
 from tkinter import messagebox
 
-from ..utilities.utils import Color as DummyColor
 from lifxlan import product_map, Group
 
+from ..utilities.utils import Color as DummyColor
 from ..utilities.utils import resource_path
 
 LOGFILE = 'lifx-control-panel.log'

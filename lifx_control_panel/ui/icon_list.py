@@ -5,6 +5,7 @@ from PIL import Image as pImage
 
 from ..utilities import utils
 
+
 class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
     """ Holds the dynamic icons for each Device and Group """
 
