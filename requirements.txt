@@ -1,9 +1,8 @@
 PyHook3
 desktopmagic
-win32gui
+pywin32
 pyaudio
 Pillow
 lifxlan
-pywin32
 numexpr
-numpy==1.18.1
+numpy
