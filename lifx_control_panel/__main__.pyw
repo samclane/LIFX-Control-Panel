@@ -179,7 +179,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         stop_event = self.bulb_interface.stopped
         if not stop_event.isSet():
             stop_event.set()
-        device_list = self.lifx.get_lights()
+        device_list = self.lifx.get_devices()  # TODO: Try changing to "Devices"
         if self.bulb_interface:
             del self.bulb_interface
         self.bulb_interface = AsyncBulbInterface(stop_event, HEARTBEAT_RATE_MS)
@@ -188,11 +188,11 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         stop_event.clear()
         self.bulb_interface.start()
 
-        for light in device_list:
+        for light in self.bulb_interface.device_list:
             try:
                 product = lifxlan.product_map[light.get_product()]
                 label = light.get_label()
-                light.get_color()
+                # light.get_color()
                 self.lightsdict[label] = light
                 self.logger.info('Light found: %s: "%s"', product, label)
                 if label not in self.bulb_icons.bulb_dict.keys():
@@ -326,7 +326,10 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             else:  # is bulb
                 self.label = target.get_label()
                 bulb_power = target.get_power()
-                init_color = Color(*target.get_color())
+                if target.supports_multizone():
+                    init_color = Color(*target.get_color_zones()[0])
+                else:
+                    init_color = Color(*target.get_color())
         except lifxlan.WorkflowException as exc:
             messagebox.showerror("Error building LightFrame",
                                  "Error thrown when trying to get label from bulb:\n{}".format(exc))

@@ -1,5 +1,7 @@
 # LIFX-Control-Panel 
 
+### LIFX Beam Support Coming Soon!
+
 <img align="right" width="120" height="120" title="LIFX-Control-Panel Logo" src="./res/lifx-animated-logo.gif">
      
 LIFX-Control-Panel is an open source application for controlling your LIFX brand lights. It integrates simple features, 
