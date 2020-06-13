@@ -1,6 +1,6 @@
 PyHook3
 desktopmagic
-pywin32
+pywin32==228
 pyaudio
 Pillow
 lifxlan
