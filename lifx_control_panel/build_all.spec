@@ -58,7 +58,7 @@ exe = EXE(pyz,
           upx=False,
           runtime_tmpdir=None,
           console=is_debug,
-          icon='icons//icon_vector.ico')
+          icon='../res/icon_vector.ico')
 
 ################################################################################
 # Debug
@@ -84,7 +84,7 @@ exe = EXE(pyz,
           upx=False,
           runtime_tmpdir=None,
           console=is_debug,
-          icon='icons//icon_vector.ico')
+          icon='../res/icon_vector.ico')
 
 ################################################################################
 # Demo
@@ -129,7 +129,7 @@ exe = EXE(pyz,
           upx=False,
           runtime_tmpdir=None,
           console=is_debug,
-          icon='icons//icon_vector.ico')
+          icon='../res/icon_vector.ico')
 
 # Set debugging back to false
 with open('_constants.py', 'w') as f:

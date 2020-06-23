@@ -71,7 +71,7 @@ else:
 
 LOGFILE = os.path.join(APPLICATION_PATH, LOGFILE)
 
-SPLASHFILE = resource_path('res//splash_vector.png')
+SPLASHFILE = resource_path('res/splash_vector.png')
 
 
 class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
