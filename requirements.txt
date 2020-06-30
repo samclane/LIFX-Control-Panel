@@ -2,7 +2,7 @@ PyHook3
 desktopmagic
 pywin32
 pyaudio
-Pillow
+Pillow==7.2.0
 lifxlan
 numexpr
 numpy
