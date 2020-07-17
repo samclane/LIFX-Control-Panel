@@ -79,7 +79,7 @@ class ColorScale(tk.Canvas):
         for i in range(width):
             f(i)
         line = "{" + " ".join(line) + "}"
-        self.gradient.put(" ".join([line for j in range(height)]))
+        self.gradient.put(" ".join([line for _ in range(height)]))
         self.create_image(0, 0, anchor="nw", tags="gradient", image=self.gradient)
         self.lower("gradient")
 
@@ -110,7 +110,7 @@ class ColorScale(tk.Canvas):
             if self.command is not None:
                 self.command()
 
-    def _update_val(self, *args):
+    def _update_val(self, *_):
         val = int(self._variable.get())
         val = min(max(val, self.min), self.max)
         self.set(val)
