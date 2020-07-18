@@ -114,7 +114,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                        gradient='wb'),
             ColorScale(self, from_=0, to=65535, variable=self.hsbk[2], command=self.update_color_from_ui,
                        gradient='bw'),
-            ColorScale(self, from_=2500, to=9000, variable=self.hsbk[3], command=self.update_color_from_ui,
+            ColorScale(self, from_=1500, to=9000, variable=self.hsbk[3], command=self.update_color_from_ui,
                        gradient='kelvin'))
         relief = tkinter.GROOVE
         self.hsbk_display: Tuple[tkinter.Canvas]*4 = (

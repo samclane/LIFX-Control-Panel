@@ -192,7 +192,7 @@ class DummyBulb(DummyDevice):
             self.color = color
         else:
             self.color = DummyColor(randrange(0, 65535), randrange(0, 65535), randrange(0, 65535),
-                                    randrange(2500, 9000))
+                                    randrange(1500, 9000))
         self.power: int = 0
 
     # Official api
@@ -240,7 +240,7 @@ class DummyBulb(DummyDevice):
 
 
 class MultiZoneDummy(DummyBulb):
-    def __init__(self, color=DummyColor(0, 0, 0, 2500), label="N/A"):
+    def __init__(self, color=DummyColor(0, 0, 0, 1500), label="N/A"):
         super().__init__(color, label)
 
     # Multizone API
@@ -260,7 +260,7 @@ class TileDummy(DummyBulb):
 
 
 class TileChainDummy(DummyBulb):
-    def __init__(self, color=DummyColor(0, 0, 0, 2500), label="N/A", x=1, y=1):
+    def __init__(self, color=DummyColor(0, 0, 0, 1500), label="N/A", x=1, y=1):
         super().__init__(color, label)
         self.tiles = []
         self.cache = []
