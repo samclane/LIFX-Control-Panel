@@ -1,4 +1,6 @@
+from __future__ import annotations
 import tkinter
+from typing import Dict, Union
 
 import lifxlan
 from PIL import Image as pImage
@@ -56,6 +58,14 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
         else:
             path = utils.resource_path("res/lightbulb.png")
         return path
+
+    @property
+    def icon_paths(self):
+        path_map: Dict[type, Union[int, bytes]] = {
+            lifxlan.Group: utils.resource_path("res/group.png"),
+            lifxlan.Light: utils.resource_path("res/lightbulb.png")
+        }
+        return path_map
 
     def draw_bulb_icon(self, bulb, label):
         """ Given a bulb and a name, add the icon to the end of the row. """

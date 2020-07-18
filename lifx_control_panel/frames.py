@@ -1,7 +1,7 @@
 import logging
 import tkinter
 from tkinter import ttk, font as font, messagebox, _setit
-from typing import Union, List
+from typing import Union, List, Tuple, Dict
 
 import lifxlan
 import win32api
@@ -20,6 +20,7 @@ from lifx_control_panel.utilities.utils import Color, tuple2hex, HSBKtoRGB, hueT
 class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     """ Holds control and state information about a single device. """
     label: str
+    target: Union[lifxlan.Group, lifxlan.Device]
 
     def __init__(self, master, target: Union[lifxlan.Group, lifxlan.Device]):
         ttk.Labelframe.__init__(self, master, padding="3 3 12 12",
@@ -29,7 +30,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.is_group: bool = isinstance(target, lifxlan.Group)
         self.icon_update_flag: bool = True
         # Initialize LightFrames
-        bulb_power: int
+        bulb_power: int = 0
         init_color: Color = Color(*lifxlan.WARM_WHITE)
         try:
             if self.is_group:
@@ -101,13 +102,13 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                      tkinter.IntVar(self, init_color.kelvin, "Kelvin"))
         for i in self.hsbk:
             i.trace('w', self.trigger_icon_update)
-        self.hsbk_labels = (
+        self.hsbk_labels: Tuple[tkinter.Label]*4 = (
             tkinter.Label(self, text='%.3g' % (360 * (self.hsbk[0].get() / 65535))),
             tkinter.Label(self, text=str('%.3g' % (100 * self.hsbk[1].get() / 65535)) + "%"),
             tkinter.Label(self, text=str('%.3g' % (100 * self.hsbk[2].get() / 65535)) + "%"),
             tkinter.Label(self, text=str(self.hsbk[3].get()) + " K")
         )
-        self.hsbk_scale = (
+        self.hsbk_scale: Tuple[ColorScale]*4 = (
             ColorScale(self, to=65535., variable=self.hsbk[0], command=self.update_color_from_ui),
             ColorScale(self, from_=0, to=65535, variable=self.hsbk[1], command=self.update_color_from_ui,
                        gradient='wb'),
@@ -116,7 +117,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             ColorScale(self, from_=2500, to=9000, variable=self.hsbk[3], command=self.update_color_from_ui,
                        gradient='kelvin'))
         relief = tkinter.GROOVE
-        self.hsbk_display = (
+        self.hsbk_display: Tuple[tkinter.Canvas]*4 = (
             tkinter.Canvas(self, background=tuple2hex(
                 hueToRGB(360 * (init_color.hue / 65535))), width=20, height=20,
                            borderwidth=3,
@@ -133,13 +134,14 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                            width=20, height=20,
                            borderwidth=3, relief=relief)
         )
+        scale: ColorScale
         for key, scale in enumerate(self.hsbk_scale):
             tkinter.Label(self, text=self.hsbk[key]).grid(row=key + 1, column=0)
             scale.grid(row=key + 1, column=1)
             self.hsbk_labels[key].grid(row=key + 1, column=2)
             self.hsbk_display[key].grid(row=key + 1, column=3)
 
-        self.threads = {}
+        self.threads: Dict[str, color_thread.ColorThreadRunner] = {}
 
         # Add buttons for pre-made colors
         self.preset_colors_lf = ttk.LabelFrame(self, text="Preset Colors", padding="3 3 12 12")
@@ -225,7 +227,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         # Add custom screen region (real ugly)
         self.screen_region_lf = ttk.LabelFrame(self, text="Screen Avg. Region", padding="3 3 12 12")
 
-        self.screen_region_entries = {
+        self.screen_region_entries: Dict[str, tkinter.Entry] = {
             'x1': tkinter.Entry(self.screen_region_lf, width=6),
             'x2': tkinter.Entry(self.screen_region_lf, width=6),
             'y1': tkinter.Entry(self.screen_region_lf, width=6),
@@ -306,16 +308,14 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         if not rapid:
             self.logger.debug('Color changed to HSBK: %s', color)  # Don't pollute log with rapid color changes
 
-    def update_label(self, key):
+    def update_label(self, key: int):
         """ Update scale labels, formatted accordingly. """
-        if key == 0:  # H
-            self.hsbk_labels[0].config(text=str('%.3g' % (360 * (self.hsbk[0].get() / 65535))))
-        elif key == 1:  # tkinter.S
-            self.hsbk_labels[1].config(text=str('%.3g' % (100 * (self.hsbk[1].get() / 65535))) + "%")
-        elif key == 2:  # B
-            self.hsbk_labels[2].config(text=str('%.3g' % (100 * (self.hsbk[2].get() / 65535))) + "%")
-        elif key == 3:  # K
+        return [
+            self.hsbk_labels[0].config(text=str('%.3g' % (360 * (self.hsbk[0].get() / 65535)))),
+            self.hsbk_labels[1].config(text=str('%.3g' % (100 * (self.hsbk[1].get() / 65535))) + "%"),
+            self.hsbk_labels[2].config(text=str('%.3g' % (100 * (self.hsbk[2].get() / 65535))) + "%"),
             self.hsbk_labels[3].config(text=str(self.hsbk[3].get()) + " K")
+        ][key]
 
     def update_display(self, key):
         """ Update color swatches to match current device state """

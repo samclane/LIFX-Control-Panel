@@ -133,7 +133,7 @@ def HSBKtoRGB(hsvk: TypeHSBK) -> TypeRGB:
     return x, y, z
 
 
-def hueToRGB(h: int, s: int = 1, v: int = 1) -> TypeRGB:
+def hueToRGB(h: float, s: float = 1, v: float = 1) -> TypeRGB:
     """ Convert a Hue-angle to an RGB value for display. """
     # pylint: disable=invalid-name
     h = float(h)
