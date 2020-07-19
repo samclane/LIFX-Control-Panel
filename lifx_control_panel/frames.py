@@ -69,7 +69,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             self.master.logger.name + '.' + self.__class__.__name__ + '({})'.format(self.label))
         self.logger.setLevel(logging.DEBUG)
         self.logger.info(
-            '%s logger initialized: %s // Device: %s', self.__class__.__name__,self.logger.name, self.label)
+            '%s logger initialized: %s // Device: %s', self.__class__.__name__, self.logger.name, self.label)
 
         # Initialize vars to hold on/off state
         self.powervar = tkinter.BooleanVar(self)
@@ -102,13 +102,13 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                      tkinter.IntVar(self, init_color.kelvin, "Kelvin"))
         for i in self.hsbk:
             i.trace('w', self.trigger_icon_update)
-        self.hsbk_labels: Tuple[tkinter.Label]*4 = (
+        self.hsbk_labels: Tuple[tkinter.Label] * 4 = (
             tkinter.Label(self, text='%.3g' % (360 * (self.hsbk[0].get() / 65535))),
             tkinter.Label(self, text=str('%.3g' % (100 * self.hsbk[1].get() / 65535)) + "%"),
             tkinter.Label(self, text=str('%.3g' % (100 * self.hsbk[2].get() / 65535)) + "%"),
             tkinter.Label(self, text=str(self.hsbk[3].get()) + " K")
         )
-        self.hsbk_scale: Tuple[ColorScale]*4 = (
+        self.hsbk_scale: Tuple[ColorScale] * 4 = (
             ColorScale(self, to=65535., variable=self.hsbk[0], command=self.update_color_from_ui),
             ColorScale(self, from_=0, to=65535, variable=self.hsbk[1], command=self.update_color_from_ui,
                        gradient='wb'),
@@ -117,7 +117,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             ColorScale(self, from_=1500, to=9000, variable=self.hsbk[3], command=self.update_color_from_ui,
                        gradient='kelvin'))
         relief = tkinter.GROOVE
-        self.hsbk_display: Tuple[tkinter.Canvas]*4 = (
+        self.hsbk_display: Tuple[tkinter.Canvas] * 4 = (
             tkinter.Canvas(self, background=tuple2hex(
                 hueToRGB(360 * (init_color.hue / 65535))), width=20, height=20,
                            borderwidth=3,

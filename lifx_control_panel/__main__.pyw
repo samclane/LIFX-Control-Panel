@@ -52,7 +52,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
     """ Parent frame of application. Holds icons for each Device/Group. """
     bulb_interface: AsyncBulbInterface
 
-    def __init__(self, master, lifx_instance, bulb_interface):
+    def __init__(self, master, lifx_instance: lifxlan.LifxLAN, bulb_interface: AsyncBulbInterface):
         # We take a lifx instance so we can inject our own for testing.
 
         # Start showing splash_screen while processing
@@ -66,7 +66,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.grid(column=0, row=0, sticky=(tkinter.N, tkinter.W, tkinter.E, tkinter.S))
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
-        self.lifx = lifx_instance
+        self.lifx: lifxlan.LifxLAN = lifx_instance
         self.bulb_interface = bulb_interface
         self.audio_interface = audio.AudioInterface()
         self.audio_interface.init_audio(config)
