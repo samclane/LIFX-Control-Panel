@@ -63,6 +63,8 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                 color_devices: List[lifxlan.Device] = list(filter(lambda d: d.supports_color(), devices))
                 if len(color_devices) > 0 and hasattr(color_devices[0], 'get_color'):
                     init_color = Color(*color_devices[0].get_color())
+                self.min_kelvin = min([device.product_features.get('min_kelvin') or 1500 for device in target.get_device_list()])
+                self.max_kelvin = max([device.product_features.get('max_kelvin') or 9000 for device in target.get_device_list()])
             else:  # is bulb
                 self.label = target.get_label()
                 bulb_power = target.get_power()
@@ -70,6 +72,8 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                     init_color = Color(*target.get_color_zones()[0])
                 else:
                     init_color = Color(*target.get_color())
+                self.min_kelvin = target.product_features.get('min_kelvin') or 1500
+                self.max_kelvin = target.product_features.get('max_kelvin') or 9000
         except lifxlan.WorkflowException as exc:
             messagebox.showerror("Error building {}".format(self.__class__.__name__),
                                  "Error thrown when trying to get label from bulb:\n{}".format(exc))
@@ -239,7 +243,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                        gradient='wb'),
             ColorScale(self, from_=0, to=65535, variable=self.hsbk[2], command=self.update_color_from_ui,
                        gradient='bw'),
-            ColorScale(self, from_=1500, to=9000, variable=self.hsbk[3], command=self.update_color_from_ui,
+            ColorScale(self, from_=self.min_kelvin, to=self.max_kelvin, variable=self.hsbk[3], command=self.update_color_from_ui,
                        gradient='kelvin'))
         relief = tkinter.GROOVE
         self.hsbk_display: Tuple[tkinter.Canvas, tkinter.Canvas, tkinter.Canvas, tkinter.Canvas] = (

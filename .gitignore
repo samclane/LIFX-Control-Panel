@@ -144,3 +144,4 @@ cython_debug/
 # IDE
 .idea/
 
+lifxlan/

@@ -83,7 +83,10 @@ class ColorScale(tk.Canvas):
         self.create_image(0, 0, anchor="nw", tags="gradient", image=self.gradient)
         self.lower("gradient")
 
-        x = (val - self.min) / float(self.range) * width
+        try:
+            x = (val - self.min) / float(self.range) * width
+        except ZeroDivisionError:
+            x = self.min
         self.create_line(x, 0, x, height, width=4, fill='white', tags="cursor")
         self.create_line(x, 0, x, height, width=2, tags="cursor")
 
@@ -125,7 +128,10 @@ class ColorScale(tk.Canvas):
     def set(self, val):
         """Set cursor position on the color corresponding to the value"""
         width = self.winfo_width()
-        x = (val - self.min) / float(self.range) * width
+        try:
+            x = (val - self.min) / float(self.range) * width
+        except ZeroDivisionError:
+            return
         for s in self.find_withtag("cursor"):
             self.coords(s, x, 0, x, self.winfo_height())
         self._variable.set(val)
