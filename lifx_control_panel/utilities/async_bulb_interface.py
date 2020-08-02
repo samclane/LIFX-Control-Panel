@@ -27,14 +27,6 @@ class AsyncBulbInterface(threading.Thread):
         for dev in device_list:
             self.color_queue[dev.get_label()] = queue.Queue()
             if dev.supports_multizone():
-                # Convert "device" to a MultiZoneLight object
-                # Should be a nicer way to convert objects
-                _label = dev.get_label()
-                dev = lifxlan.MultiZoneLight(dev.get_mac_addr(),
-                                             dev.get_ip_addr(),
-                                             dev.get_service(),
-                                             dev.get_port())
-                dev.label = _label
                 color = dev.get_color_zones()[0]
             else:
                 color = dev.color

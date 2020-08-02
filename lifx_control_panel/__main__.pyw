@@ -51,6 +51,7 @@ SPLASHFILE = resource_path('res/splash_vector.png')
 class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
     """ Parent frame of application. Holds icons for each Device/Group. """
     bulb_interface: AsyncBulbInterface
+    current_lightframe: LightFrame
 
     def __init__(self, master, lifx_instance: lifxlan.LifxLAN, bulb_interface: AsyncBulbInterface):
         # We take a lifx instance so we can inject our own for testing.
@@ -186,7 +187,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
                     self.logger.info("Building new frame: %s", self.framesdict[label].get_label())
                 group_label = light.get_group_label()
                 if group_label not in self.lightsdict.keys():
-                    self.lightsdict[group_label] = self.lifx.get_devices_by_group(group_label)
+                    self.lightsdict[group_label]: lifxlan.Group = self.lifx.get_devices_by_group(group_label)
                     self.lightsdict[group_label].get_label = lambda: group_label  # pylint: disable=cell-var-from-loop
                     # Giving an attribute here is a bit dirty, but whatever
                     self.lightsdict[group_label].label = group_label
@@ -314,6 +315,8 @@ def main():
                 "Uncaught exception: %s:%s:%s", repr(type_), str(value), repr(trace_back))
 
         sys.excepthook = custom_handler
+
+        lifxlan.light_products.append(38)  # TODO Hotfix for missing LIFX Beam
 
         LifxFrame(root, lifxlan.LifxLAN(verbose=DEBUGGING), AsyncBulbInterface(threading.Event(), HEARTBEAT_RATE_MS))
 
