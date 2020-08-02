@@ -64,7 +64,8 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
     def icon_paths(self):
         path_map: Dict[type, Union[int, bytes]] = {
             lifxlan.Group: utils.resource_path("res/group.png"),
-            lifxlan.Light: utils.resource_path("res/lightbulb.png")
+            lifxlan.Light: utils.resource_path("res/lightbulb.png"),
+            lifxlan.MultiZoneLight: utils.resource_path("res/multizone.png")
         }
         return path_map
 

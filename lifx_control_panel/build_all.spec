@@ -38,6 +38,7 @@ a.datas += [('res//splash_vector.png', '../res/splash_vector.png', 'Data')]
 a.datas += [('res//icon_vector.ico', '../res/icon_vector.ico', 'Data')]
 a.datas += [('res//lightbulb.png', '../res/lightbulb.png', 'Data')]
 a.datas += [('res//group.png', '../res/group.png', 'Data')]
+a.datas += [('res//multizone.png', '../res/multizone.png', 'Data')]
 a.datas += [('default.ini', '../default.ini', '.')]
 
 pyz = PYZ(a.pure, a.zipped_data,
@@ -114,6 +115,7 @@ a.datas += [('res//splash_vector.png', '../res/splash_vector.png', 'Data')]
 a.datas += [('res//icon_vector.ico', '../res/icon_vector.ico', 'Data')]
 a.datas += [('res//lightbulb.png', '../res/lightbulb.png', 'Data')]
 a.datas += [('res//group.png', '../res/group.png', 'Data')]
+a.datas += [('res//multizone.png', '../res/multizone.png', 'Data')]
 a.datas += [('default.ini', '../default.ini', '.')]
 
 pyz = PYZ(a.pure, a.zipped_data,
