@@ -1,7 +1,7 @@
 import logging
 import tkinter
 from tkinter import ttk, font as font, messagebox, _setit
-from typing import Union, List, Tuple, Dict
+from typing import Union, List, Tuple, Dict, Mapping
 
 import lifxlan
 import win32api
@@ -21,6 +21,28 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     """ Holds control and state information about a single device. """
     label: str
     target: Union[lifxlan.Group, lifxlan.Device]
+    ###
+    screen_region_lf: ttk.LabelFrame
+    screen_region_entries: Dict[str, tkinter.Entry]
+    avg_screen_btn: tkinter.Button
+    dominant_screen_btn: tkinter.Button
+    music_button: tkinter.Button
+    preset_colors_lf: ttk.LabelFrame
+    color_var: tkinter.StringVar
+    default_colors: Mapping[str, Color]
+    preset_dropdown: tkinter.OptionMenu
+    uservar: tkinter.StringVar
+    user_dropdown: tkinter.OptionMenu
+    current_color: tkinter.Canvas
+    hsbk: Tuple[tkinter.IntVar, tkinter.IntVar, tkinter.IntVar, tkinter.IntVar]
+    hsbk_labels: Tuple[tkinter.Label, tkinter.Label, tkinter.Label, tkinter.Label]
+    hsbk_scale: Tuple[ColorScale, ColorScale, ColorScale, ColorScale]
+    hsbk_display: Tuple[tkinter.Canvas, tkinter.Canvas, tkinter.Canvas, tkinter.Canvas]
+    threads: Dict[str, color_thread.ColorThreadRunner]
+    powervar: tkinter.BooleanVar
+    option_on: tkinter.Radiobutton
+    option_off: tkinter.Radiobutton
+    logger: logging.Logger
 
     def __init__(self, master, target: Union[lifxlan.Group, lifxlan.Device]):
         ttk.Labelframe.__init__(self, master, padding="3 3 12 12",
@@ -39,7 +61,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                 bulb_power = devices[0].get_power()
                 # Find an init_color- ensure device has color attribute, otherwise fallback
                 color_devices: List[lifxlan.Device] = list(filter(lambda d: d.supports_color(), devices))
-                if len(color_devices) and hasattr(color_devices[0], 'get_color'):
+                if len(color_devices) > 0 and hasattr(color_devices[0], 'get_color'):
                     init_color = Color(*color_devices[0].get_color())
             else:  # is bulb
                 self.label = target.get_label()
@@ -49,9 +71,8 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                 else:
                     init_color = Color(*target.get_color())
         except lifxlan.WorkflowException as exc:
-            messagebox.showerror("Error building {}}",
-                                 "Error thrown when trying to get label from bulb:\n{}".format(self.__class__.__name__,
-                                                                                               exc))
+            messagebox.showerror("Error building {}".format(self.__class__.__name__),
+                                 "Error thrown when trying to get label from bulb:\n{}".format(exc))
             self.master.on_closing()
             # TODO Let this fail safely and try again later
 
@@ -65,169 +86,33 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.target = target
 
         # Setup logger
-        self.logger = logging.getLogger(
-            self.master.logger.name + '.' + self.__class__.__name__ + '({})'.format(self.label))
-        self.logger.setLevel(logging.DEBUG)
-        self.logger.info(
-            '%s logger initialized: %s // Device: %s', self.__class__.__name__, self.logger.name, self.label)
+        self.setup_logger()
 
         # Initialize vars to hold on/off state
-        self.powervar = tkinter.BooleanVar(self)
-        self.powervar.set(bulb_power)
-        self.option_on = tkinter.Radiobutton(self, text="On", variable=self.powervar, value=65535,
-                                             command=self.update_power)
-        self.option_off = tkinter.Radiobutton(self, text="Off", variable=self.powervar, value=0,
-                                              command=self.update_power)
-        if self.powervar.get() == 0:
-            # Light is off
-            self.option_off.select()
-            self.option_on.selection_clear()
-        else:
-            self.option_on.select()
-            self.option_off.selection_clear()
-        self.option_on.grid(row=0, column=0)
-        self.option_off.grid(row=0, column=1)
+        self.setup_power_controls(bulb_power)
 
         # Initialize vars to hold and display bulb color
-        self.logger.info('Initial light color HSBK: %s', init_color)
-        self.current_color = tkinter.Canvas(self,
-                                            background=tuple2hex(HSBKtoRGB(init_color)),
-                                            width=40, height=20,
-                                            borderwidth=3,
-                                            relief=tkinter.GROOVE)
-        self.current_color.grid(row=0, column=2)
-        self.hsbk = (tkinter.IntVar(self, init_color.hue, "Hue"),
-                     tkinter.IntVar(self, init_color.saturation, "Saturation"),
-                     tkinter.IntVar(self, init_color.brightness, "Brightness"),
-                     tkinter.IntVar(self, init_color.kelvin, "Kelvin"))
-        for i in self.hsbk:
-            i.trace('w', self.trigger_icon_update)
-        self.hsbk_labels: Tuple[tkinter.Label] * 4 = (
-            tkinter.Label(self, text='%.3g' % (360 * (self.hsbk[0].get() / 65535))),
-            tkinter.Label(self, text=str('%.3g' % (100 * self.hsbk[1].get() / 65535)) + "%"),
-            tkinter.Label(self, text=str('%.3g' % (100 * self.hsbk[2].get() / 65535)) + "%"),
-            tkinter.Label(self, text=str(self.hsbk[3].get()) + " K")
-        )
-        self.hsbk_scale: Tuple[ColorScale] * 4 = (
-            ColorScale(self, to=65535., variable=self.hsbk[0], command=self.update_color_from_ui),
-            ColorScale(self, from_=0, to=65535, variable=self.hsbk[1], command=self.update_color_from_ui,
-                       gradient='wb'),
-            ColorScale(self, from_=0, to=65535, variable=self.hsbk[2], command=self.update_color_from_ui,
-                       gradient='bw'),
-            ColorScale(self, from_=1500, to=9000, variable=self.hsbk[3], command=self.update_color_from_ui,
-                       gradient='kelvin'))
-        relief = tkinter.GROOVE
-        self.hsbk_display: Tuple[tkinter.Canvas] * 4 = (
-            tkinter.Canvas(self, background=tuple2hex(
-                hueToRGB(360 * (init_color.hue / 65535))), width=20, height=20,
-                           borderwidth=3,
-                           relief=relief),
-            tkinter.Canvas(self, background=tuple2hex((
-                int(255 * (init_color.saturation / 65535)), int(255 * (init_color.saturation / 65535)),
-                int(255 * (init_color.saturation / 65535)))),
-                           width=20, height=20, borderwidth=3, relief=relief),
-            tkinter.Canvas(self, background=tuple2hex((
-                int(255 * (init_color.brightness / 65535)), int(255 * (init_color.brightness / 65535)),
-                int(255 * (init_color.brightness / 65535)))),
-                           width=20, height=20, borderwidth=3, relief=relief),
-            tkinter.Canvas(self, background=tuple2hex(kelvinToRGB(init_color.kelvin)),
-                           width=20, height=20,
-                           borderwidth=3, relief=relief)
-        )
-        scale: ColorScale
-        for key, scale in enumerate(self.hsbk_scale):
-            tkinter.Label(self, text=self.hsbk[key]).grid(row=key + 1, column=0)
-            scale.grid(row=key + 1, column=1)
-            self.hsbk_labels[key].grid(row=key + 1, column=2)
-            self.hsbk_display[key].grid(row=key + 1, column=3)
-
-        self.threads: Dict[str, color_thread.ColorThreadRunner] = {}
+        self.setup_color_controls(init_color)
 
         # Add buttons for pre-made colors
-        self.preset_colors_lf = ttk.LabelFrame(self, text="Preset Colors", padding="3 3 12 12")
-        self.color_var = tkinter.StringVar(self, value="Presets")
-
-        self.default_colors = {"RED": RED,
-                               "ORANGE": ORANGE,
-                               "YELLOW": YELLOW,
-                               "GREEN": GREEN,
-                               "CYAN": CYAN,
-                               "BLUE": BLUE,
-                               "PURPLE": PURPLE,
-                               "PINK": PINK,
-                               "WHITE": WHITE,
-                               "COLD_WHITE": COLD_WHITE,
-                               "WARM_WHITE": WARM_WHITE,
-                               "GOLD": GOLD}
-
-        self.preset_dropdown = tkinter.OptionMenu(self.preset_colors_lf, self.color_var, *self.default_colors)
-        self.preset_dropdown.grid(row=0, column=0)
-        self.preset_dropdown.configure(width=13)
-        self.color_var.trace('w', self.change_preset_dropdown)
-
-        self.uservar = tkinter.StringVar(self, value="User Presets")
-        self.user_dropdown = tkinter.OptionMenu(self.preset_colors_lf, self.uservar, *(
-            [*config["PresetColors"].keys()] if any(config["PresetColors"].keys()) else [None]))
-        self.user_dropdown.grid(row=0, column=1)
-        self.user_dropdown.config(width=13)
-        self.uservar.trace('w', self.change_user_dropdown)
-
-        self.preset_colors_lf.grid(row=5, columnspan=4)
+        self.setup_color_dropdowns()
 
         # Add buttons for special routines
         self.special_functions_lf = ttk.LabelFrame(self, text="Special Functions", padding="3 3 12 12")
         ####
 
-        # Screen Avg.
-        self.threads['screen'] = color_thread.ColorThreadRunner(self.target, color_thread.avg_screen_color, self,
-                                                                func_bounds=self.get_monitor_bounds)
-
-        def start_screen_avg():
-            """ Allow the screen avg. to be run in a separate thread. Also turns button green while running. """
-            self.avg_screen_btn.config(bg="Green")
-            self.threads['screen'].start()
-
-        self.avg_screen_btn = tkinter.Button(self.special_functions_lf, text="Avg. Screen Color",
-                                             command=start_screen_avg)
-        self.avg_screen_btn.grid(row=6, column=0)
-        tkinter.Button(self.special_functions_lf, text="Pick Color", command=self.get_color_from_palette).grid(row=6,
-                                                                                                               column=1)
-        # Screen Dominant
-        self.threads['dominant'] = color_thread.ColorThreadRunner(self.target, color_thread.dominant_screen_color, self,
-                                                                  func_bounds=self.get_monitor_bounds)
-
-        def start_screen_dominant():
-            self.dominant_screen_btn.config(bg="Green")
-            self.threads['dominant'].start()
-
-        self.dominant_screen_btn = tkinter.Button(self.special_functions_lf, text="Dominant Screen Color",
-                                                  command=start_screen_dominant)
-        self.dominant_screen_btn.grid(row=7, column=0)
-
-        # Audio
-        self.threads['audio'] = color_thread.ColorThreadRunner(self.target, self.master.audio_interface.get_music_color,
-                                                               self)
-
-        def start_audio():
-            """ Allow the audio to be run in a separate thread. Also turns button green while running. """
-            self.music_button.config(bg="Green")
-            self.threads['audio'].start()
-
-        self.music_button = tkinter.Button(self.special_functions_lf, text="Music Color", command=start_audio,
-                                           state='normal' if self.master.audio_interface.initialized else 'disabled')
-        self.music_button.grid(row=8, column=0)
-        self.threads['eyedropper'] = color_thread.ColorThreadRunner(self.target, self.eyedropper, self,
-                                                                    continuous=False)
-        tkinter.Button(self.special_functions_lf, text="Color Eyedropper", command=self.threads['eyedropper'].start) \
-            .grid(row=7, column=1)
-        tkinter.Button(self.special_functions_lf, text="Stop effects", command=self.stop_threads).grid(row=8, column=1)
-        self.special_functions_lf.grid(row=6, columnspan=4)
+        self.setup_special_functions()
 
         ####
         # Add custom screen region (real ugly)
-        self.screen_region_lf = ttk.LabelFrame(self, text="Screen Avg. Region", padding="3 3 12 12")
+        self.setup_screen_region_select()
 
-        self.screen_region_entries: Dict[str, tkinter.Entry] = {
+        # Start update loop
+        self.update_status_from_bulb()
+
+    def setup_screen_region_select(self):
+        self.screen_region_lf = ttk.LabelFrame(self, text="Screen Avg. Region", padding="3 3 12 12")
+        self.screen_region_entries = {
             'x1': tkinter.Entry(self.screen_region_lf, width=6),
             'x2': tkinter.Entry(self.screen_region_lf, width=6),
             'y1': tkinter.Entry(self.screen_region_lf, width=6),
@@ -256,8 +141,155 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             .grid(row=9, column=1, sticky='w')
         self.screen_region_lf.grid(row=7, columnspan=4)
 
-        # Start update loop
-        self.update_status_from_bulb()
+    def setup_special_functions(self):
+        # Screen Avg.
+        self.threads['screen'] = color_thread.ColorThreadRunner(self.target, color_thread.avg_screen_color, self,
+                                                                func_bounds=self.get_monitor_bounds)
+
+        def start_screen_avg():
+            """ Allow the screen avg. to be run in a separate thread. Also turns button green while running. """
+            self.avg_screen_btn.config(bg="Green")
+            self.threads['screen'].start()
+
+        self.avg_screen_btn = tkinter.Button(self.special_functions_lf, text="Avg. Screen Color",
+                                             command=start_screen_avg)
+        self.avg_screen_btn.grid(row=6, column=0)
+        tkinter.Button(self.special_functions_lf, text="Pick Color", command=self.get_color_from_palette).grid(row=6,
+                                                                                                               column=1)
+        # Screen Dominant
+        self.threads['dominant'] = color_thread.ColorThreadRunner(self.target, color_thread.dominant_screen_color, self,
+                                                                  func_bounds=self.get_monitor_bounds)
+
+        def start_screen_dominant():
+            self.dominant_screen_btn.config(bg="Green")
+            self.threads['dominant'].start()
+
+        self.dominant_screen_btn = tkinter.Button(self.special_functions_lf, text="Dominant Screen Color",
+                                                  command=start_screen_dominant)
+        self.dominant_screen_btn.grid(row=7, column=0)
+        # Audio
+        self.threads['audio'] = color_thread.ColorThreadRunner(self.target, self.master.audio_interface.get_music_color,
+                                                               self)
+
+        def start_audio():
+            """ Allow the audio to be run in a separate thread. Also turns button green while running. """
+            self.music_button.config(bg="Green")
+            self.threads['audio'].start()
+
+        self.music_button = tkinter.Button(self.special_functions_lf, text="Music Color", command=start_audio,
+                                           state='normal' if self.master.audio_interface.initialized else 'disabled')
+        self.music_button.grid(row=8, column=0)
+        self.threads['eyedropper'] = color_thread.ColorThreadRunner(self.target, self.eyedropper, self,
+                                                                    continuous=False)
+        tkinter.Button(self.special_functions_lf, text="Color Eyedropper", command=self.threads['eyedropper'].start) \
+            .grid(row=7, column=1)
+        tkinter.Button(self.special_functions_lf, text="Stop effects", command=self.stop_threads).grid(row=8, column=1)
+        self.special_functions_lf.grid(row=6, columnspan=4)
+
+    def setup_color_dropdowns(self):
+        self.preset_colors_lf = ttk.LabelFrame(self, text="Preset Colors", padding="3 3 12 12")
+        self.color_var = tkinter.StringVar(self, value="Presets")
+        self.default_colors = {"RED": RED,
+                               "ORANGE": ORANGE,
+                               "YELLOW": YELLOW,
+                               "GREEN": GREEN,
+                               "CYAN": CYAN,
+                               "BLUE": BLUE,
+                               "PURPLE": PURPLE,
+                               "PINK": PINK,
+                               "WHITE": WHITE,
+                               "COLD_WHITE": COLD_WHITE,
+                               "WARM_WHITE": WARM_WHITE,
+                               "GOLD": GOLD}
+        self.preset_dropdown = tkinter.OptionMenu(self.preset_colors_lf, self.color_var, *self.default_colors)
+        self.preset_dropdown.grid(row=0, column=0)
+        self.preset_dropdown.configure(width=13)
+        self.color_var.trace('w', self.change_preset_dropdown)
+        self.uservar = tkinter.StringVar(self, value="User Presets")
+        self.user_dropdown = tkinter.OptionMenu(self.preset_colors_lf, self.uservar, *(
+            [*config["PresetColors"].keys()] if any(config["PresetColors"].keys()) else [None]))
+        self.user_dropdown.grid(row=0, column=1)
+        self.user_dropdown.config(width=13)
+        self.uservar.trace('w', self.change_user_dropdown)
+        self.preset_colors_lf.grid(row=5, columnspan=4)
+
+    def setup_color_controls(self, init_color):
+        self.logger.info('Initial light color HSBK: %s', init_color)
+        self.current_color = tkinter.Canvas(self,
+                                            background=tuple2hex(HSBKtoRGB(init_color)),
+                                            width=40, height=20,
+                                            borderwidth=3,
+                                            relief=tkinter.GROOVE)
+        self.current_color.grid(row=0, column=2)
+        self.hsbk = (tkinter.IntVar(self, init_color.hue, "Hue"),
+                     tkinter.IntVar(self, init_color.saturation, "Saturation"),
+                     tkinter.IntVar(self, init_color.brightness, "Brightness"),
+                     tkinter.IntVar(self, init_color.kelvin, "Kelvin"))
+        for i in self.hsbk:
+            i.trace('w', self.trigger_icon_update)
+        self.hsbk_labels: Tuple[tkinter.Label, tkinter.Label, tkinter.Label, tkinter.Label] = (
+            tkinter.Label(self, text='%.3g' % (360 * (self.hsbk[0].get() / 65535))),
+            tkinter.Label(self, text=str('%.3g' % (100 * self.hsbk[1].get() / 65535)) + "%"),
+            tkinter.Label(self, text=str('%.3g' % (100 * self.hsbk[2].get() / 65535)) + "%"),
+            tkinter.Label(self, text=str(self.hsbk[3].get()) + " K")
+        )
+        self.hsbk_scale: Tuple[ColorScale, ColorScale, ColorScale, ColorScale] = (
+            ColorScale(self, to=65535., variable=self.hsbk[0], command=self.update_color_from_ui),
+            ColorScale(self, from_=0, to=65535, variable=self.hsbk[1], command=self.update_color_from_ui,
+                       gradient='wb'),
+            ColorScale(self, from_=0, to=65535, variable=self.hsbk[2], command=self.update_color_from_ui,
+                       gradient='bw'),
+            ColorScale(self, from_=1500, to=9000, variable=self.hsbk[3], command=self.update_color_from_ui,
+                       gradient='kelvin'))
+        relief = tkinter.GROOVE
+        self.hsbk_display: Tuple[tkinter.Canvas, tkinter.Canvas, tkinter.Canvas, tkinter.Canvas] = (
+            tkinter.Canvas(self, background=tuple2hex(
+                hueToRGB(360 * (init_color.hue / 65535))), width=20, height=20,
+                           borderwidth=3,
+                           relief=relief),
+            tkinter.Canvas(self, background=tuple2hex((
+                int(255 * (init_color.saturation / 65535)), int(255 * (init_color.saturation / 65535)),
+                int(255 * (init_color.saturation / 65535)))),
+                           width=20, height=20, borderwidth=3, relief=relief),
+            tkinter.Canvas(self, background=tuple2hex((
+                int(255 * (init_color.brightness / 65535)), int(255 * (init_color.brightness / 65535)),
+                int(255 * (init_color.brightness / 65535)))),
+                           width=20, height=20, borderwidth=3, relief=relief),
+            tkinter.Canvas(self, background=tuple2hex(kelvinToRGB(init_color.kelvin)),
+                           width=20, height=20,
+                           borderwidth=3, relief=relief)
+        )
+        scale: ColorScale
+        for key, scale in enumerate(self.hsbk_scale):
+            tkinter.Label(self, text=self.hsbk[key]).grid(row=key + 1, column=0)
+            scale.grid(row=key + 1, column=1)
+            self.hsbk_labels[key].grid(row=key + 1, column=2)
+            self.hsbk_display[key].grid(row=key + 1, column=3)
+        self.threads: Dict[str, color_thread.ColorThreadRunner] = {}
+
+    def setup_power_controls(self, bulb_power):
+        self.powervar = tkinter.BooleanVar(self)
+        self.powervar.set(bulb_power)
+        self.option_on = tkinter.Radiobutton(self, text="On", variable=self.powervar, value=65535,
+                                             command=self.update_power)
+        self.option_off = tkinter.Radiobutton(self, text="Off", variable=self.powervar, value=0,
+                                              command=self.update_power)
+        if self.powervar.get() == 0:
+            # Light is off
+            self.option_off.select()
+            self.option_on.selection_clear()
+        else:
+            self.option_on.select()
+            self.option_off.selection_clear()
+        self.option_on.grid(row=0, column=0)
+        self.option_off.grid(row=0, column=1)
+
+    def setup_logger(self):
+        self.logger = logging.getLogger(
+            self.master.logger.name + '.' + self.__class__.__name__ + '({})'.format(self.label))
+        self.logger.setLevel(logging.DEBUG)
+        self.logger.info(
+            '%s logger initialized: %s // Device: %s', self.__class__.__name__, self.logger.name, self.label)
 
     def restart(self):
         """ Get updated information for the bulb when clicked. """
@@ -421,8 +453,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         # self.uservar.set('')
         self.user_dropdown["menu"].delete(0, 'end')
 
-        new_choices = [key for key in config['PresetColors']]
-        for choice in new_choices:
+        for choice in config['PresetColors']:
             self.user_dropdown["menu"].add_command(label=choice, command=_setit(self.uservar, choice))
 
     def get_monitor_bounds(self):

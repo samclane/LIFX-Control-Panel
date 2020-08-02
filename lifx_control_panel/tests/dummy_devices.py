@@ -51,7 +51,7 @@ class DummyDevice:
         self.wifi_build_timestamp = 0
         self.wifi_version = 0.0
         self.vendor = 1
-        self.product = choice([int(key) for key in product_map.keys()])
+        self.product = choice([int(key) for key in product_map])
         self.location_label = "My Home"
         self.location_tuple = sample(range(255), 16)
         self.location_updated_at = 1516997252637000000

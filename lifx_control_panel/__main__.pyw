@@ -17,7 +17,7 @@ import traceback
 from collections import OrderedDict
 from logging.handlers import RotatingFileHandler
 from tkinter import messagebox, ttk
-from typing import List, Dict
+from typing import List, Dict, Mapping
 
 import lifxlan
 
@@ -91,7 +91,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
 
         # Initialize LIFX objects
         self.lightvar = tkinter.StringVar(self)
-        self.lightsdict: OrderedDict[str, lifxlan.Light] = OrderedDict()  # LifxLight objects
+        self.lightsdict: Mapping[str, lifxlan.Light] = OrderedDict()  # LifxLight objects
         self.framesdict: Dict[str, LightFrame] = {}  # corresponding LightFrame GUI
         self.current_lightframe: LightFrame  # currently selected and visible LightFrame
         self.current_light: lifxlan.Light
