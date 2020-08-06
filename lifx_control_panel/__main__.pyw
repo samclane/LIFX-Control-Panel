@@ -36,12 +36,7 @@ from lifx_control_panel.utilities.utils import (resource_path,
                                                 str2tuple)
 
 # determine if application is a script file or frozen exe
-if getattr(sys, 'frozen', False):
-    pass
-elif __file__:
-    APPLICATION_PATH = os.path.dirname(__file__)
-else:
-    raise Exception("Application path not set. This should never happen.")
+APPLICATION_PATH = os.path.dirname(__file__)
 
 LOGFILE = os.path.join(APPLICATION_PATH, LOGFILE)
 
