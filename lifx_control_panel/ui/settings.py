@@ -11,9 +11,32 @@ Notes
 import configparser
 import logging
 import tkinter.ttk as ttk
-from tkinter import (Toplevel, Frame, Button, ACTIVE, LEFT, YES, Label, Listbox, FLAT, X, BOTH, RAISED, FALSE,
-                     VERTICAL, Y, Scrollbar, END, BooleanVar, Checkbutton, StringVar, OptionMenu, Scale, HORIZONTAL,
-                     Entry)
+from tkinter import (
+    Toplevel,
+    Frame,
+    Button,
+    ACTIVE,
+    LEFT,
+    YES,
+    Label,
+    Listbox,
+    FLAT,
+    X,
+    BOTH,
+    RAISED,
+    FALSE,
+    VERTICAL,
+    Y,
+    Scrollbar,
+    END,
+    BooleanVar,
+    Checkbutton,
+    StringVar,
+    OptionMenu,
+    Scale,
+    HORIZONTAL,
+    Entry,
+)
 from tkinter.colorchooser import askcolor
 
 from desktopmagic.screengrab_win32 import getDisplayRects
@@ -48,8 +71,7 @@ class Dialog(Toplevel):
         if not self.initial_focus:
             self.initial_focus = self
         self.protocol("WM_DELETE_WINDOW", self.cancel)
-        self.geometry("+%d+%d" % (parent.winfo_rootx() + 50,
-                                  parent.winfo_rooty() + 50))
+        self.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
         self.initial_focus.focus_set()
         self.wait_window(self)
 
@@ -109,40 +131,46 @@ class MultiListbox(Frame):  # pylint: disable=too-many-ancestors
             frame = Frame(self)
             frame.pack(side=LEFT, expand=YES, fill=BOTH)
             Label(frame, text=list_, borderwidth=1, relief=RAISED).pack(fill=X)
-            list_box = Listbox(frame, width=widget, borderwidth=0, selectborderwidth=0,
-                               relief=FLAT, exportselection=FALSE)
+            list_box = Listbox(
+                frame,
+                width=widget,
+                borderwidth=0,
+                selectborderwidth=0,
+                relief=FLAT,
+                exportselection=FALSE,
+            )
             list_box.pack(expand=YES, fill=BOTH)
             self.lists.append(list_box)
-            list_box.bind('<B1-Motion>', lambda e, s=self: s._select(e.y))
-            list_box.bind('<Button-1>', lambda e, s=self: s._select(e.y))
-            list_box.bind('<Leave>', lambda e: 'break')
-            list_box.bind('<B2-Motion>', lambda e, s=self: s._b2motion(e.x, e.y))
-            list_box.bind('<Button-2>', lambda e, s=self: s._button2(e.x, e.y))
+            list_box.bind("<B1-Motion>", lambda e, s=self: s._select(e.y))
+            list_box.bind("<Button-1>", lambda e, s=self: s._select(e.y))
+            list_box.bind("<Leave>", lambda e: "break")
+            list_box.bind("<B2-Motion>", lambda e, s=self: s._b2motion(e.x, e.y))
+            list_box.bind("<Button-2>", lambda e, s=self: s._button2(e.x, e.y))
         frame = Frame(self)
         frame.pack(side=LEFT, fill=Y)
         Label(frame, borderwidth=1, relief=RAISED).pack(fill=X)
         scroll = Scrollbar(frame, orient=VERTICAL, command=self._scroll)
         scroll.pack(expand=YES, fill=Y)
-        self.lists[0]['yscrollcommand'] = scroll.set
+        self.lists[0]["yscrollcommand"] = scroll.set
 
     def _select(self, y):  # pylint: disable=invalid-name
         """ Select a row when clicked """
         row = self.lists[0].nearest(y)
         self.selection_clear(0, END)
         self.selection_set(row)
-        return 'break'
+        return "break"
 
     def _button2(self, x, y):  # pylint: disable=invalid-name
         """ TODO Docs """
         for list_ in self.lists:
             list_.scan_mark(x, y)
-        return 'break'
+        return "break"
 
     def _b2motion(self, x, y):  # pylint: disable=invalid-name
         """ TODO Docs """
         for list_ in self.lists:
             list_.scan_dragto(x, y)
-        return 'break'
+        return "break"
 
     def _scroll(self, *args):
         """ Move the list down """
@@ -213,7 +241,9 @@ class SettingsDisplay(Dialog):
 
     def body(self, master):
         self.root_window = master.master.master  # This is really gross. I'm sorry.
-        self.logger = logging.getLogger(self.root_window.logger.name + '.SettingsDisplay')
+        self.logger = logging.getLogger(
+            self.root_window.logger.name + ".SettingsDisplay"
+        )
         self.key_listener = KeybindManager(self, sticky=True)
         # Labels
         Label(master, text="Start Minimized?: ").grid(row=0, column=0)
@@ -226,85 +256,124 @@ class SettingsDisplay(Dialog):
 
         # Widgets
         # Starting minimized
-        self.start_mini = BooleanVar(master, value=config.getboolean("AppSettings", "start_minimized"))
+        self.start_mini = BooleanVar(
+            master, value=config.getboolean("AppSettings", "start_minimized")
+        )
         self.start_mini_check = Checkbutton(master, variable=self.start_mini)
 
         # Avg monitor color match
-        self.avg_monitor = StringVar(master, value=config["AverageColor"]["DefaultMonitor"])
-        options = ['full', 'get_primary_monitor', *getDisplayRects()]
+        self.avg_monitor = StringVar(
+            master, value=config["AverageColor"]["DefaultMonitor"]
+        )
+        options = ["full", "get_primary_monitor", *getDisplayRects()]
         # lst = getDisplayRects()
         # for i in range(1, len(lst) + 1):
         #    els = [list(x) for x in itertools.combinations(lst, i)]
         #    options.extend(els)
         self.avg_monitor_dropdown = OptionMenu(master, self.avg_monitor, *options)
 
-        self.duration_scale = Scale(master, from_=0, to_=2, resolution=1 / 15, orient=HORIZONTAL)
+        self.duration_scale = Scale(
+            master, from_=0, to_=2, resolution=1 / 15, orient=HORIZONTAL
+        )
         self.duration_scale.set(float(config["AverageColor"]["Duration"]))
 
-        self.brightness_offset = Scale(master, from_=0, to_=65535, resolution=1, orient=HORIZONTAL)
+        self.brightness_offset = Scale(
+            master, from_=0, to_=65535, resolution=1, orient=HORIZONTAL
+        )
         self.brightness_offset.set(int(config["AverageColor"]["brightnessoffset"]))
 
         # Custom preset color
         self.preset_color_name = Entry(master)
         self.preset_color_name.insert(END, "Enter color name...")
-        self.preset_color_button = Button(master, text="Choose and add!", command=self.get_color)
+        self.preset_color_button = Button(
+            master, text="Choose and add!", command=self.get_color
+        )
 
         # Audio dropdown
         device_names = self.master.audio_interface.get_device_names()
         try:
-            init_string = " " + config["Audio"]["InputIndex"] + " " + device_names[int(config["Audio"]["InputIndex"])]
+            init_string = (
+                " "
+                + config["Audio"]["InputIndex"]
+                + " "
+                + device_names[int(config["Audio"]["InputIndex"])]
+            )
         except ValueError:
             init_string = " None"
-        self.audio_source = StringVar(master,
-                                      init_string)  # AudioSource index is grabbed from [1], so add a space at [0]
+        self.audio_source = StringVar(
+            master, init_string
+        )  # AudioSource index is grabbed from [1], so add a space at [0]
         as_choices = device_names.items()
         self.as_dropdown = OptionMenu(master, self.audio_source, *as_choices)
 
         # Add keybindings
         lightnames = list(self.root_window.lightsdict.keys())
         self.keybind_bulb_selection = StringVar(master, value=lightnames[0])
-        self.keybind_bulb_dropdown = OptionMenu(master, self.keybind_bulb_selection,
-                                                *lightnames)
+        self.keybind_bulb_dropdown = OptionMenu(
+            master, self.keybind_bulb_selection, *lightnames
+        )
         self.keybind_keys_select = Entry(master)
         self.keybind_keys_select.insert(END, "Add key-combo...")
-        self.keybind_keys_select.config(state='readonly')
-        self.keybind_keys_select.bind('<FocusIn>', self.on_keybind_keys_click)
-        self.keybind_keys_select.bind('<FocusOut>', lambda *_: self.keybind_keys_select.config(state='readonly'))
+        self.keybind_keys_select.config(state="readonly")
+        self.keybind_keys_select.bind("<FocusIn>", self.on_keybind_keys_click)
+        self.keybind_keys_select.bind(
+            "<FocusOut>", lambda *_: self.keybind_keys_select.config(state="readonly")
+        )
         self.keybind_color_selection = StringVar(master, value="Color")
-        self.keybind_color_dropdown = OptionMenu(master, self.keybind_color_selection,
-                                                 *self.root_window.framesdict[
-                                                     self.keybind_bulb_selection.get()].default_colors,
-                                                 *(
-                                                     [*config["PresetColors"].keys()] if any(
-                                                         config["PresetColors"].keys()) else [None])
-                                                 )
-        self.keybind_add_button = Button(master, text="Add keybind",
-                                         command=lambda *_: self.register_keybinding(
-                                             self.keybind_bulb_selection.get(), self.keybind_keys_select.get(),
-                                             self.keybind_color_selection.get()))
-        self.keybind_delete_button = Button(master, text="Delete keybind", command=self.delete_keybind)
+        self.keybind_color_dropdown = OptionMenu(
+            master,
+            self.keybind_color_selection,
+            *self.root_window.framesdict[
+                self.keybind_bulb_selection.get()
+            ].default_colors,
+            *(
+                [*config["PresetColors"].keys()]
+                if any(config["PresetColors"].keys())
+                else [None]
+            )
+        )
+        self.keybind_add_button = Button(
+            master,
+            text="Add keybind",
+            command=lambda *_: self.register_keybinding(
+                self.keybind_bulb_selection.get(),
+                self.keybind_keys_select.get(),
+                self.keybind_color_selection.get(),
+            ),
+        )
+        self.keybind_delete_button = Button(
+            master, text="Delete keybind", command=self.delete_keybind
+        )
 
         # Insert
         self.start_mini_check.grid(row=0, column=1)
-        ttk.Separator(master, orient=HORIZONTAL).grid(row=0, sticky='esw', columnspan=100)
+        ttk.Separator(master, orient=HORIZONTAL).grid(
+            row=0, sticky="esw", columnspan=100
+        )
         self.avg_monitor_dropdown.grid(row=1, column=1)
         self.duration_scale.grid(row=2, column=1)
         self.brightness_offset.grid(row=3, column=1)
-        ttk.Separator(master, orient=HORIZONTAL).grid(row=3, sticky='esw', columnspan=100)
+        ttk.Separator(master, orient=HORIZONTAL).grid(
+            row=3, sticky="esw", columnspan=100
+        )
         self.preset_color_name.grid(row=4, column=1)
         self.preset_color_button.grid(row=4, column=2)
-        ttk.Separator(master, orient=HORIZONTAL).grid(row=4, sticky='esw', columnspan=100)
+        ttk.Separator(master, orient=HORIZONTAL).grid(
+            row=4, sticky="esw", columnspan=100
+        )
         self.as_dropdown.grid(row=5, column=1)
-        ttk.Separator(master, orient=HORIZONTAL).grid(row=5, sticky='esw', columnspan=100)
+        ttk.Separator(master, orient=HORIZONTAL).grid(
+            row=5, sticky="esw", columnspan=100
+        )
         self.keybind_bulb_dropdown.grid(row=6, column=1)
         self.keybind_keys_select.grid(row=6, column=2)
         self.keybind_color_dropdown.grid(row=6, column=3)
         self.keybind_add_button.grid(row=6, column=4)
-        self.mlb = MultiListbox(master, (('Bulb', 5), ('Keybind', 5), ('Color', 5)))
-        for keypress, fnx in dict(config['Keybinds']).items():
-            label, color = fnx.split(':')
+        self.mlb = MultiListbox(master, (("Bulb", 5), ("Keybind", 5), ("Color", 5)))
+        for keypress, fnx in dict(config["Keybinds"]).items():
+            label, color = fnx.split(":")
             self.mlb.insert(END, (label, keypress, color))
-        self.mlb.grid(row=7, columnspan=100, sticky='esw')
+        self.mlb.grid(row=7, columnspan=100, sticky="esw")
         self.keybind_delete_button.grid(row=8, column=0)
 
     def validate(self):
@@ -314,7 +383,7 @@ class SettingsDisplay(Dialog):
         config["AverageColor"]["BrightnessOffset"] = str(self.brightness_offset.get())
         config["Audio"]["InputIndex"] = str(self.audio_source.get()[1])
         # Write to config file
-        with open('config.ini', 'w') as cfg:
+        with open("config.ini", "w") as cfg:
             config.write(cfg)
 
         self.key_listener.shutdown()
@@ -332,16 +401,18 @@ class SettingsDisplay(Dialog):
     def register_keybinding(self, bulb: str, keys: str, color: str):
         """ Get the keybind from the input box and pass the color off to the root window. """
         try:
-            color = self.root_window.framesdict[self.keybind_bulb_selection.get()].default_colors[color]
+            color = self.root_window.framesdict[
+                self.keybind_bulb_selection.get()
+            ].default_colors[color]
         except KeyError:  # must be using a custom color
             color = str2list(config["PresetColors"][color], int)
         self.root_window.save_keybind(bulb, keys, color)
         config["Keybinds"][str(keys)] = str(bulb + ":" + str(color))
         self.mlb.insert(END, (str(bulb), str(keys), str(color)))
-        self.keybind_keys_select.config(state='normal')
-        self.keybind_keys_select.delete(0, 'end')
+        self.keybind_keys_select.config(state="normal")
+        self.keybind_keys_select.delete(0, "end")
         self.keybind_keys_select.insert(END, "Add key-combo...")
-        self.keybind_keys_select.config(state='readonly')
+        self.keybind_keys_select.config(state="readonly")
         self.preset_color_name.focus_set()  # Set focus to a dummy widget to reset the Entry
 
     def on_keybind_keys_click(self, event):
@@ -349,11 +420,11 @@ class SettingsDisplay(Dialog):
         self.update()
         self.update_idletasks()
         self.key_listener.restart()
-        self.keybind_keys_select.config(state='normal')
+        self.keybind_keys_select.config(state="normal")
         self.update()
         self.update_idletasks()
         while self.focus_get() == self.keybind_keys_select:
-            self.keybind_keys_select.delete(0, 'end')
+            self.keybind_keys_select.delete(0, "end")
             self.keybind_keys_select.insert(END, self.key_listener.get_key_combo_code())
             self.update()
             self.update_idletasks()

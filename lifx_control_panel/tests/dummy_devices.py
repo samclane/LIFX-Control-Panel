@@ -13,10 +13,10 @@ from lifxlan import product_map, Group
 from ..utilities.utils import Color as DummyColor
 from ..utilities.utils import resource_path
 
-LOGFILE = 'lifx-control-panel.log'
+LOGFILE = "lifx-control-panel.log"
 
 # determine if application is a script file or frozen exe
-if getattr(sys, 'frozen', False):
+if getattr(sys, "frozen", False):
     application_path = os.path.dirname(sys.executable)
 elif __file__:
     application_path = os.path.dirname(__file__)
@@ -26,10 +26,14 @@ LOGFILE = os.path.join(application_path, LOGFILE)
 
 # Helpers
 def randomMAC():
-    return [0x00, 0x16, 0x3e,
-            randint(0x00, 0x7f),
-            randint(0x00, 0xff),
-            randint(0x00, 0xff)]
+    return [
+        0x00,
+        0x16,
+        0x3E,
+        randint(0x00, 0x7F),
+        randint(0x00, 0xFF),
+        randint(0x00, 0xFF),
+    ]
 
 
 def randomIP():
@@ -184,15 +188,17 @@ class DummyDevice:
 
 
 class DummyBulb(DummyDevice):
-    def __init__(self,
-                 color=None,
-                 label="N/A"):
+    def __init__(self, color=None, label="N/A"):
         super().__init__(label)
         if color:
             self.color = color
         else:
-            self.color = DummyColor(randrange(0, 65535), randrange(0, 65535), randrange(0, 65535),
-                                    randrange(1500, 9000))
+            self.color = DummyColor(
+                randrange(0, 65535),
+                randrange(0, 65535),
+                randrange(0, 65535),
+                randrange(1500, 9000),
+            )
         self.power: int = 0
 
     # Official api
@@ -280,10 +286,25 @@ class TileChainDummy(DummyBulb):
         return len(self.cache)
 
     def get_tile_colors(self, start_index, tile_count=0, x=0, y=0, width=0):
-        return [tile.get_color() for tile in self.tiles[start_index:start_index + tile_count]]
+        return [
+            tile.get_color()
+            for tile in self.tiles[start_index : start_index + tile_count]
+        ]
 
-    def set_tile_colors(self, start_index, colors, duration=0, tile_count=0, x=0, y=0, width=0, rapid=False):
-        for index, tile in enumerate(self.tiles[start_index:start_index + tile_count]):
+    def set_tile_colors(
+        self,
+        start_index,
+        colors,
+        duration=0,
+        tile_count=0,
+        x=0,
+        y=0,
+        width=0,
+        rapid=False,
+    ):
+        for index, tile in enumerate(
+            self.tiles[start_index : start_index + tile_count]
+        ):
             tile.set_color(colors[index])
 
     def get_tilechain_colors(self):
@@ -325,25 +346,45 @@ class LifxLANDummy:
         return tuple(light for light in self.devices.values() if light.supports_color())
 
     def get_infrared_lights(self):
-        return tuple(light for light in self.devices.values() if light.supports_infrared())
+        return tuple(
+            light for light in self.devices.values() if light.supports_infrared()
+        )
 
     def get_multizone_lights(self):
-        return tuple(light for light in self.devices.values() if light.supports_multizone())
+        return tuple(
+            light for light in self.devices.values() if light.supports_multizone()
+        )
 
     def get_tilechain_lights(self):
-        return tuple(light for light in self.devices.values() if type(light) is TileChainDummy)
+        return tuple(
+            light for light in self.devices.values() if type(light) is TileChainDummy
+        )
 
     def get_device_by_name(self, name):
         return self.devices[name]
 
     def get_devices_by_names(self, names):
-        return Group(list(light for light in self.devices.values() if light.get_label() in names))
+        return Group(
+            list(light for light in self.devices.values() if light.get_label() in names)
+        )
 
     def get_devices_by_group(self, group_id):
-        return Group(list(light for light in self.devices.values() if light.get_group() == group_id))
+        return Group(
+            list(
+                light
+                for light in self.devices.values()
+                if light.get_group() == group_id
+            )
+        )
 
     def get_devices_by_location(self, location: str):
-        return Group(list(light for light in self.devices.values() if light.get_location() == location))
+        return Group(
+            list(
+                light
+                for light in self.devices.values()
+                if light.get_location() == location
+            )
+        )
 
     def set_power_all_lights(self, power, duration=0, rapid=False):
         for light in self.devices:
@@ -353,9 +394,13 @@ class LifxLANDummy:
         for light in self.devices:
             light.set_color(color)
 
-    def set_waveform_all_lights(self, is_transient, color, period, cycles, duty_cycle, wavform, rapid=False):
+    def set_waveform_all_lights(
+        self, is_transient, color, period, cycles, duty_cycle, wavform, rapid=False
+    ):
         for light in self.devices:
-            light.set_waveform(is_transient, color, period, cycles, duty_cycle, wavform, rapid)
+            light.set_waveform(
+                is_transient, color, period, cycles, duty_cycle, wavform, rapid
+            )
 
     def get_power_all_lights(self):
         return dict([((light, light.get_power()) for light in self.devices)])
@@ -447,18 +492,20 @@ def main():
     root.title("lifx_control_panel")
 
     # Setup main_icon
-    root.iconbitmap(resource_path('res/icon_vector.ico'))
+    root.iconbitmap(resource_path("res/icon_vector.ico"))
 
-    root.logger = logging.getLogger('root')
+    root.logger = logging.getLogger("root")
     root.logger.setLevel(logging.DEBUG)
-    fh = logging.FileHandler(LOGFILE, mode='w')
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh = logging.FileHandler(LOGFILE, mode="w")
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     fh.setFormatter(formatter)
     sh = logging.StreamHandler()
     sh.setLevel(logging.DEBUG)
     sh.setFormatter(formatter)
     root.logger.addHandler(sh)
-    root.logger.info('Logger initialized.')
+    root.logger.info("Logger initialized.")
 
     mainframe = LifxFrame(root, lifx)
 
@@ -466,7 +513,9 @@ def main():
     logger = mainframe.logger
 
     def myHandler(type, value, tb):
-        logger.exception("Uncaught exception: {}:{}:{}".format(repr(type), str(value), repr(tb)))
+        logger.exception(
+            "Uncaught exception: {}:{}:{}".format(repr(type), str(value), repr(tb))
+        )
 
     # sys.excepthook = myHandler  # dont' want to log exceptions when we're testing
 
@@ -478,7 +527,12 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        messagebox.showerror("Unhandled Exception", "Unhandled runtime exception: {}\n\n"
-                                                    "Please report this at: {}".format(traceback.format_exc(),
-                                                                                       r"https://github.com/samclane/LIFX-Control-Panel/issues"))
+        messagebox.showerror(
+            "Unhandled Exception",
+            "Unhandled runtime exception: {}\n\n"
+            "Please report this at: {}".format(
+                traceback.format_exc(),
+                r"https://github.com/samclane/LIFX-Control-Panel/issues",
+            ),
+        )
         raise e

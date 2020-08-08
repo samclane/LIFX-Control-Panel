@@ -35,7 +35,7 @@ class Splash:
         ypos = (screen_height - img_height) // 2
         # Configure the window showing the logo.
         window.overrideredirect(True)
-        window.geometry('+{}+{}'.format(xpos, ypos))
+        window.geometry("+{}+{}".format(xpos, ypos))
         # Setup canvas on which image is drawn.
         canvas.configure(width=img_width, height=img_height, highlightthickness=0)
         canvas.grid()

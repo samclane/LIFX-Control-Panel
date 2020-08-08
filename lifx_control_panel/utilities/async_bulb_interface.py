@@ -52,6 +52,8 @@ class AsyncBulbInterface(threading.Thread):
 
     def run(self):
         """ Continuous loop that has a thread query each device every HEARTBEAT ms. """
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.device_list)) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=len(self.device_list)
+        ) as executor:
             while not self.stopped.wait(self.hb_rate / 1000):
                 executor.map(self.query_device, self.device_list)

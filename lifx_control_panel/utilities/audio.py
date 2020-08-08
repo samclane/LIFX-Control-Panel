@@ -46,23 +46,25 @@ class AudioInterface:
         try:
             # Find input device index
             info = self.interface.get_host_api_info_by_index(0)
-            self.num_devices = info.get('deviceCount')
+            self.num_devices = info.get("deviceCount")
             # If a setting is found, use it. Otherwise try and find Stereo Mix
             if config.has_option("Audio", "InputIndex"):
                 input_device_index = int(config["Audio"]["InputIndex"])
             else:
                 input_device_index = self.get_stereo_mix_index()
                 config["Audio"]["InputIndex"] = str(input_device_index)
-                with open('config.ini', 'w') as cfg:
+                with open("config.ini", "w") as cfg:
                     config.write(cfg)
             if input_device_index is None:
                 raise OSError("No Input channel found. Disabling Sound Integration.")
-            self.stream = self.interface.open(format=FORMAT,
-                                              channels=CHANNELS,
-                                              rate=RATE,
-                                              input=True,
-                                              frames_per_buffer=CHUNK,
-                                              input_device_index=input_device_index)
+            self.stream = self.interface.open(
+                format=FORMAT,
+                channels=CHANNELS,
+                rate=RATE,
+                input=True,
+                frames_per_buffer=CHUNK,
+                input_device_index=input_device_index,
+            )
             self.initialized = True
         except (ValueError, OSError) as exc:
             if self.initialized:  # only show error if main app has already started
@@ -73,8 +75,15 @@ class AudioInterface:
         """ Naively get stereo mix, as it's probably the best input """
         device_index = None
         for i in range(0, self.num_devices):
-            if "stereo mix" in self.interface.get_device_info_by_host_api_device_index(0, i)['name'].lower():
-                device_index = self.interface.get_device_info_by_host_api_device_index(0, i)['index']
+            if (
+                "stereo mix"
+                in self.interface.get_device_info_by_host_api_device_index(0, i)[
+                    "name"
+                ].lower()
+            ):
+                device_index = self.interface.get_device_info_by_host_api_device_index(
+                    0, i
+                )["index"]
         return device_index
 
     def get_device_names(self):

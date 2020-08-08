@@ -7,14 +7,16 @@ from ..utilities.utils import Color
 
 
 def rand_color():
-    return Color(random.randint(0, 65535),
-                 random.randint(0, 65535),
-                 random.randint(0, 65535),
-                 random.randint(3500, 9000))
+    return Color(
+        random.randint(0, 65535),
+        random.randint(0, 65535),
+        random.randint(0, 65535),
+        random.randint(3500, 9000),
+    )
 
 
 def rand_string(n):
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=n))
+    return "".join(random.choices(string.ascii_uppercase + string.digits, k=n))
 
 
 class TestLAN(unittest.TestCase):
@@ -68,12 +70,12 @@ class TestBulb(unittest.TestCase):
 
     def test_power_duration(self):
         self.bulb.set_power(False)
-        self.assertEqual(self.bulb.get_power(), False, 'Bulb init off')
+        self.assertEqual(self.bulb.get_power(), False, "Bulb init off")
         duration = random.randint(1, 5)
         self.bulb.set_power(True, duration)
-        self.assertEqual(self.bulb.get_power(), True, 'Duration on')
+        self.assertEqual(self.bulb.get_power(), True, "Duration on")
         time.sleep(duration + 1)
-        self.assertEqual(self.bulb.get_power(), False, 'Reset to off')
+        self.assertEqual(self.bulb.get_power(), False, "Reset to off")
 
     def test_color_duration(self):
         color_a = rand_color()

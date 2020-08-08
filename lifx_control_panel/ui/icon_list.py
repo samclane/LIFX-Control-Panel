@@ -24,18 +24,21 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
         self.highlight_color = 95
 
         # Icon Coding
-        self.color_code = {
-            "BULB_TOP": 11,
-            "BACKGROUND": 15
-        }
+        self.color_code = {"BULB_TOP": 11, "BACKGROUND": 15}
 
         # Initialization
-        super().__init__(*args, width=self.window_width, height=self.icon_height, **kwargs)
+        super().__init__(
+            *args, width=self.window_width, height=self.icon_height, **kwargs
+        )
         self.scrollx = 0
         self.scrolly = 0
         self.bulb_dict = {}
-        self.canvas = tkinter.Canvas(self, width=self.window_width, height=self.icon_height,
-                                     scrollregion=(0, 0, self.scrollx, self.scrolly))
+        self.canvas = tkinter.Canvas(
+            self,
+            width=self.window_width,
+            height=self.icon_height,
+            scrollregion=(0, 0, self.scrollx, self.scrolly),
+        )
         hbar = tkinter.Scrollbar(self, orient=tkinter.HORIZONTAL)
         hbar.pack(side=tkinter.BOTTOM, fill=tkinter.X)
         hbar.config(command=self.canvas.xview)
@@ -65,7 +68,7 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
         path_map: Dict[type, Union[int, bytes]] = {
             lifxlan.Group: utils.resource_path("res/group.png"),
             lifxlan.Light: utils.resource_path("res/lightbulb.png"),
-            lifxlan.MultiZoneLight: utils.resource_path("res/multizone.png")
+            lifxlan.MultiZoneLight: utils.resource_path("res/multizone.png"),
         }
         return path_map
 
@@ -78,10 +81,21 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
         path = self.icon_path()
         sprite = tkinter.PhotoImage(file=path, master=self.master)
         image = self.canvas.create_image(
-            (self.current_icon_width + self.icon_width - self.pad, self.icon_height / 2 + 2 * self.pad), image=sprite,
-            anchor=tkinter.SE, tags=[label])
-        text = self.canvas.create_text(self.current_icon_width + self.pad / 2, self.icon_height / 2 + 2 * self.pad,
-                                       text=label[:8], anchor=tkinter.NW, tags=[label])
+            (
+                self.current_icon_width + self.icon_width - self.pad,
+                self.icon_height / 2 + 2 * self.pad,
+            ),
+            image=sprite,
+            anchor=tkinter.SE,
+            tags=[label],
+        )
+        text = self.canvas.create_text(
+            self.current_icon_width + self.pad / 2,
+            self.icon_height / 2 + 2 * self.pad,
+            text=label[:8],
+            anchor=tkinter.NW,
+            tags=[label],
+        )
         self.bulb_dict[label] = (sprite, image, text)
         self.update_icon(bulb)
         # update sizing info
@@ -102,23 +116,42 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
             return
         # Calculate what number, 0-11, corresponds to current brightness
         brightness_scale = (int((bulb_brightness / 65535) * 10) * (bulb_power > 0)) - 1
-        color_string = ''
+        color_string = ""
         for y in range(sprite.height()):  # pylint: disable=invalid-name
-            color_string += '{'
+            color_string += "{"
             for x in range(sprite.width()):  # pylint: disable=invalid-name
                 # If the tick is < brightness, color it. Otherwise, set it back to the default color
                 icon_rgb = self.original_icon[x, y][:3]
-                if all([(v <= brightness_scale or v == self.color_code["BULB_TOP"]) for v in icon_rgb]) and \
-                        self.original_icon[x, y][3] == 255:
-                    bulb_color = bulb_color[0], bulb_color[1], bulb_color[2], bulb_color[3]
+                if (
+                    all(
+                        [
+                            (v <= brightness_scale or v == self.color_code["BULB_TOP"])
+                            for v in icon_rgb
+                        ]
+                    )
+                    and self.original_icon[x, y][3] == 255
+                ):
+                    bulb_color = (
+                        bulb_color[0],
+                        bulb_color[1],
+                        bulb_color[2],
+                        bulb_color[3],
+                    )
                     color = utils.HSBKtoRGB(bulb_color)
-                elif all([v in (self.color_code["BACKGROUND"], self.highlight_color) for v in icon_rgb]) and \
-                        self.original_icon[x, y][3] == 255:
+                elif (
+                    all(
+                        [
+                            v in (self.color_code["BACKGROUND"], self.highlight_color)
+                            for v in icon_rgb
+                        ]
+                    )
+                    and self.original_icon[x, y][3] == 255
+                ):
                     color = sprite.get(x, y)[:3]
                 else:
                     color = icon_rgb
-                color_string += utils.tuple2hex(color) + ' '
-            color_string += '} '
+                color_string += utils.tuple2hex(color) + " "
+            color_string += "} "
         # Write the final colorstring to the sprite, then update the GUI
         sprite.put(color_string, (0, 0, sprite.height(), sprite.width()))
         self.canvas.itemconfig(image, image=sprite)
@@ -128,17 +161,20 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
         if self._current_icon:
             self.clear_selected()
         sprite, image, _ = self.bulb_dict[lightname]
-        color_string = ''
+        color_string = ""
         for y in range(sprite.height()):  # pylint: disable=invalid-name
-            color_string += '{'
+            color_string += "{"
             for x in range(sprite.width()):  # pylint: disable=invalid-name
                 icon_rgb = sprite.get(x, y)[:3]
-                if all([(v == self.color_code["BACKGROUND"]) for v in icon_rgb]) and self.original_icon[x, y][3] == 255:
+                if (
+                    all([(v == self.color_code["BACKGROUND"]) for v in icon_rgb])
+                    and self.original_icon[x, y][3] == 255
+                ):
                     color = (self.highlight_color,) * 3
                 else:
                     color = icon_rgb
-                color_string += utils.tuple2hex(color) + ' '
-            color_string += '} '
+                color_string += utils.tuple2hex(color) + " "
+            color_string += "} "
         sprite.put(color_string, (0, 0, sprite.height(), sprite.width()))
         self.canvas.itemconfig(image, image=sprite)
         self._current_icon = lightname
@@ -146,17 +182,20 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
     def clear_selected(self):
         """ Reset background to original state (from highlighted). """
         sprite, image, _ = self.bulb_dict[self._current_icon]
-        color_string = ''
+        color_string = ""
         for y in range(sprite.height()):  # pylint: disable=invalid-name
-            color_string += '{'
+            color_string += "{"
             for x in range(sprite.width()):  # pylint: disable=invalid-name
                 icon_rgb = sprite.get(x, y)[:3]
-                if all([(v == self.highlight_color) for v in icon_rgb]) and self.original_icon[x, y][3] == 255:
+                if (
+                    all([(v == self.highlight_color) for v in icon_rgb])
+                    and self.original_icon[x, y][3] == 255
+                ):
                     color = (self.color_code["BACKGROUND"],) * 3
                 else:
                     color = icon_rgb
-                color_string += utils.tuple2hex(color) + ' '
-            color_string += '} '
+                color_string += utils.tuple2hex(color) + " "
+            color_string += "} "
         sprite.put(color_string, (0, 0, sprite.height(), sprite.width()))
         self.canvas.itemconfig(image, image=sprite)
         self._current_icon = None

@@ -20,7 +20,8 @@ from desktopmagic.screengrab_win32 import getDisplayRects
 
 class Color:
     """ Container class for a single color vector in HSBK color-space. """
-    __slots__ = ['hue', 'saturation', 'brightness', 'kelvin']
+
+    __slots__ = ["hue", "saturation", "brightness", "kelvin"]
 
     def __init__(self, hue: int, saturation: int, brightness: int, kelvin: int):
         self.hue = hue
@@ -38,28 +39,28 @@ class Color:
         self.__setattr__(self.__slots__[key], value)
 
     def __str__(self) -> str:
-        return "[{}, {}, {}, {}]".format(self.hue,
-                                         self.saturation,
-                                         self.brightness,
-                                         self.kelvin)
+        return "[{}, {}, {}, {}]".format(
+            self.hue, self.saturation, self.brightness, self.kelvin
+        )
 
     def __repr__(self) -> str:
-        return [self.hue,
-                self.saturation,
-                self.brightness,
-                self.kelvin].__repr__()
+        return [self.hue, self.saturation, self.brightness, self.kelvin].__repr__()
 
     def __eq__(self, other) -> bool:
-        return self.hue == other.hue and \
-               self.brightness == other.brightness and \
-               self.saturation == other.saturation and \
-               self.kelvin == other.kelvin
+        return (
+            self.hue == other.hue
+            and self.brightness == other.brightness
+            and self.saturation == other.saturation
+            and self.kelvin == other.kelvin
+        )
 
     def __add__(self, other):
-        return Color(self.hue + other[0],
-                     self.saturation + other[1],
-                     self.brightness + other[2],
-                     self.kelvin + other[3])
+        return Color(
+            self.hue + other[0],
+            self.saturation + other[1],
+            self.brightness + other[2],
+            self.kelvin + other[3],
+        )
 
     def __sub__(self, other):
         return self.__add__([-v for v in other])
@@ -210,7 +211,7 @@ def kelvinToRGB(temperature: int) -> TypeRGB:
 
 def tuple2hex(tuple_: TypeRGB) -> str:
     """ Takes a color in tuple form an converts it to hex. """
-    return '#%02x%02x%02x' % tuple_
+    return "#%02x%02x%02x" % tuple_
 
 
 def str2list(string: str, type_func) -> list:
@@ -227,7 +228,9 @@ def str2tuple(string: str, type_func) -> tuple:
 @lru_cache(maxsize=None)
 def get_primary_monitor() -> Tuple[int, int, int, int]:
     """ Return the system's default primary monitor rectangle bounds. """
-    return [rect for rect in getDisplayRects() if rect[:2] == (0, 0)][0]  # primary monitor has top left as 0, 0
+    return [rect for rect in getDisplayRects() if rect[:2] == (0, 0)][
+        0
+    ]  # primary monitor has top left as 0, 0
 
 
 def resource_path(relative_path) -> Union[int, bytes]:
@@ -243,16 +246,17 @@ def resource_path(relative_path) -> Union[int, bytes]:
 
 # Misc
 
+
 def timeit(method):
     def timed(*args, **kw):
         ts = time.time()
         result = method(*args, **kw)
         te = time.time()
-        if 'log_time' in kw:
-            name = kw.get('log_name', method.__name__.upper())
-            kw['log_time'][name] = int((te - ts) * 1000)
+        if "log_time" in kw:
+            name = kw.get("log_name", method.__name__.upper())
+            kw["log_time"][name] = int((te - ts) * 1000)
         else:
-            print('%r  %2.2f ms' % (method.__name__, (te - ts) * 1000))
+            print("%r  %2.2f ms" % (method.__name__, (te - ts) * 1000))
         return result
 
     return timed

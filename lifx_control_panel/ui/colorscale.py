@@ -5,9 +5,19 @@ from ..utilities.utils import tuple2hex, hueToRGB, kelvinToRGB
 
 
 class ColorScale(tk.Canvas):
-
-    def __init__(self, parent, val=0, height=13, width=100, variable=None, from_=0, to=360, command=None,
-                 gradient='hue', **kwargs):
+    def __init__(
+        self,
+        parent,
+        val=0,
+        height=13,
+        width=100,
+        variable=None,
+        from_=0,
+        to=360,
+        command=None,
+        gradient="hue",
+        **kwargs
+    ):
         """
         Create a ColorScale.
         Keyword arguments:
@@ -44,10 +54,10 @@ class ColorScale(tk.Canvas):
 
         self.gradient = tk.PhotoImage(master=self, width=width, height=height)
 
-        self.bind('<Configure>', lambda e: self._draw_gradient(val))
-        self.bind('<ButtonPress-1>', self._on_click)
+        self.bind("<Configure>", lambda e: self._draw_gradient(val))
+        self.bind("<ButtonPress-1>", self._on_click)
         # self.bind('<ButtonRelease-1>', self._on_release)
-        self.bind('<B1-Motion>', self._on_move)
+        self.bind("<B1-Motion>", self._on_move)
 
     def _draw_gradient(self, val):
         """Draw the gradient and put the cursor on val."""
@@ -61,18 +71,28 @@ class ColorScale(tk.Canvas):
 
         line = []
 
-        if self.color_grad == 'bw':
+        if self.color_grad == "bw":
+
             def f(i):
                 line.append(tuple2hex((int(float(i) / width * 255),) * 3))
-        elif self.color_grad == 'wb':
+
+        elif self.color_grad == "wb":
+
             def f(i):
                 line.append(tuple2hex((int((1 - (float(i) / width)) * 255),) * 3))
-        elif self.color_grad == 'kelvin':
+
+        elif self.color_grad == "kelvin":
+
             def f(i):
-                line.append(tuple2hex(kelvinToRGB(((float(i) / width) * self.range) + self.min)))
-        elif self.color_grad == 'hue':
+                line.append(
+                    tuple2hex(kelvinToRGB(((float(i) / width) * self.range) + self.min))
+                )
+
+        elif self.color_grad == "hue":
+
             def f(i):
                 line.append(tuple2hex(hueToRGB(float(i) / width * 360)))
+
         else:
             raise ValueError("gradient value {} not recognized".format(self.color_grad))
 
@@ -87,7 +107,7 @@ class ColorScale(tk.Canvas):
             x = (val - self.min) / float(self.range) * width
         except ZeroDivisionError:
             x = self.min
-        self.create_line(x, 0, x, height, width=4, fill='white', tags="cursor")
+        self.create_line(x, 0, x, height, width=4, fill="white", tags="cursor")
         self.create_line(x, 0, x, height, width=2, tags="cursor")
 
     def _on_click(self, event):
@@ -121,7 +141,7 @@ class ColorScale(tk.Canvas):
 
     def get(self):
         """Return val of color under cursor."""
-        coords = self.coords('cursor')
+        coords = self.coords("cursor")
         width = self.winfo_width()
         return round(self.range * coords[0] / width, 2)
 
