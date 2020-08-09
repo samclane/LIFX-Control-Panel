@@ -23,7 +23,7 @@ import lifxlan
 
 from lifx_control_panel import HEARTBEAT_RATE_MS, FRAME_PERIOD_MS, LOGFILE
 from lifx_control_panel._constants import BUILD_DATE, AUTHOR, DEBUGGING, VERSION
-from lifx_control_panel.frames import LightFrame, MultiZoneFrame
+from lifx_control_panel.frames import LightFrame, MultiZoneFrame, GroupFrame
 from lifx_control_panel.ui import SysTrayIcon, settings
 from lifx_control_panel.ui.icon_list import BulbIconList
 from lifx_control_panel.ui.settings import config
@@ -188,7 +188,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
                     self.lightsdict[group_label].label = group_label
                     self.group_icons.draw_bulb_icon(None, group_label)
                     self.logger.info("Group found: %s", group_label)
-                    self.framesdict[group_label] = LightFrame(self, self.lightsdict[group_label])
+                    self.framesdict[group_label] = GroupFrame(self, self.lightsdict[group_label])
                     self.logger.info("Building new frame: %s", self.framesdict[group_label].get_label())
             except lifxlan.WorkflowException as exc:
                 self.logger.warning("Error when communicating with LIFX device: %s", exc)
@@ -220,7 +220,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         item = canvas.find_closest(x_canv, y_canv)
         lightname = canvas.gettags(item)[0]
         self.lightvar.set(lightname)
-        if not canvas.master.is_group:  # Lightframes
+        if not canvas.master.is_group:  # BulbIconList
             self.bulb_icons.set_selected_bulb(lightname)
             if self.group_icons.current_icon:
                 self.group_icons.clear_selected()
@@ -233,7 +233,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         """ If the window isn't minimized, redraw icons to reflect their current power/color state. """
         if self.master.winfo_viewable():
             for frame in self.framesdict.values():
-                if not frame.is_group and frame.icon_update_flag:
+                if not isinstance(frame, GroupFrame) and frame.icon_update_flag:
                     self.bulb_icons.update_icon(frame.target)
                     frame.icon_update_flag = False
         self.after(FRAME_PERIOD_MS, self.update_icons)

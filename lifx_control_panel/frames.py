@@ -40,6 +40,10 @@ from lifx_control_panel.utilities.utils import (
     str2tuple,
 )
 
+MAX_KELVIN_DEFAULT = 9000
+
+MIN_KELVIN_DEFAULT = 1500
+
 
 class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     """ Holds control and state information about a single device. """
@@ -68,10 +72,11 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     option_on: tkinter.Radiobutton
     option_off: tkinter.Radiobutton
     logger: logging.Logger
+    min_kelvin: int = MIN_KELVIN_DEFAULT
+    max_kelvin: int = MAX_KELVIN_DEFAULT
 
     def __init__(self, master, target: Union[lifxlan.Group, lifxlan.Device]):
-        ttk.Labelframe.__init__(
-            self,
+        super().__init__(
             master,
             padding="3 3 12 12",
             labelwidget=tkinter.Label(
@@ -82,50 +87,9 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                 relief=tkinter.RIDGE,
             ),
         )
-        self.is_group: bool = isinstance(target, lifxlan.Group)
         self.icon_update_flag: bool = True
         # Initialize LightFrames
-        bulb_power: int = 0
-        init_color: Color = Color(*lifxlan.WARM_WHITE)
-        try:
-            if self.is_group:
-                devices: List[lifxlan.Device] = target.get_device_list()
-                self.label = devices[0].get_group_label()
-                bulb_power = devices[0].get_power()
-                # Find an init_color- ensure device has color attribute, otherwise fallback
-                color_devices: List[lifxlan.Device] = list(
-                    filter(lambda d: d.supports_color(), devices)
-                )
-                if len(color_devices) > 0 and hasattr(color_devices[0], "get_color"):
-                    init_color = Color(*color_devices[0].get_color())
-                self.min_kelvin = min(
-                    [
-                        device.product_features.get("min_kelvin") or 1500
-                        for device in target.get_device_list()
-                    ]
-                )
-                self.max_kelvin = max(
-                    [
-                        device.product_features.get("max_kelvin") or 9000
-                        for device in target.get_device_list()
-                    ]
-                )
-            else:  # is bulb
-                self.label = target.get_label()
-                bulb_power = target.get_power()
-                if target.supports_multizone():
-                    init_color = Color(*target.get_color_zones()[0])
-                else:
-                    init_color = Color(*target.get_color())
-                self.min_kelvin = target.product_features.get("min_kelvin") or 1500
-                self.max_kelvin = target.product_features.get("max_kelvin") or 9000
-        except lifxlan.WorkflowException as exc:
-            messagebox.showerror(
-                "Error building {}".format(self.__class__.__name__),
-                "Error thrown when trying to get label from bulb:\n{}".format(exc),
-            )
-            self.master.on_closing()
-            # TODO Let this fail safely and try again later
+        bulb_power, init_color = self.get_light_info(target)
 
         # Reconfigure label with correct name
         self.configure(
@@ -168,6 +132,31 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
 
         # Start update loop
         self.update_status_from_bulb()
+
+    def get_light_info(self, target) -> Tuple[int, Color]:
+        bulb_power: int = 0
+        init_color: Color = Color(*lifxlan.WARM_WHITE)
+        try:
+            self.label = target.get_label()
+            bulb_power = target.get_power()
+            if target.supports_multizone():
+                init_color = Color(*target.get_color_zones()[0])
+            else:
+                init_color = Color(*target.get_color())
+            self.min_kelvin = (
+                target.product_features.get("min_kelvin") or MIN_KELVIN_DEFAULT
+            )
+            self.max_kelvin = (
+                target.product_features.get("max_kelvin") or MAX_KELVIN_DEFAULT
+            )
+        except lifxlan.WorkflowException as exc:
+            messagebox.showerror(
+                "Error building {}".format(self.__class__.__name__),
+                "Error thrown when trying to get label from bulb:\n{}".format(exc),
+            )
+            self.master.on_closing()
+            # TODO Let this fail safely and try again later
+        return bulb_power, init_color
 
     def setup_screen_region_select(self):
         self.screen_region_lf = ttk.LabelFrame(
@@ -600,8 +589,6 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         Periodically update status from the bulb to keep UI in sync.
         :param run_once: Don't call `after` statement at end. Keeps a million workers from being instanced.
         """
-        if self.is_group:
-            return
         require_icon_update = False
         if not self.master.bulb_interface.power_queue[self.label].empty():
             power = self.master.bulb_interface.power_queue[self.label].get()
@@ -695,6 +682,45 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         # Write to config file
         with open("config.ini", "w") as cfg:
             config.write(cfg)
+
+
+class GroupFrame(LightFrame):
+    def get_light_info(self, target) -> Tuple[int, Color]:
+        bulb_power: int = 0
+        init_color: Color = Color(*lifxlan.WARM_WHITE)
+        try:
+            devices: List[lifxlan.Device] = target.get_device_list()
+            self.label = devices[0].get_group_label()
+            bulb_power = devices[0].get_power()
+            # Find an init_color- ensure device has color attribute, otherwise fallback
+            color_devices: List[lifxlan.Device] = list(
+                filter(lambda d: d.supports_color(), devices)
+            )
+            if len(color_devices) > 0 and hasattr(color_devices[0], "get_color"):
+                init_color = Color(*color_devices[0].get_color())
+            self.min_kelvin = min(
+                [
+                    device.product_features.get("min_kelvin") or MIN_KELVIN_DEFAULT
+                    for device in target.get_device_list()
+                ]
+            )
+            self.max_kelvin = max(
+                [
+                    device.product_features.get("max_kelvin") or MAX_KELVIN_DEFAULT
+                    for device in target.get_device_list()
+                ]
+            )
+        except lifxlan.WorkflowException as exc:
+            messagebox.showerror(
+                "Error building {}".format(self.__class__.__name__),
+                "Error thrown when trying to get label from bulb:\n{}".format(exc),
+            )
+            self.master.on_closing()
+            # TODO Let this fail safely and try again later
+        return bulb_power, init_color
+
+    def update_status_from_bulb(self, run_once=False):
+        return
 
 
 class MultiZoneFrame(LightFrame):
