@@ -19,7 +19,8 @@ setup(
     include_package_data=True,
     keywords=["lifx", "iot", "smartbulb", "smartlight", "lan", "application"],
     install_requires=[
-        "PyHook3",
+        "keyboard",
+        "mouse",
         "desktopmagic",
         "win32gui",
         "pyaudio",

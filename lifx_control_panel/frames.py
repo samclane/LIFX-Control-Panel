@@ -3,6 +3,7 @@ import tkinter
 from tkinter import ttk, font as font, messagebox, _setit
 from typing import Union, List, Tuple, Dict, Mapping
 
+import mouse
 import lifxlan
 import win32api
 from desktopmagic.screengrab_win32 import (
@@ -23,7 +24,6 @@ from lifxlan import (
     WARM_WHITE,
     GOLD,
 )
-from win32gui import GetCursorPos
 
 from lifx_control_panel import RED, FRAME_PERIOD_MS
 from lifx_control_panel.ui.colorscale import ColorScale
@@ -646,7 +646,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             lifxlan.sleep(0.001)
         # tkinter.Button state changed
         screen_img = getScreenAsImage()
-        cursor_pos = GetCursorPos()
+        cursor_pos = mouse.get_position()
         # Convert display coords to image coords
         cursor_pos = normalizeRects(
             getDisplayRects() + [(cursor_pos[0], cursor_pos[1], 0, 0)]

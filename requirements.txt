@@ -1,4 +1,5 @@
-PyHook3
+keyboard
+mouse
 desktopmagic
 pywin32
 pyaudio

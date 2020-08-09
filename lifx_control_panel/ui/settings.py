@@ -425,7 +425,7 @@ class SettingsDisplay(Dialog):
         self.update_idletasks()
         while self.focus_get() == self.keybind_keys_select:
             self.keybind_keys_select.delete(0, "end")
-            self.keybind_keys_select.insert(END, self.key_listener.get_key_combo_code())
+            self.keybind_keys_select.insert(END, self.key_listener.key_combo_code)
             self.update()
             self.update_idletasks()
 
