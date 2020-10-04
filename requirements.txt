@@ -1,4 +1,4 @@
-keyboard
+keyboard==0.13.5
 mouse
 desktopmagic
 pywin32
