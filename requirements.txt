@@ -1,5 +1,5 @@
 keyboard
-mouse
+mouse==0.7.0
 desktopmagic
 pywin32
 pyaudio
