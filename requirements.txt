@@ -3,7 +3,7 @@ mouse
 desktopmagic
 pywin32
 pyaudio
-Pillow
+Pillow==8.0.0
 lifxlan
 numexpr
 numpy
