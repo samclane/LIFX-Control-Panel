@@ -11,10 +11,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.x
+      - name: Set up Python 3.7
         uses: actions/setup-python@v1
         with:
-          python-version: '3.6.x' # Semantic version range syntax or exact version of a Python version
+          python-version: '3.7.x' # Semantic version range syntax or exact version of a Python version
           architecture: 'x64' # Optional - x64 or x86, defaults to x64
       - name: Cache pip
         uses: actions/cache@v1
@@ -49,6 +49,7 @@ jobs:
           user: __token__
           password: ${{ secrets.pypi_password }}
       - name: Create Release
+        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && success()
         id: create_release
         uses: actions/create-release@v1
         env:
@@ -63,6 +64,7 @@ jobs:
           draft: false
           prerelease: false
       - name: Upload Release Binaries
+        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && success()
         id: upload-release-asset
         uses: actions/upload-release-asset@v1.0.1
         env:
