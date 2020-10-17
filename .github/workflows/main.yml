@@ -39,7 +39,7 @@ jobs:
       - name: Build Project
         run: |
           cd ./lifx_control_panel
-          set PYTHONOPTIMIZE=1 && ../venv/Scripts/pyinstaller.exe --onefile --noupx build_all.spec
+          set PYTHONOPTIMIZE=1 && pyinstaller --onefile --noupx build_all.spec
           cd ..
       - name: Publish Package on PYPI
         if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && success()
