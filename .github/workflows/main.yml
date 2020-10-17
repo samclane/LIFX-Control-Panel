@@ -31,9 +31,9 @@ jobs:
           Expand-Archive .\swigwin-4.0.1.zip .;
           echo "::add-path::./swigwin-4.0.1"
           mkdir swig
-          Expand-Archive -Force "C:\tmp\swigwin-4.0.1.zip" "C:\tmp\swig"
-          setx path "%path%;C:\tmp\swig"
-          pathman /as "C:\tmp\swig"
+          Expand-Archive -Force ".\swigwin-4.0.1.zip" .\swig"
+          setx path "%path%;C:\swig"
+          pathman /as "C:\swig"
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Build Project
