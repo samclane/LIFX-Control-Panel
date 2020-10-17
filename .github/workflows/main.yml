@@ -30,7 +30,10 @@ jobs:
           (New-Object System.Net.WebClient).DownloadFile("http://prdownloads.sourceforge.net/swig/swigwin-4.0.1.zip","swigwin-4.0.1.zip");
           Expand-Archive .\swigwin-4.0.1.zip .;
           echo "::add-path::./swigwin-4.0.1"
-          swig -version;
+          mkdir swig
+          Expand-Archive -Force "C:\tmp\swig-4.0.1.tar.gz" "C:\tmp\swig"
+          setx path "%path%;C:\tmp\swig"
+          pathman /as "C:\tmp\swig"
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Build Project
