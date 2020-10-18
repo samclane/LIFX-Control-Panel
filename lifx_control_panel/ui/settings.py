@@ -39,7 +39,7 @@ from tkinter import (
 )
 from tkinter.colorchooser import askcolor
 
-from desktopmagic.screengrab_win32 import getDisplayRects
+import mss
 from lifxlan.utils import RGBtoHSBK
 
 from ..utilities.keypress import KeybindManager
@@ -265,7 +265,12 @@ class SettingsDisplay(Dialog):
         self.avg_monitor = StringVar(
             master, value=config["AverageColor"]["DefaultMonitor"]
         )
-        options = ["full", "get_primary_monitor", *getDisplayRects()]
+        with mss.mss() as sct:
+            options = [
+                "full",
+                "get_primary_monitor",
+                *[tuple(m.values()) for m in sct.monitors],
+            ]
         # lst = getDisplayRects()
         # for i in range(1, len(lst) + 1):
         #    els = [list(x) for x in itertools.combinations(lst, i)]

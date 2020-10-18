@@ -21,7 +21,6 @@ setup(
     install_requires=[
         "keyboard",
         "mouse",
-        "desktopmagic",
         "win32gui",
         "pyaudio",
         "Pillow",

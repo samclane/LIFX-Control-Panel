@@ -6,11 +6,7 @@ from typing import Union, List, Tuple, Dict, Mapping
 import mouse
 import lifxlan
 import win32api
-from desktopmagic.screengrab_win32 import (
-    getScreenAsImage,
-    normalizeRects,
-    getDisplayRects,
-)
+
 from lifxlan import (
     ORANGE,
     YELLOW,
@@ -29,6 +25,7 @@ from lifx_control_panel import RED, FRAME_PERIOD_MS
 from lifx_control_panel.ui.colorscale import ColorScale
 from lifx_control_panel.ui.settings import config
 from lifx_control_panel.utilities import color_thread
+from lifx_control_panel.utilities.color_thread import getScreenAsImage, normalizeRects
 from lifx_control_panel.utilities.utils import (
     Color,
     tuple2hex,
@@ -38,6 +35,7 @@ from lifx_control_panel.utilities.utils import (
     get_primary_monitor,
     str2list,
     str2tuple,
+    getDisplayRects,
 )
 
 MAX_KELVIN_DEFAULT = 9000

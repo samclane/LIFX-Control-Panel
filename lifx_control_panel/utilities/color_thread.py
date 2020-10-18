@@ -7,12 +7,12 @@ import logging
 import threading
 from functools import lru_cache
 
+import mss
 import numexpr as ne
 import numpy as np
 
 # from lib.color_functions import dominant_color
 from PIL import Image
-from desktopmagic.screengrab_win32 import getRectAsImage, getScreenAsImage
 from lifxlan import utils
 
 from .utils import str2list
@@ -26,13 +26,36 @@ def get_monitor_bounds(func):
     return func() or config["AverageColor"]["DefaultMonitor"]
 
 
+def getScreenAsImage():
+    with mss.mss() as sct:
+        sct_img = sct.grab(sct.monitors[0])
+        img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
+        return img
+
+
+def getRectAsImage(bounds):
+    with mss.mss() as sct:
+        sct_img = sct.grab(bounds)
+        img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
+        return img
+
+
+def normalizeRects(rects):
+    smallestX = min(rect[0] for rect in rects)
+    smallestY = min(rect[1] for rect in rects)
+    return list(
+        (-smallestX + left, -smallestY + top, -smallestX + right, -smallestY + bottom)
+        for left, top, right, bottom in rects
+    )
+
+
 def avg_screen_color(initial_color, func_bounds=lambda: None):
     """ Capture an image of the monitor defined by func_bounds, then get the average color of the image in HSBK"""
     monitor = get_monitor_bounds(func_bounds)
     if "full" in monitor:
         screenshot = getScreenAsImage()
     else:
-        screenshot = getRectAsImage(str2list(monitor, int))
+        screenshot = getRectAsImage(tuple(str2list(monitor, int)))
     # Resizing the image to 1x1 pixel will give us the average for the whole image (via HAMMING interpolation)
     color = screenshot.resize((1, 1), Image.HAMMING).getpixel((0, 0))
     color_hsbk = list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
@@ -47,7 +70,7 @@ def dominant_screen_color(initial_color, func_bounds=lambda: None):
     if "full" in monitor:
         screenshot = getScreenAsImage()
     else:
-        screenshot = getRectAsImage(str2list(monitor, int))
+        screenshot = getRectAsImage(tuple(str2list(monitor, int)))
 
     downscale_width, downscale_height = screenshot.width // 4, screenshot.height // 4
     screenshot = screenshot.resize((downscale_width, downscale_height), Image.HAMMING)

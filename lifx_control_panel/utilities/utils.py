@@ -15,7 +15,7 @@ from functools import lru_cache
 from math import log, floor
 from typing import Union, Tuple
 
-from desktopmagic.screengrab_win32 import getDisplayRects
+import mss
 
 
 class Color:
@@ -260,3 +260,8 @@ def timeit(method):
         return result
 
     return timed
+
+
+def getDisplayRects():
+    with mss.mss() as sct:
+        return [tuple(m.values()) for m in sct.monitors]

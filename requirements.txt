@@ -1,6 +1,5 @@
 keyboard
 mouse
-desktopmagic
 pywin32
 pyaudio
 Pillow
