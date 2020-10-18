@@ -6,3 +6,4 @@ Pillow
 lifxlan
 numexpr
 numpy
+mss
