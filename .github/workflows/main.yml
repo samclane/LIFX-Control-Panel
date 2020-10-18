@@ -42,12 +42,6 @@ jobs:
           cd ./lifx_control_panel
           set PYTHONOPTIMIZE=1 && pyinstaller --onefile --noupx build_all.spec
           cd ..
-      - name: Publish Package on PYPI
-        if: success()
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: __token__
-          password: ${{ secrets.pypi_password }}
       - name: Create Release
         if: success()
         id: create_release
@@ -74,3 +68,14 @@ jobs:
           asset_path: ./lifx_control_panel/dist/lifx_control_panel.exe
           asset_name: lifx_control_panel.exe
           asset_content_type: vnd.microsoft.portable-executable
+  deploy:
+    needs: build
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Publish Package on PYPI
+       uses: pypa/gh-action-pypi-publish@master
+       with:
+         user: __token__
+         password: ${{ secrets.pypi_password }}
