@@ -6,4 +6,4 @@ pyaudio
 Pillow
 lifxlan
 numexpr
-numpy
+numpy==1.19.3
