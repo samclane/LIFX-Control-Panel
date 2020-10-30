@@ -1,2 +1,2 @@
-pre-commit
+pre-commit==2.8.2
 black
