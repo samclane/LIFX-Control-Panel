@@ -1,7 +1,7 @@
 keyboard
 mouse
 desktopmagic
-pywin32
+pywin32==300
 pyaudio
 Pillow
 lifxlan
