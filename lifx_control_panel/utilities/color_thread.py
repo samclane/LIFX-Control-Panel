@@ -28,13 +28,24 @@ def get_monitor_bounds(func):
 
 def getScreenAsImage():
     with mss.mss() as sct:
-        sct_img = sct.grab(sct.monitors[0])
+        monitor = sct.monitors[0]
+
+        # Capture a bbox using percent values
+        left = monitor["left"]  # + monitor["width"] * 5 // 100  # 5% from the left
+        top = monitor["top"]  # + monitor["height"] * 5 // 100  # 5% from the top
+        right = monitor["left"] + monitor["width"]  # left + 400  # 400px width
+        lower = monitor["top"] + monitor["height"]  # top + 400  # 400px height
+        bbox = (left, top, right, lower)
+        sct_img = sct.grab(bbox)
         img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
         return img
 
 
 def getRectAsImage(bounds):
     with mss.mss() as sct:
+        # apply offsets first
+        bounds[2] += bounds[0]
+        bounds[3] += bounds[1]
         sct_img = sct.grab(bounds)
         img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
         return img

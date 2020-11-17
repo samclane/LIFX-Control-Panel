@@ -161,10 +161,10 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             self, text="Screen Avg. Region", padding="3 3 12 12"
         )
         self.screen_region_entries = {
-            "x1": tkinter.Entry(self.screen_region_lf, width=6),
-            "x2": tkinter.Entry(self.screen_region_lf, width=6),
-            "y1": tkinter.Entry(self.screen_region_lf, width=6),
-            "y2": tkinter.Entry(self.screen_region_lf, width=6),
+            "left": tkinter.Entry(self.screen_region_lf, width=6),
+            "width": tkinter.Entry(self.screen_region_lf, width=6),
+            "top": tkinter.Entry(self.screen_region_lf, width=6),
+            "height": tkinter.Entry(self.screen_region_lf, width=6),
         }
         region = config["AverageColor"][
             self.label
@@ -177,22 +177,22 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             region = get_primary_monitor()
         else:
             region = str2list(region, int)
-        self.screen_region_entries["x1"].insert(tkinter.END, region[0])
-        self.screen_region_entries["y1"].insert(tkinter.END, region[1])
-        self.screen_region_entries["x2"].insert(tkinter.END, region[2])
-        self.screen_region_entries["y2"].insert(tkinter.END, region[3])
-        tkinter.Label(self.screen_region_lf, text="x1").grid(
+        self.screen_region_entries["left"].insert(tkinter.END, region[0])
+        self.screen_region_entries["top"].insert(tkinter.END, region[1])
+        self.screen_region_entries["width"].insert(tkinter.END, region[2])
+        self.screen_region_entries["height"].insert(tkinter.END, region[3])
+        tkinter.Label(self.screen_region_lf, text="left").grid(
             row=7, column=0, sticky="e"
         )
-        self.screen_region_entries["x1"].grid(row=7, column=1, padx=(0, 10))
-        tkinter.Label(self.screen_region_lf, text="x2").grid(row=7, column=2)
-        self.screen_region_entries["x2"].grid(row=7, column=3)
-        tkinter.Label(self.screen_region_lf, text="y1").grid(
+        self.screen_region_entries["left"].grid(row=7, column=1, padx=(0, 10))
+        tkinter.Label(self.screen_region_lf, text="width").grid(row=7, column=2)
+        self.screen_region_entries["width"].grid(row=7, column=3)
+        tkinter.Label(self.screen_region_lf, text="top").grid(
             row=8, column=0, sticky="e"
         )
-        self.screen_region_entries["y1"].grid(row=8, column=1, padx=(0, 10))
-        tkinter.Label(self.screen_region_lf, text="y2").grid(row=8, column=2)
-        self.screen_region_entries["y2"].grid(row=8, column=3)
+        self.screen_region_entries["top"].grid(row=8, column=1, padx=(0, 10))
+        tkinter.Label(self.screen_region_lf, text="height").grid(row=8, column=2)
+        self.screen_region_entries["height"].grid(row=8, column=3)
         tkinter.Button(
             self.screen_region_lf, text="Save", command=self.save_monitor_bounds
         ).grid(row=9, column=1, sticky="w")
