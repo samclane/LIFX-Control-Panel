@@ -20,11 +20,13 @@ from tkinter import messagebox, ttk
 from typing import List, Dict, Mapping
 
 import lifxlan
+import pystray
+from PIL import Image
 
 from lifx_control_panel import HEARTBEAT_RATE_MS, FRAME_PERIOD_MS, LOGFILE
 from lifx_control_panel._constants import BUILD_DATE, AUTHOR, DEBUGGING, VERSION
 from lifx_control_panel.frames import LightFrame, MultiZoneFrame, GroupFrame
-from lifx_control_panel.ui import SysTrayIcon, settings
+from lifx_control_panel.ui import settings
 from lifx_control_panel.ui.icon_list import BulbIconList
 from lifx_control_panel.ui.settings import config
 from lifx_control_panel.ui.splashscreen import Splash
@@ -110,17 +112,24 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.group_icons.canvas.bind('<Button-1>', self.on_bulb_canvas_click)
 
         # Setup tray icon
-        tray_options = (('Adjust Lights', None, lambda *_, **__: self.master.deiconify()),)
-
-        def lambda_factory(self_):
+        def lambda_quit(self_):
             """ Build an anonymous function call w/ correct 'self' scope"""
             return lambda *_, **__: self_.on_closing()
 
+        def lambda_adjust(self_):
+            return lambda *_, **__: self_.master.deiconify()
+
         def run_tray_icon():
             """ Allow SysTrayIcon in a separate thread """
-            SysTrayIcon.SysTrayIcon(resource_path('res/icon_vector.ico'), "lifx_control_panel",
-                                    tray_options,
-                                    on_quit=lambda_factory(self))
+            image = Image.open(resource_path('res/icon_vector.ico'))
+
+            icon = pystray.Icon("LIFX Control Panel", image, menu=pystray.Menu(
+                pystray.MenuItem('Quit',
+                                 lambda_quit(self)),
+                pystray.MenuItem('Adjust Lights',
+                                 lambda_adjust(self))
+            ))
+            icon.run()
 
         self.systray_thread = threading.Thread(target=run_tray_icon, daemon=True)
         self.systray_thread.start()

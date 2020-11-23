@@ -1,9 +1,9 @@
 keyboard
 mouse
-pywin32
 pyaudio
 Pillow
 lifxlan
 numexpr
 numpy
 mss
+pystray
