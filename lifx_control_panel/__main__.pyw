@@ -124,10 +124,11 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
             image = Image.open(resource_path('res/icon_vector.ico'))
 
             icon = pystray.Icon("LIFX Control Panel", image, menu=pystray.Menu(
+                pystray.MenuItem('Open',
+                                 lambda_adjust(self),
+                                 default=True),
                 pystray.MenuItem('Quit',
                                  lambda_quit(self)),
-                pystray.MenuItem('Adjust Lights',
-                                 lambda_adjust(self))
             ))
             icon.run()
 

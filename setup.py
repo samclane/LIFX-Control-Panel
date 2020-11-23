@@ -21,13 +21,13 @@ setup(
     install_requires=[
         "keyboard",
         "mouse",
-        "win32gui",
         "pyaudio",
         "Pillow",
         "lifxlan",
-        "pywin32",
         "numexpr",
         "numpy",
+        "mss",
+        "pystray",
     ],
     download_url=f"https://github.com/samclane/LIFX-Control-Panel/archive/"
     + str(VERSION)
