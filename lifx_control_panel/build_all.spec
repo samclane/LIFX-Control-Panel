@@ -16,7 +16,7 @@ with open('_constants.py', 'w') as f:
 block_cipher = None
 
 a = Analysis(
-    ['__main__.pyw', 'utilities//color_thread.py', 'utilities//audio.py', 'ui//settings.py', 'ui//SysTrayIcon.py',
+    ['__main__.pyw', 'utilities//color_thread.py', 'utilities//audio.py', 'ui//settings.py',
               'utilities//utils.py', '_constants.py', 'ui//splashscreen.py'],
     pathex=['\\.'],
     binaries=[],
@@ -94,7 +94,7 @@ exe = EXE(pyz,
 
 a = Analysis(
     ['tests//dummy_devices.py', '__main__.pyw', 'utilities//color_thread.py', 'utilities//audio.py', 'ui//settings.py',
-     'ui//SysTrayIcon.py', 'utilities//utils.py', '_constants.py', 'ui//splashscreen.py'],
+     'utilities//utils.py', '_constants.py', 'ui//splashscreen.py'],
     pathex=['\\.'],
     binaries=[],
     datas=[],

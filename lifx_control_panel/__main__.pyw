@@ -21,6 +21,8 @@ from typing import List, Dict, Mapping
 
 import lifxlan
 import pystray
+if os.name == 'nt':
+    import pystray._win32
 from PIL import Image
 
 from lifx_control_panel import HEARTBEAT_RATE_MS, FRAME_PERIOD_MS, LOGFILE
