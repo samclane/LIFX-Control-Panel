@@ -17,7 +17,7 @@ import traceback
 from collections import OrderedDict
 from logging.handlers import RotatingFileHandler
 from tkinter import messagebox, ttk
-from typing import List, Dict, Mapping
+from typing import List, Dict, Union
 
 import lifxlan
 import pystray
@@ -90,7 +90,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
 
         # Initialize LIFX objects
         self.lightvar = tkinter.StringVar(self)
-        self.lightsdict: Mapping[str, lifxlan.Light] = OrderedDict()  # LifxLight objects
+        self.lightsdict: Dict[str, lifxlan.Light] = OrderedDict()  # LifxLight objects
         self.framesdict: Dict[str, LightFrame] = {}  # corresponding LightFrame GUI
         self.current_lightframe: LightFrame  # currently selected and visible LightFrame
         self.current_light: lifxlan.Light
@@ -103,8 +103,8 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
             self.lightvar.set(next(iter(self.lightsdict.keys())))
             self.current_light = self.lightsdict[self.lightvar.get()]
         else:
-            messagebox.showerror("No lights found.", "No LIFX devices were found on your LAN. Exiting.")
-            self.on_closing()
+            messagebox.showwarning("No lights found.", "No LIFX devices were found on your LAN. Try using File->Rescan"
+                                                       " to search again.")
 
         self.bulb_icons.grid(row=1, column=1, sticky='w')
         self.bulb_icons.canvas.bind('<Button-1>', self.on_bulb_canvas_click)
@@ -162,7 +162,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         stop_event: threading.Event = self.bulb_interface.stopped
         if not stop_event.isSet():
             stop_event.set()
-        device_list: List[lifxlan.Device] = self.lifx.get_devices()
+        device_list: List[Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]] = self.lifx.get_devices()
         if self.bulb_interface:
             del self.bulb_interface
         self.bulb_interface = AsyncBulbInterface(stop_event, HEARTBEAT_RATE_MS)

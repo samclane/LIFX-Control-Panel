@@ -1,7 +1,5 @@
 # LIFX-Control-Panel 
 
-### LIFX Beam Support Coming Soon!
-
 <img align="right" width="120" height="120" title="LIFX-Control-Panel Logo" src="./res/lifx-animated-logo.gif">
      
 LIFX-Control-Panel is an open source application for controlling your LIFX brand lights. It integrates simple features, 
@@ -20,8 +18,10 @@ such as monitoring and changing bulb color, with more advanced ones, like:
 
 [![Avg Test Youtube](https://img.youtube.com/vi/C-jZISM9MC0/0.jpg)](https://youtu.be/C-jZISM9MC0) 
 
-The application uses [mclarkk](https://github.com/mclarkk)'s [lifxlan](https://github.com/mclarkk/lifxlan) module to 
+The application uses a fork of  [mclarkk's](https://github.com/mclarkk)'s [lifxlan](https://github.com/mclarkk/lifxlan) module to 
 discover and send commands to the lights.
+
+[The fork can be found here.](https://github.com/samclane/lifxlan)
 
 # Quick Start
 There are ~~2~~ **3** ways to install:
@@ -52,7 +52,7 @@ run `python dummy_devices.py`.
 
 # Building
 LIFX-Control-Panel uses PyInstaller. After downloading the repository, open a command window in the `LIFX-Control-Panel`
-directory, and run `pyinstaller __main__.pyw`. This should generate the necessary file structure to build the project.
+directory, and run `pyinstaller __main__.pyw`. This should initialize the necessary file structure to build the project.
 Note: Delete `gui.spec`, we will be using one of the following `.spec` files included in the repository:
 
 * `main`
@@ -63,7 +63,7 @@ Note: Delete `gui.spec`, we will be using one of the following `.spec` files inc
   * The demo mode simulates adding several "dummy" lights to the LAN, allowing the software to be demonstrated on networks
   that do not have any LIFX devices on them.
 
-To build the project, simply open a command window in the same folder and run `build_all.bat` in the command prompt. It will 
+To build the project, simply open a terminal in the same folder and run `build_all.bat` in the command prompt. It will 
 call `pyinstaller` on all 3 `spec` files previously mentioned. This should generate an `.exe` in the `/dist` 
 folder of the project. 
 
@@ -83,6 +83,9 @@ and on the following LIFX devices:
 If you have any comments or concerns, please feel free to make a post on the [Issues page](https://github.com/samclane/LIFX-Control-Panel/issues). 
 
 If you enjoy LIFX-Control-Panel, please Like and leave a review on [AlternativeTo](https://alternativeto.net/software/lifx-control-panel/).
+
+### NEW 
+[Join our Discord Server](https://discord.gg/3pG9jaDG)
 
 # Donate
 LIFX-Control-Panel will always be free and open source. However, if you appreciate the work I'm doing and would like to 

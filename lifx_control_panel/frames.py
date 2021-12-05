@@ -73,7 +73,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     min_kelvin: int = MIN_KELVIN_DEFAULT
     max_kelvin: int = MAX_KELVIN_DEFAULT
 
-    def __init__(self, master, target: Union[lifxlan.Group, lifxlan.Device]):
+    def __init__(self, master, target: Union[lifxlan.Group, lifxlan.Light]):
         super().__init__(
             master,
             padding="3 3 12 12",
@@ -131,7 +131,9 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         # Start update loop
         self.update_status_from_bulb()
 
-    def get_light_info(self, target) -> Tuple[int, Color]:
+    def get_light_info(
+        self, target: Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]
+    ) -> Tuple[int, Color]:
         bulb_power: int = 0
         init_color: Color = Color(*lifxlan.WARM_WHITE)
         try:
@@ -687,13 +689,21 @@ class GroupFrame(LightFrame):
         bulb_power: int = 0
         init_color: Color = Color(*lifxlan.WARM_WHITE)
         try:
-            devices: List[lifxlan.Device] = target.get_device_list()
+            devices: List[
+                Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]
+            ] = target.get_device_list()
+            if len(devices) == 0:
+                logging.error("No devices found in group list")
+                self.label = "<No Group Found>"
+                self.min_kelvin, self.max_kelvin = 0, 99999  # arbitrary range
+                return 0, Color(0, 0, 0, 0)
+
             self.label = devices[0].get_group_label()
             bulb_power = devices[0].get_power()
             # Find an init_color- ensure device has color attribute, otherwise fallback
-            color_devices: List[lifxlan.Device] = list(
-                filter(lambda d: d.supports_color(), devices)
-            )
+            color_devices: List[
+                Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]
+            ] = list(filter(lambda d: d.supports_color(), devices))
             if len(color_devices) > 0 and hasattr(color_devices[0], "get_color"):
                 init_color = Color(*color_devices[0].get_color())
             self.min_kelvin = min(

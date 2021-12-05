@@ -2,7 +2,7 @@ keyboard
 mouse
 pyaudio
 Pillow
-lifxlan
+git+git://github.com/samclane/lifxlan@master#egg=lifxlan
 numexpr
 numpy
 mss
