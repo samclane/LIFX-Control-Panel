@@ -672,8 +672,8 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     def get_monitor_bounds(self):
         """ Return the 4 rectangle coordinates from the entry boxes in the UI """
         return (
-            f"[{self.screen_region_entries['x1'].get()}, {self.screen_region_entries['y1'].get()}, "
-            f"{self.screen_region_entries['x2'].get()}, {self.screen_region_entries['y2'].get()}]"
+            f"[{self.screen_region_entries['left'].get()}, {self.screen_region_entries['top'].get()}, "
+            f"{self.screen_region_entries['width'].get()}, {self.screen_region_entries['height'].get()}]"
         )
 
     def save_monitor_bounds(self):
