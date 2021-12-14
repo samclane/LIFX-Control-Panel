@@ -169,19 +169,19 @@ def kelvinToRGB(temperature: int) -> TypeRGB:
     # pylint: disable=invalid-name
     temperature /= 100
     # calc red
-    if temperature < 66:
+    if temperature <= 66:
         red = 255
     else:
         red = temperature - 60
-        red = 329.698727446 * (red ** -0.1332047592)
+        red = 329.698727466 * (red ** -0.1332047592)
         if red < 0:
             red = 0
         if red > 255:
             red = 255
     # calc green
-    if temperature < 66:
+    if temperature <= 66:
         green = temperature
-        green = 99.4708025861 * log(green) - 161.1195681661
+        green = 99.4708025861 * log(green + 0.0000000001) - 161.1195681661
         if green < 0:
             green = 0
         if green > 255:
@@ -197,7 +197,7 @@ def kelvinToRGB(temperature: int) -> TypeRGB:
     if temperature >= 66:
         blue = 255
     else:
-        if temperature < 19:
+        if temperature <= 19:
             blue = 0
         else:
             blue = temperature - 10
