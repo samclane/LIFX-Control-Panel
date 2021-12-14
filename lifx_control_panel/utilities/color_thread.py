@@ -43,10 +43,8 @@ def getScreenAsImage():
 
 def getRectAsImage(bounds):
     with mss.mss() as sct:
-        # apply offsets first
-        bounds[2] += bounds[0]
-        bounds[3] += bounds[1]
-        sct_img = sct.grab(bounds)
+        monitor = {"left": bounds[0], "top": bounds[1], "width": bounds[2], "height": bounds[3]}
+        sct_img = sct.grab(monitor)
         img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
         return img
 
@@ -66,7 +64,7 @@ def avg_screen_color(initial_color, func_bounds=lambda: None):
     if "full" in monitor:
         screenshot = getScreenAsImage()
     else:
-        screenshot = getRectAsImage(tuple(str2list(monitor, int)))
+        screenshot = getRectAsImage(str2list(monitor, int))
     # Resizing the image to 1x1 pixel will give us the average for the whole image (via HAMMING interpolation)
     color = screenshot.resize((1, 1), Image.HAMMING).getpixel((0, 0))
     color_hsbk = list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
@@ -81,7 +79,7 @@ def dominant_screen_color(initial_color, func_bounds=lambda: None):
     if "full" in monitor:
         screenshot = getScreenAsImage()
     else:
-        screenshot = getRectAsImage(tuple(str2list(monitor, int)))
+        screenshot = getRectAsImage(str2list(monitor, int))
 
     downscale_width, downscale_height = screenshot.width // 4, screenshot.height // 4
     screenshot = screenshot.resize((downscale_width, downscale_height), Image.HAMMING)
