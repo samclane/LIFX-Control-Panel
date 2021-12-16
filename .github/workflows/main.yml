@@ -29,7 +29,7 @@ jobs:
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: true
         run: |
-          (New-Object System.Net.WebClient).DownloadFile("https://prdownloads.sourceforge.net/swig/swigwin-4.0.1.zip","swigwin-4.0.1.zip");
+          (New-Object System.Net.WebClient).DownloadFile("http://prdownloads.sourceforge.net/swig/swigwin-4.0.1.zip","swigwin-4.0.1.zip");
           Expand-Archive .\swigwin-4.0.1.zip .;
           echo "::add-path::./swigwin-4.0.1"
       - name: Check swig
