@@ -35,10 +35,9 @@ class AsyncBulbInterface(threading.Thread):
             try:
                 label = dev.get_label()
                 self.color_queue[label] = queue.Queue()
-                if dev.supports_multizone():
-                    color = dev.get_color_zones()[0]
-                else:
-                    color = dev.color
+                color = (
+                    dev.get_color_zones()[0] if dev.supports_multizone() else dev.color
+                )
                 self.color_cache[dev.label] = color
                 self.power_queue[dev.label] = queue.Queue()
                 self.power_cache[dev.label] = dev.power_level or dev.get_power()

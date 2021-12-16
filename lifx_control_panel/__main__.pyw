@@ -194,16 +194,19 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
                     self.logger.info("Building new frame: %s", self.framesdict[label].get_label())
                 group_label = light.get_group_label()
                 if group_label not in self.lightsdict.keys():
-                    self.lightsdict[group_label]: lifxlan.Group = self.lifx.get_devices_by_group(group_label)
-                    self.lightsdict[group_label].get_label = lambda: group_label  # pylint: disable=cell-var-from-loop
-                    # Giving an attribute here is a bit dirty, but whatever
-                    self.lightsdict[group_label].label = group_label
-                    self.group_icons.draw_bulb_icon(None, group_label)
-                    self.logger.info("Group found: %s", group_label)
-                    self.framesdict[group_label] = GroupFrame(self, self.lightsdict[group_label])
-                    self.logger.info("Building new frame: %s", self.framesdict[group_label].get_label())
+                    self.build_group_frame(group_label)
             except lifxlan.WorkflowException as exc:
                 self.logger.warning("Error when communicating with LIFX device: %s", exc)
+
+    def build_group_frame(self, group_label):
+        self.lightsdict[group_label]: lifxlan.Group = self.lifx.get_devices_by_group(group_label)
+        self.lightsdict[group_label].get_label = lambda: group_label  # pylint: disable=cell-var-from-loop
+        # Giving an attribute here is a bit dirty, but whatever
+        self.lightsdict[group_label].label = group_label
+        self.group_icons.draw_bulb_icon(None, group_label)
+        self.logger.info("Group found: %s", group_label)
+        self.framesdict[group_label] = GroupFrame(self, self.lightsdict[group_label])
+        self.logger.info("Building new frame: %s", self.framesdict[group_label].get_label())
 
     def bulb_changed(self, *_, **__):
         """ Change current display frame when bulb icon is clicked. """
@@ -218,7 +221,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
             "Brought existing frame to front: %s", self.framesdict[new_light_label].get_label())
         self.current_lightframe = self.framesdict[new_light_label]
         self.current_lightframe.restart()
-        if not self.current_lightframe.get_label() == self.lightvar.get():
+        if self.current_lightframe.get_label() != self.lightvar.get():
             self.logger.error("Mismatch between LightFrame (%s) and Dropdown (%s)", self.current_lightframe.get_label(),
                               self.lightvar.get())
         self.master.bind('<Unmap>', lambda *_, **__: self.master.withdraw())  # reregister callback

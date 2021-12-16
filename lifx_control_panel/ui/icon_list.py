@@ -57,20 +57,19 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
 
     def icon_path(self):
         """ Returns the correct icon path for single Device or Group """
-        if self.is_group:
-            path = utils.resource_path("res/group.png")
-        else:
-            path = utils.resource_path("res/lightbulb.png")
-        return path
+        return (
+            utils.resource_path("res/group.png")
+            if self.is_group
+            else utils.resource_path("res/lightbulb.png")
+        )
 
     @property
-    def icon_paths(self):
-        path_map: Dict[type, Union[int, bytes]] = {
+    def icon_paths(self) -> Dict[type, Union[int, bytes]]:
+        return {
             lifxlan.Group: utils.resource_path("res/group.png"),
             lifxlan.Light: utils.resource_path("res/lightbulb.png"),
             lifxlan.MultiZoneLight: utils.resource_path("res/multizone.png"),
         }
-        return path_map
 
     def draw_bulb_icon(self, bulb, label):
         """ Given a bulb and a name, add the icon to the end of the row. """
@@ -124,10 +123,8 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
                 icon_rgb = self.original_icon[x, y][:3]
                 if (
                     all(
-                        [
-                            (v <= brightness_scale or v == self.color_code["BULB_TOP"])
-                            for v in icon_rgb
-                        ]
+                        (v <= brightness_scale or v == self.color_code["BULB_TOP"])
+                        for v in icon_rgb
                     )
                     and self.original_icon[x, y][3] == 255
                 ):
@@ -140,10 +137,8 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
                     color = utils.HSBKtoRGB(bulb_color)
                 elif (
                     all(
-                        [
-                            v in (self.color_code["BACKGROUND"], self.highlight_color)
-                            for v in icon_rgb
-                        ]
+                        v in (self.color_code["BACKGROUND"], self.highlight_color)
+                        for v in icon_rgb
                     )
                     and self.original_icon[x, y][3] == 255
                 ):
@@ -167,7 +162,7 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
             for x in range(sprite.width()):  # pylint: disable=invalid-name
                 icon_rgb = sprite.get(x, y)[:3]
                 if (
-                    all([(v == self.color_code["BACKGROUND"]) for v in icon_rgb])
+                    all(v == self.color_code["BACKGROUND"] for v in icon_rgb)
                     and self.original_icon[x, y][3] == 255
                 ):
                     color = (self.highlight_color,) * 3
@@ -188,7 +183,7 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-ancestors
             for x in range(sprite.width()):  # pylint: disable=invalid-name
                 icon_rgb = sprite.get(x, y)[:3]
                 if (
-                    all([(v == self.highlight_color) for v in icon_rgb])
+                    all(v == self.highlight_color for v in icon_rgb)
                     and self.original_icon[x, y][3] == 255
                 ):
                     color = (self.color_code["BACKGROUND"],) * 3

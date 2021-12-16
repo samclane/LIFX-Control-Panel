@@ -29,9 +29,10 @@ setup(
         "mss",
         "pystray",
     ],
-    download_url=f"https://github.com/samclane/LIFX-Control-Panel/archive/"
-    + str(VERSION)
-    + ".tar.gz",
+    download_url=(
+        ("https://github.com/samclane/LIFX-Control-Panel/archive/" + str(VERSION))
+        + ".tar.gz"
+    ),
     long_description_content_type="text/markdown",
     long_description=long_description,
     classifiers=[

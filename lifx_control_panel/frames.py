@@ -183,22 +183,21 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.screen_region_entries["top"].insert(tkinter.END, region[1])
         self.screen_region_entries["width"].insert(tkinter.END, region[2])
         self.screen_region_entries["height"].insert(tkinter.END, region[3])
-        tkinter.Label(self.screen_region_lf, text="left").grid(
-            row=7, column=0, sticky="e"
-        )
-        self.screen_region_entries["left"].grid(row=7, column=1, padx=(0, 10))
-        tkinter.Label(self.screen_region_lf, text="width").grid(row=7, column=2)
-        self.screen_region_entries["width"].grid(row=7, column=3)
-        tkinter.Label(self.screen_region_lf, text="top").grid(
-            row=8, column=0, sticky="e"
-        )
-        self.screen_region_entries["top"].grid(row=8, column=1, padx=(0, 10))
-        tkinter.Label(self.screen_region_lf, text="height").grid(row=8, column=2)
-        self.screen_region_entries["height"].grid(row=8, column=3)
+        self.grid_horiz_coordinate_box("left", 7, "width")
+        self.grid_horiz_coordinate_box("top", 8, "height")
         tkinter.Button(
             self.screen_region_lf, text="Save", command=self.save_monitor_bounds
         ).grid(row=9, column=1, sticky="w")
         self.screen_region_lf.grid(row=7, columnspan=4)
+
+    def grid_horiz_coordinate_box(self, text, row, arg2):
+        tkinter.Label(self.screen_region_lf, text=text).grid(
+            row=row, column=0, sticky="e"
+        )
+
+        self.screen_region_entries[text].grid(row=row, column=1, padx=(0, 10))
+        tkinter.Label(self.screen_region_lf, text=arg2).grid(row=row, column=2)
+        self.screen_region_entries[arg2].grid(row=row, column=3)
 
     def setup_special_functions(self):
         # Screen Avg.
@@ -518,9 +517,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                 rapid=rapid,
             )
         except lifxlan.WorkflowException as exc:
-            if rapid:  # If we're going fast we don't care if we miss a packet.
-                pass
-            else:
+            if not rapid:
                 raise exc
         if not rapid:
             self.logger.debug(
@@ -626,9 +623,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             action = win32api.GetKeyState(0x01)
             if action != state_left:  # tkinter.Button state changed
                 state_left = action
-                if action < 0:  # tkinter.Button down
-                    pass
-                else:  # tkinter.Button up
+                if action >= 0:
                     break
             lifxlan.sleep(0.001)
         # tkinter.Button state changed
@@ -692,7 +687,7 @@ class GroupFrame(LightFrame):
             devices: List[
                 Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]
             ] = target.get_device_list()
-            if len(devices) == 0:
+            if not devices:
                 logging.error("No devices found in group list")
                 self.label = "<No Group Found>"
                 self.min_kelvin, self.max_kelvin = 0, 99999  # arbitrary range
@@ -704,20 +699,18 @@ class GroupFrame(LightFrame):
             color_devices: List[
                 Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]
             ] = list(filter(lambda d: d.supports_color(), devices))
-            if len(color_devices) > 0 and hasattr(color_devices[0], "get_color"):
+            if color_devices and hasattr(color_devices[0], "get_color"):
                 init_color = Color(*color_devices[0].get_color())
             self.min_kelvin = min(
-                [
-                    device.product_features.get("min_kelvin") or MIN_KELVIN_DEFAULT
-                    for device in target.get_device_list()
-                ]
+                device.product_features.get("min_kelvin") or MIN_KELVIN_DEFAULT
+                for device in target.get_device_list()
             )
+
             self.max_kelvin = max(
-                [
-                    device.product_features.get("max_kelvin") or MAX_KELVIN_DEFAULT
-                    for device in target.get_device_list()
-                ]
+                device.product_features.get("max_kelvin") or MAX_KELVIN_DEFAULT
+                for device in target.get_device_list()
             )
+
         except lifxlan.WorkflowException as exc:
             messagebox.showerror(
                 "Error building {}".format(self.__class__.__name__),

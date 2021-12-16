@@ -188,9 +188,7 @@ class MultiListbox(Frame):  # pylint: disable=too-many-ancestors
 
     def get(self, first, last=None):
         """ Get specific item from the list """
-        result = []
-        for list_ in self.lists:
-            result.append(list_.get(first, last))
+        result = [list_.get(first, last) for list_ in self.lists]
         if last:
             return map(*([None] + result))
         return result
@@ -202,10 +200,8 @@ class MultiListbox(Frame):  # pylint: disable=too-many-ancestors
     def insert(self, index, *elements):
         """ Insert element into list"""
         for elm in elements:
-            i = 0
-            for list_ in self.lists:
+            for i, list_ in enumerate(self.lists):
                 list_.insert(index, elm[i])
-                i = i + 1
 
     def size(self):
         """ Size of internal list at call time """

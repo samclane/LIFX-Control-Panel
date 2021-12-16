@@ -37,25 +37,28 @@ def getScreenAsImage():
         lower = monitor["top"] + monitor["height"]  # top + 400  # 400px height
         bbox = (left, top, right, lower)
         sct_img = sct.grab(bbox)
-        img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
-        return img
+        return Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
 
 
 def getRectAsImage(bounds):
     with mss.mss() as sct:
-        monitor = {"left": bounds[0], "top": bounds[1], "width": bounds[2], "height": bounds[3]}
+        monitor = {
+            "left": bounds[0],
+            "top": bounds[1],
+            "width": bounds[2],
+            "height": bounds[3],
+        }
         sct_img = sct.grab(monitor)
-        img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
-        return img
+        return Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
 
 
 def normalizeRects(rects):
     smallestX = min(rect[0] for rect in rects)
     smallestY = min(rect[1] for rect in rects)
-    return list(
-        (-smallestX + left, -smallestY + top, -smallestX + right, -smallestY + bottom)
+    return [
+        (-smallestX + left, -smallestY + top, -smallestX + right, -smallestY + bottom,)
         for left, top, right, bottom in rects
-    )
+    ]
 
 
 def avg_screen_color(initial_color, func_bounds=lambda: None):
@@ -67,8 +70,7 @@ def avg_screen_color(initial_color, func_bounds=lambda: None):
         screenshot = getRectAsImage(str2list(monitor, int))
     # Resizing the image to 1x1 pixel will give us the average for the whole image (via HAMMING interpolation)
     color = screenshot.resize((1, 1), Image.HAMMING).getpixel((0, 0))
-    color_hsbk = list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
-    return color_hsbk
+    return list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
 
 
 def dominant_screen_color(initial_color, func_bounds=lambda: None):
