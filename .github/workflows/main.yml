@@ -11,11 +11,11 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.7
+      - name: Set up Python 3.8
         uses: actions/setup-python@v1
         with:
-          python-version: '3.7.x' # Semantic version range syntax or exact version of a Python version
-          architecture: 'x64' # Optional - x64 or x86, defaults to x64
+          python-version: '3.8.x' # Semantic version range syntax or exact version of a Python version
+          architecture: 'x64'
       - name: Cache pip
         uses: actions/cache@v1
         with:
@@ -26,8 +26,10 @@ jobs:
             ${{ runner.os }}-pip-
             ${{ runner.os }}-
       - name: Install swig
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
         run: |
-          (New-Object System.Net.WebClient).DownloadFile("http://prdownloads.sourceforge.net/swig/swigwin-4.0.1.zip","swigwin-4.0.1.zip");
+          (New-Object System.Net.WebClient).DownloadFile("https://prdownloads.sourceforge.net/swig/swigwin-4.0.1.zip","swigwin-4.0.1.zip");
           Expand-Archive .\swigwin-4.0.1.zip .;
           echo "::add-path::./swigwin-4.0.1"
       - name: Check swig
