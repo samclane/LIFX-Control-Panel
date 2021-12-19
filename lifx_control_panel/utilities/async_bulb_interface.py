@@ -27,21 +27,29 @@ class AsyncBulbInterface(threading.Thread):
         self.logger = logging.getLogger("root")
 
     def set_device_list(
-        self,
-        device_list: List[Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]],
+        self, device_list: List[lifxlan.Device],
     ):
         """ Set internet device list to passed list of LIFX devices. """
         for dev in device_list:
             try:
                 label = dev.get_label()
                 self.color_queue[label] = queue.Queue()
-                color = (
-                    dev.get_color_zones()[0] if dev.supports_multizone() else dev.color
-                )
+                try:
+                    if dev.supports_multizone():
+                        dev: lifxlan.MultiZoneLight
+                        color = dev.get_color_zones()[0]
+                    else:
+                        color = getattr(dev, "color", None)
+                except Exception as e:
+                    self.logger.error(e)
+                    color = None
                 self.color_cache[dev.label] = color
                 self.power_queue[dev.label] = queue.Queue()
-                self.power_cache[dev.label] = dev.power_level or dev.get_power()
-
+                try:
+                    self.power_cache[dev.label] = dev.power_level or dev.get_power()
+                except Exception as e:
+                    self.logger.error(e)
+                    self.power_cache[dev.label] = 0
                 self.device_list.append(dev)
             except lifxlan.WorkflowException as exc:
                 self.logger.warning(

@@ -17,7 +17,7 @@ import traceback
 from collections import OrderedDict
 from logging.handlers import RotatingFileHandler
 from tkinter import messagebox, ttk
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Optional
 
 import lifxlan
 import pystray
@@ -52,8 +52,8 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
     bulb_interface: AsyncBulbInterface
     current_lightframe: LightFrame
 
-    def __init__(self, master, lifx_instance: lifxlan.LifxLAN, bulb_interface: AsyncBulbInterface):
-        # We take a lifx instance so we can inject our own for testing.
+    def __init__(self, master: tkinter.Tk, lifx_instance: lifxlan.LifxLAN, bulb_interface: AsyncBulbInterface):
+        # We take a lifx instance, so we can inject our own for testing.
 
         # Start showing splash_screen while processing
         self.splashscreen = Splash(master, SPLASHFILE)
@@ -61,18 +61,19 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
 
         # Setup frame and grid
         ttk.Frame.__init__(self, master, padding="3 3 12 12")
-        self.master = master
+        self.master: tkinter.Tk = master
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.grid(column=0, row=0, sticky=(tkinter.N, tkinter.W, tkinter.E, tkinter.S))
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         self.lifx: lifxlan.LifxLAN = lifx_instance
-        self.bulb_interface = bulb_interface
+        self.bulb_interface: AsyncBulbInterface = bulb_interface
         self.audio_interface = audio.AudioInterface()
         self.audio_interface.init_audio(config)
 
         # Setup logger
-        self.logger = logging.getLogger(master.logger.name + '.' + self.__class__.__name__)
+        master_logger: str = master.logger.name if hasattr(master, 'logger') else "root"
+        self.logger = logging.getLogger(master_logger + '.' + self.__class__.__name__)
         self.logger.info('Root logger initialized: %s', self.logger.name)
         self.logger.info('Binary Version: %s', VERSION)
         self.logger.info('Build time: %s', BUILD_DATE)
@@ -92,8 +93,8 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.lightvar = tkinter.StringVar(self)
         self.lightsdict: Dict[str, lifxlan.Light] = OrderedDict()  # LifxLight objects
         self.framesdict: Dict[str, LightFrame] = {}  # corresponding LightFrame GUI
-        self.current_lightframe: LightFrame  # currently selected and visible LightFrame
-        self.current_light: lifxlan.Light
+        self.current_lightframe: Optional[LightFrame] = None  # currently selected and visible LightFrame
+        self.current_light: Optional[lifxlan.Light]
         self.bulb_icons = BulbIconList(self)
         self.group_icons = BulbIconList(self, is_group=True)
 
@@ -160,7 +161,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         """ Communicating with the interface Thread, attempt to find any new devices """
         # Stop and restart the bulb interface
         stop_event: threading.Event = self.bulb_interface.stopped
-        if not stop_event.isSet():
+        if not stop_event.is_set():
             stop_event.set()
         device_list: List[Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]] = self.lifx.get_devices()
         if self.bulb_interface:
