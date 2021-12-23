@@ -171,9 +171,6 @@ class DummyDevice:
     def get_downtime(self):  # no way to make this work. Shouldn't need it
         return 0
 
-    def is_light(self):
-        return True
-
     def supports_color(self):
         return True
 
@@ -190,15 +187,12 @@ class DummyDevice:
 class DummyBulb(DummyDevice):
     def __init__(self, color=None, label="N/A"):
         super().__init__(label)
-        if color:
-            self.color = color
-        else:
-            self.color = DummyColor(
-                randrange(0, 65535),
-                randrange(0, 65535),
-                randrange(0, 65535),
-                randrange(1500, 9000),
-            )
+        self.color = color or DummyColor(
+            randrange(0, 65535),
+            randrange(0, 65535),
+            randrange(0, 65535),
+            randrange(1500, 9000),
+        )
         self.power: int = 0
 
     # Official api
@@ -340,7 +334,7 @@ class LifxLANDummy:
 
     # Official api
     def get_lights(self):
-        return tuple(light for light in self.devices.values())
+        return tuple(self.devices.values())
 
     def get_color_lights(self):
         return tuple(light for light in self.devices.values() if light.supports_color())
@@ -365,25 +359,21 @@ class LifxLANDummy:
 
     def get_devices_by_names(self, names):
         return Group(
-            list(light for light in self.devices.values() if light.get_label() in names)
+            [light for light in self.devices.values() if light.get_label() in names]
         )
 
     def get_devices_by_group(self, group_id):
         return Group(
-            list(
-                light
-                for light in self.devices.values()
-                if light.get_group() == group_id
-            )
+            [light for light in self.devices.values() if light.get_group() == group_id]
         )
 
     def get_devices_by_location(self, location: str):
         return Group(
-            list(
+            [
                 light
                 for light in self.devices.values()
                 if light.get_location() == location
-            )
+            ]
         )
 
     def set_power_all_lights(self, power, duration=0, rapid=False):

@@ -39,9 +39,7 @@ class Color:
         self.__setattr__(self.__slots__[key], value)
 
     def __str__(self) -> str:
-        return "[{}, {}, {}, {}]".format(
-            self.hue, self.saturation, self.brightness, self.kelvin
-        )
+        return f"[{self.hue}, {self.saturation}, {self.brightness}, {self.kelvin}]"
 
     def __repr__(self) -> str:
         return [self.hue, self.saturation, self.brightness, self.kelvin].__repr__()
@@ -65,20 +63,23 @@ class Color:
     def __sub__(self, other):
         return self.__add__([-v for v in other])
 
+    def __iter__(self):
+        return iter([self.hue, self.saturation, self.brightness, self.kelvin])
+
 
 # Derived types
 TypeRGB = Union[Tuple[int, int, int], Color]
 TypeHSBK = Union[Tuple[int, int, int, int], Color]
 
 
-def HSBKtoRGB(hsvk: TypeHSBK) -> TypeRGB:
+def hsbk_to_rgb(hsbk: TypeHSBK) -> TypeRGB:
     """ Convert Tuple in HSBK color-space to RGB space.
     Converted from PHP https://gist.github.com/joshrp/5200913 """
     # pylint: disable=invalid-name
-    iH, iS, iV, iK = hsvk
+    iH, iS, iB, iK = hsbk
     dS = (100 * iS / 65535) / 100.0  # Saturation: 0.0-1.0
-    dV = (100 * iV / 65535) / 100.0  # Lightness: 0.0-1.0
-    dC = dV * dS  # Chroma: 0.0-1.0
+    dB = (100 * iB / 65535) / 100.0  # Lightness: 0.0-1.0
+    dC = dB * dS  # Chroma: 0.0-1.0
     dH = (360 * iH / 65535) / 60.0  # H-prime: 0.0-6.0
     dT = dH  # Temp variable
 
@@ -116,16 +117,16 @@ def HSBKtoRGB(hsvk: TypeHSBK) -> TypeRGB:
         dG = 0.0
         dB = 0.0
 
-    dM = dV - dC
+    dM = dB - dC
     dR += dM
     dG += dM
     dB += dM
 
-    # Finally factor in Kelvin
+    # Finally, factor in Kelvin
     # Adopted from:
     # https://github.com/tort32/LightServer/blob/master/src/main/java/com/github/tort32/api/nodemcu/protocol/RawColor.java#L125
     rgb_hsb = int(dR * 255), int(dG * 255), int(dB * 255)
-    rgb_k = kelvinToRGB(iK)
+    rgb_k = kelvin_to_rgb(iK)
     a = iS / 65535.0
     b = (1.0 - a) / 255
     x = int(rgb_hsb[0] * (a + rgb_k[0] * b))
@@ -134,7 +135,7 @@ def HSBKtoRGB(hsvk: TypeHSBK) -> TypeRGB:
     return x, y, z
 
 
-def hueToRGB(h: float, s: float = 1, v: float = 1) -> TypeRGB:
+def hue_to_rgb(h: float, s: float = 1, v: float = 1) -> TypeRGB:
     """ Convert a Hue-angle to an RGB value for display. """
     # pylint: disable=invalid-name
     h = float(h)
@@ -164,7 +165,7 @@ def hueToRGB(h: float, s: float = 1, v: float = 1) -> TypeRGB:
     return r, g, b
 
 
-def kelvinToRGB(temperature: int) -> TypeRGB:
+def kelvin_to_rgb(temperature: int) -> TypeRGB:
     """ Convert a Kelvin (K) color-temperature to an RGB value for display."""
     # pylint: disable=invalid-name
     temperature /= 100
@@ -195,7 +196,7 @@ def kelvinToRGB(temperature: int) -> TypeRGB:
 
 
 def tuple2hex(tuple_: TypeRGB) -> str:
-    """ Takes a color in tuple form an converts it to hex. """
+    """ Takes a color in tuple form and converts it to hex. """
     return "#%02x%02x%02x" % tuple_
 
 
@@ -213,7 +214,7 @@ def str2tuple(string: str, type_func) -> tuple:
 @lru_cache(maxsize=None)
 def get_primary_monitor() -> Tuple[int, int, int, int]:
     """ Return the system's default primary monitor rectangle bounds. """
-    return [rect for rect in getDisplayRects() if rect[:2] == (0, 0)][
+    return [rect for rect in get_display_rects() if rect[:2] == (0, 0)][
         0
     ]  # primary monitor has top left as 0, 0
 
@@ -234,19 +235,19 @@ def resource_path(relative_path) -> Union[int, bytes]:
 
 def timeit(method):
     def timed(*args, **kw):
-        ts = time.time()
+        t_start = time.time()
         result = method(*args, **kw)
-        te = time.time()
+        t_end = time.time()
         if "log_time" in kw:
             name = kw.get("log_name", method.__name__.upper())
-            kw["log_time"][name] = int((te - ts) * 1000)
+            kw["log_time"][name] = int((t_end - t_start) * 1000)
         else:
-            print("%r  %2.2f ms" % (method.__name__, (te - ts) * 1000))
+            print("%r  %2.2f ms" % (method.__name__, (t_end - t_start) * 1000))
         return result
 
     return timed
 
 
-def getDisplayRects():
+def get_display_rects():
     with mss.mss() as sct:
         return [tuple(m.values()) for m in sct.monitors]

@@ -16,14 +16,14 @@ import tkinter.colorchooser
 import traceback
 from collections import OrderedDict
 from logging.handlers import RotatingFileHandler
+from PIL import Image
 from tkinter import messagebox, ttk
 from typing import List, Dict, Union, Optional
 
-import lifxlan
 import pystray
+import lifxlan
 if os.name == 'nt':
     import pystray._win32
-from PIL import Image
 
 from lifx_control_panel import HEARTBEAT_RATE_MS, FRAME_PERIOD_MS, LOGFILE
 from lifx_control_panel._constants import BUILD_DATE, AUTHOR, DEBUGGING, VERSION
@@ -44,7 +44,7 @@ APPLICATION_PATH = os.path.dirname(__file__)
 
 LOGFILE = os.path.join(APPLICATION_PATH, LOGFILE)
 
-SPLASHFILE = resource_path('res/splash_vector.png')
+SPLASH_FILE = resource_path('res/splash_vector.png')
 
 
 class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
@@ -56,7 +56,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         # We take a lifx instance, so we can inject our own for testing.
 
         # Start showing splash_screen while processing
-        self.splashscreen = Splash(master, SPLASHFILE)
+        self.splashscreen = Splash(master, SPLASH_FILE)
         self.splashscreen.__enter__()
 
         # Setup frame and grid
@@ -80,19 +80,19 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
 
         # Setup menu
         self.menubar = tkinter.Menu(master)
-        filemenu = tkinter.Menu(self.menubar, tearoff=0)
-        filemenu.add_command(label="Rescan", command=self.scan_for_lights)
-        filemenu.add_command(label="Settings", command=self.show_settings)
-        filemenu.add_separator()
-        filemenu.add_command(label="Exit", command=self.on_closing)
-        self.menubar.add_cascade(label="File", menu=filemenu)
+        file_menu = tkinter.Menu(self.menubar, tearoff=0)
+        file_menu.add_command(label="Rescan", command=self.scan_for_lights)
+        file_menu.add_command(label="Settings", command=self.show_settings)
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=self.on_closing)
+        self.menubar.add_cascade(label="File", menu=file_menu)
         self.menubar.add_command(label="About", command=self.show_about)
         self.master.config(menu=self.menubar)
 
         # Initialize LIFX objects
-        self.lightvar = tkinter.StringVar(self)
-        self.lightsdict: Dict[str, lifxlan.Light] = OrderedDict()  # LifxLight objects
-        self.framesdict: Dict[str, LightFrame] = {}  # corresponding LightFrame GUI
+        self.tk_light_name = tkinter.StringVar(self)
+        self.device_map: Dict[str, lifxlan.Device] = OrderedDict()  # LifxLight objects
+        self.frame_map: Dict[str, LightFrame] = {}  # corresponding LightFrame GUI
         self.current_lightframe: Optional[LightFrame] = None  # currently selected and visible LightFrame
         self.current_light: Optional[lifxlan.Light]
         self.bulb_icons = BulbIconList(self)
@@ -100,16 +100,17 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
 
         self.scan_for_lights()
 
-        if any(self.lightsdict):
-            self.lightvar.set(next(iter(self.lightsdict.keys())))
-            self.current_light = self.lightsdict[self.lightvar.get()]
+        if any(self.device_map):
+            self.tk_light_name.set(next(iter(self.device_map.keys())))
+            self.current_light = self.device_map[self.tk_light_name.get()]
         else:
             messagebox.showwarning("No lights found.", "No LIFX devices were found on your LAN. Try using File->Rescan"
                                                        " to search again.")
 
         self.bulb_icons.grid(row=1, column=1, sticky='w')
         self.bulb_icons.canvas.bind('<Button-1>', self.on_bulb_canvas_click)
-        self.lightvar.trace('w', self.bulb_changed)  # Keep lightvar in sync with drop-down selection
+        # Keep light-name in sync with drop-down selection
+        self.tk_light_name.trace('w', self.bulb_changed)
 
         self.group_icons.grid(row=2, column=1, sticky='w')
         self.group_icons.canvas.bind('<Button-1>', self.on_bulb_canvas_click)
@@ -178,77 +179,77 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
                 product: str = lifxlan.product_map[light.get_product()]
                 label: str = light.get_label()
                 # light.get_color()
-                self.lightsdict[label] = light
+                self.device_map[label] = light
                 self.logger.info('Light found: %s: "%s"', product, label)
-                if label not in self.bulb_icons.bulb_dict.keys():
+                if label not in self.bulb_icons.bulb_dict:
                     self.bulb_icons.draw_bulb_icon(light, label)
-                if label not in self.framesdict.keys():
+                if label not in self.frame_map:
                     if light.supports_multizone():
-                        self.framesdict[label] = MultiZoneFrame(self, light)
+                        self.frame_map[label] = MultiZoneFrame(self, light)
                     else:
-                        self.framesdict[label] = LightFrame(self, light)
-                    self.current_lightframe = self.framesdict[label]
+                        self.frame_map[label] = LightFrame(self, light)
+                    self.current_lightframe = self.frame_map[label]
                     try:
                         self.bulb_icons.set_selected_bulb(label)
                     except KeyError:
                         self.group_icons.set_selected_bulb(label)
-                    self.logger.info("Building new frame: %s", self.framesdict[label].get_label())
+                    self.logger.info("Building new frame: %s", self.frame_map[label].get_label())
                 group_label = light.get_group_label()
-                if group_label not in self.lightsdict.keys():
+                if group_label not in self.device_map.keys():
                     self.build_group_frame(group_label)
             except lifxlan.WorkflowException as exc:
                 self.logger.warning("Error when communicating with LIFX device: %s", exc)
 
     def build_group_frame(self, group_label):
-        self.lightsdict[group_label]: lifxlan.Group = self.lifx.get_devices_by_group(group_label)
-        self.lightsdict[group_label].get_label = lambda: group_label  # pylint: disable=cell-var-from-loop
+        self.device_map[group_label]: lifxlan.Group = self.lifx.get_devices_by_group(group_label)
+        self.device_map[group_label].get_label = lambda: group_label  # pylint: disable=cell-var-from-loop
         # Giving an attribute here is a bit dirty, but whatever
-        self.lightsdict[group_label].label = group_label
+        self.device_map[group_label].label = group_label
         self.group_icons.draw_bulb_icon(None, group_label)
         self.logger.info("Group found: %s", group_label)
-        self.framesdict[group_label] = GroupFrame(self, self.lightsdict[group_label])
-        self.logger.info("Building new frame: %s", self.framesdict[group_label].get_label())
+        self.frame_map[group_label] = GroupFrame(self, self.device_map[group_label])
+        self.logger.info("Building new frame: %s", self.frame_map[group_label].get_label())
 
     def bulb_changed(self, *_, **__):
         """ Change current display frame when bulb icon is clicked. """
         self.master.unbind('<Unmap>')  # unregister unmap so grid_remove doesn't trip it
-        new_light_label = self.lightvar.get()
-        self.current_light = self.lightsdict[new_light_label]
+        new_light_label = self.tk_light_name.get()
+        self.current_light = self.device_map[new_light_label]
         # loop below removes all other frames; not just the current one (this fixes sync bugs for some reason)
-        for frame in self.framesdict.values():
+        for frame in self.frame_map.values():
             frame.grid_remove()
-        self.framesdict[new_light_label].grid()  # should bring to front
+        self.frame_map[new_light_label].grid()  # should bring to front
         self.logger.info(
-            "Brought existing frame to front: %s", self.framesdict[new_light_label].get_label())
-        self.current_lightframe = self.framesdict[new_light_label]
+            "Brought existing frame to front: %s", self.frame_map[new_light_label].get_label())
+        self.current_lightframe = self.frame_map[new_light_label]
         self.current_lightframe.restart()
-        if self.current_lightframe.get_label() != self.lightvar.get():
+        if self.current_lightframe.get_label() != self.tk_light_name.get():
             self.logger.error("Mismatch between LightFrame (%s) and Dropdown (%s)", self.current_lightframe.get_label(),
-                              self.lightvar.get())
+                              self.tk_light_name.get())
         self.master.bind('<Unmap>', lambda *_, **__: self.master.withdraw())  # reregister callback
 
     def on_bulb_canvas_click(self, event):
         """ Called whenever somebody clicks on one of the Device/Group icons. Switches LightFrame being shown. """
         canvas = event.widget
         # Convert to Canvas coords as we are using a Scrollbar, so Frame coords doesn't always match up.
-        x_canv = canvas.canvasx(event.x)
-        y_canv = canvas.canvasy(event.y)
-        item = canvas.find_closest(x_canv, y_canv)
-        lightname = canvas.gettags(item)[0]
-        self.lightvar.set(lightname)
+        x_canvas = canvas.canvasx(event.x)
+        y_canvas = canvas.canvasy(event.y)
+        item = canvas.find_closest(x_canvas, y_canvas)
+        light_name = canvas.gettags(item)[0]
+        self.tk_light_name.set(light_name)
         if not canvas.master.is_group:  # BulbIconList
-            self.bulb_icons.set_selected_bulb(lightname)
+            self.bulb_icons.set_selected_bulb(light_name)
             if self.group_icons.current_icon:
                 self.group_icons.clear_selected()
         else:
-            self.group_icons.set_selected_bulb(lightname)
+            self.group_icons.set_selected_bulb(light_name)
             if self.bulb_icons.current_icon:
                 self.bulb_icons.clear_selected()
 
     def update_icons(self):
         """ If the window isn't minimized, redraw icons to reflect their current power/color state. """
         if self.master.winfo_viewable():
-            for frame in self.framesdict.values():
+            for frame in self.frame_map.values():
                 if not isinstance(frame, GroupFrame) and frame.icon_update_flag:
                     self.bulb_icons.update_icon(frame.target)
                     frame.icon_update_flag = False
@@ -259,14 +260,14 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
 
         def lambda_factory(self, light, color):
             """ https://stackoverflow.com/questions/938429/scope-of-lambda-functions-and-their-parameters """
-            return lambda *_, **__: self.lightsdict[light].set_color(color,
+            return lambda *_, **__: self.device_map[light].set_color(color,
                                                                      duration=float(config["AverageColor"]["duration"]))
 
         func = lambda_factory(self, light, color)
         self.key_listener.register_function(keypress, func)
 
     def delete_keybind(self, keycombo):
-        """ Deletes anyonymous function from key_listener. Don't know why this is needed. """
+        """ Deletes anonymous function from key_listener. Don't know why this is needed. """
         self.key_listener.unregister_function(keycombo)
 
     def show_settings(self):
@@ -275,19 +276,18 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         settings.SettingsDisplay(self, "Settings")
         self.current_lightframe.update_user_dropdown()
         self.audio_interface.init_audio(config)
-        for frame in self.framesdict.values():
-            frame.music_button.config(state='normal' if self.audio_interface.initialized else 'disabled')
+        for frame in self.frame_map.values():
+            frame.music_button.config(state="normal" if self.audio_interface.initialized else "disabled")
         self.key_listener.restart()
 
     @staticmethod
     def show_about():
         """ Show the about info-box above the master window. """
-        messagebox.showinfo("About", "lifx_control_panel\n"
-                                     "Version {}\n"
-                                     "{}, {}\n"
-                                     "Bulb Icons by Quixote\n"
-                                     "Please consider donating at ko-fi.com/sawyermclane"
-                            .format(VERSION, AUTHOR, BUILD_DATE))
+        messagebox.showinfo("About", f"lifx_control_panel\n"
+                                     f"Version {VERSION}\n"
+                                     f"{AUTHOR}, {BUILD_DATE}\n"
+                                     f"Bulb Icons by Quixote\n"
+                                     f"Please consider donating at ko-fi.com/sawyermclane")
 
     def on_closing(self):
         """ Should always be called before the application exits. Shuts down all threads and closes the program. """
@@ -339,10 +339,10 @@ def main():
             root.logger.exception(exc)
         else:
             logging.exception(exc)
-        messagebox.showerror("Unhandled Exception", "Unhandled runtime exception: {}\n\n"
-                                                    "Please report this at: {}".format(traceback.format_exc(),
-                                                                                       r"https://github.com/samclane"
-                                                                                       r"/lifx_control_panel/issues"))
+        messagebox.showerror("Unhandled Exception", f'Unhandled runtime exception: {traceback.format_exc()}\n\n'
+                                                    f'Please report this at:'
+                                                    f' https://github.com/samclane/lifx_control_panel/issues'
+                             )
         os._exit(1)  # pylint: disable=protected-access
 
 

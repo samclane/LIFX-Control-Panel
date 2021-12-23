@@ -10,7 +10,7 @@ Notes
 """
 import configparser
 import logging
-import tkinter.ttk as ttk
+from tkinter import ttk
 from tkinter import (
     Toplevel,
     Frame,
@@ -78,7 +78,6 @@ class Dialog(Toplevel):
     # construction hooks
     def body(self, master):
         """create dialog body.  return widget that should have initial focus. This method should be overridden"""
-        pass
 
     def buttonbox(self):
         """ add standard button box. override if you don't want the standard buttons """
@@ -117,7 +116,6 @@ class Dialog(Toplevel):
 
     def apply(self):
         """ Override """
-        pass  # override
 
 
 class MultiListbox(Frame):  # pylint: disable=too-many-ancestors
@@ -161,13 +159,11 @@ class MultiListbox(Frame):  # pylint: disable=too-many-ancestors
         return "break"
 
     def _button2(self, x, y):  # pylint: disable=invalid-name
-        """ TODO Docs """
         for list_ in self.lists:
             list_.scan_mark(x, y)
         return "break"
 
     def _b2motion(self, x, y):  # pylint: disable=invalid-name
-        """ TODO Docs """
         for list_ in self.lists:
             list_.scan_dragto(x, y)
         return "break"
@@ -213,7 +209,6 @@ class MultiListbox(Frame):  # pylint: disable=too-many-ancestors
             list_.see(index)
 
     def selection_anchor(self, index):
-        """ TODO Docs """
         for list_ in self.lists:
             list_.selection_anchor(index)
 
@@ -267,7 +262,7 @@ class SettingsDisplay(Dialog):
                 "get_primary_monitor",
                 *[tuple(m.values()) for m in sct.monitors],
             ]
-        # lst = getDisplayRects()
+        # lst = get_display_rects()
         # for i in range(1, len(lst) + 1):
         #    els = [list(x) for x in itertools.combinations(lst, i)]
         #    options.extend(els)
@@ -308,10 +303,10 @@ class SettingsDisplay(Dialog):
         self.as_dropdown = OptionMenu(master, self.audio_source, *as_choices)
 
         # Add keybindings
-        lightnames = list(self.root_window.lightsdict.keys())
-        self.keybind_bulb_selection = StringVar(master, value=lightnames[0])
+        light_names = list(self.root_window.device_map.keys())
+        self.keybind_bulb_selection = StringVar(master, value=light_names[0])
         self.keybind_bulb_dropdown = OptionMenu(
-            master, self.keybind_bulb_selection, *lightnames
+            master, self.keybind_bulb_selection, *light_names
         )
         self.keybind_keys_select = Entry(master)
         self.keybind_keys_select.insert(END, "Add key-combo...")
@@ -324,7 +319,7 @@ class SettingsDisplay(Dialog):
         self.keybind_color_dropdown = OptionMenu(
             master,
             self.keybind_color_selection,
-            *self.root_window.framesdict[
+            *self.root_window.frame_map[
                 self.keybind_bulb_selection.get()
             ].default_colors,
             *(
@@ -377,14 +372,14 @@ class SettingsDisplay(Dialog):
         self.mlb.grid(row=7, columnspan=100, sticky="esw")
         self.keybind_delete_button.grid(row=8, column=0)
 
-    def validate(self):
+    def validate(self) -> int:
         config["AppSettings"]["start_minimized"] = str(self.start_mini.get())
         config["AverageColor"]["DefaultMonitor"] = str(self.avg_monitor.get())
         config["AverageColor"]["Duration"] = str(self.duration_scale.get())
         config["AverageColor"]["BrightnessOffset"] = str(self.brightness_offset.get())
         config["Audio"]["InputIndex"] = str(self.audio_source.get()[1])
         # Write to config file
-        with open("config.ini", "w") as cfg:
+        with open("config.ini", "w", encoding="utf-8") as cfg:
             config.write(cfg)
 
         self.key_listener.shutdown()
@@ -392,7 +387,7 @@ class SettingsDisplay(Dialog):
         return 1
 
     def get_color(self):
-        """ Present user with color pallette dialog and return color in HSBK """
+        """ Present user with color palette dialog and return color in HSBK """
         color = askcolor()[0]
         if color:
             # RGBtoHBSK sometimes returns >65535, so we have to clamp
@@ -402,7 +397,7 @@ class SettingsDisplay(Dialog):
     def register_keybinding(self, bulb: str, keys: str, color: str):
         """ Get the keybind from the input box and pass the color off to the root window. """
         try:
-            color = self.root_window.framesdict[
+            color = self.root_window.frame_map[
                 self.keybind_bulb_selection.get()
             ].default_colors[color]
         except KeyError:  # must be using a custom color

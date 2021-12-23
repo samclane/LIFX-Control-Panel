@@ -1,7 +1,8 @@
 import logging
 import tkinter as tk
+from typing import List
 
-from ..utilities.utils import tuple2hex, hueToRGB, kelvinToRGB
+from ..utilities.utils import tuple2hex, hue_to_rgb, kelvin_to_rgb
 
 
 class ColorScale(tk.Canvas):
@@ -16,7 +17,7 @@ class ColorScale(tk.Canvas):
         to=360,
         command=None,
         gradient="hue",
-        **kwargs
+        **kwargs,
     ):
         """
         Create a ColorScale.
@@ -54,7 +55,7 @@ class ColorScale(tk.Canvas):
 
         self.gradient = tk.PhotoImage(master=self, width=width, height=height)
 
-        self.bind("<Configure>", lambda e: self._draw_gradient(val))
+        self.bind("<Configure>", lambda _: self._draw_gradient(val))
         self.bind("<ButtonPress-1>", self._on_click)
         # self.bind('<ButtonRelease-1>', self._on_release)
         self.bind("<B1-Motion>", self._on_move)
@@ -69,36 +70,41 @@ class ColorScale(tk.Canvas):
 
         self.gradient = tk.PhotoImage(master=self, width=width, height=height)
 
-        line = []
+        line: List[str] = []
+        gradfunc = lambda x_coord: line.append(tuple2hex((0, 0, 0)))
 
         if self.color_grad == "bw":
 
-            def f(i):
-                line.append(tuple2hex((int(float(i) / width * 255),) * 3))
+            def gradfunc(x_coord):
+                line.append(tuple2hex((int(float(x_coord) / width * 255),) * 3))
 
         elif self.color_grad == "wb":
 
-            def f(i):
-                line.append(tuple2hex((int((1 - (float(i) / width)) * 255),) * 3))
+            def gradfunc(x_coord):
+                line.append(tuple2hex((int((1 - (float(x_coord) / width)) * 255),) * 3))
 
         elif self.color_grad == "kelvin":
 
-            def f(i):
+            def gradfunc(x_coord):
                 line.append(
-                    tuple2hex(kelvinToRGB(((float(i) / width) * self.range) + self.min))
+                    tuple2hex(
+                        kelvin_to_rgb(
+                            int(((float(x_coord) / width) * self.range) + self.min)
+                        )
+                    )
                 )
 
         elif self.color_grad == "hue":
 
-            def f(i):
-                line.append(tuple2hex(hueToRGB(float(i) / width * 360)))
+            def gradfunc(x_coord):
+                line.append(tuple2hex(hue_to_rgb(float(x_coord) / width * 360)))
 
         else:
-            raise ValueError("gradient value {} not recognized".format(self.color_grad))
+            raise ValueError(f"gradient value {self.color_grad} not recognized")
 
-        for i in range(width):
-            f(i)
-        line = "{" + " ".join(line) + "}"
+        for x in range(width):
+            gradfunc(x)
+        line: str = "{" + " ".join(line) + "}"
         self.gradient.put(" ".join([line for _ in range(height)]))
         self.create_image(0, 0, anchor="nw", tags="gradient", image=self.gradient)
         self.lower("gradient")
@@ -115,11 +121,14 @@ class ColorScale(tk.Canvas):
         x = event.x
         if x >= 0:
             width = self.winfo_width()
-            for s in self.find_withtag("cursor"):
-                self.coords(s, x, 0, x, self.winfo_height())
-            self._variable.set(round((float(self.range) * x) / width + self.min, 2))
-            if self.command is not None:
-                self.command()
+            self.update_slider_value(width, x)
+
+    def update_slider_value(self, width, x):
+        for s in self.find_withtag("cursor"):
+            self.coords(s, x, 0, x, self.winfo_height())
+        self._variable.set(round((float(self.range) * x) / width + self.min, 2))
+        if self.command is not None:
+            self.command()
 
     def _on_move(self, event):
         """Make selection cursor follow the cursor."""
@@ -127,11 +136,7 @@ class ColorScale(tk.Canvas):
         if x >= 0:
             w = self.winfo_width()
             x = min(max(abs(x), 0), w)
-            for s in self.find_withtag("cursor"):
-                self.coords(s, x, 0, x, self.winfo_height())
-            self._variable.set(round((float(self.range) * x) / w + self.min, 2))
-            if self.command is not None:
-                self.command()
+            self.update_slider_value(w, x)
 
     def _update_val(self, *_):
         val = int(self._variable.get())

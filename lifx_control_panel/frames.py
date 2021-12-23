@@ -29,13 +29,13 @@ from lifx_control_panel.utilities.color_thread import getScreenAsImage, normaliz
 from lifx_control_panel.utilities.utils import (
     Color,
     tuple2hex,
-    HSBKtoRGB,
-    hueToRGB,
-    kelvinToRGB,
+    hsbk_to_rgb,
+    hue_to_rgb,
+    kelvin_to_rgb,
     get_primary_monitor,
     str2list,
     str2tuple,
-    getDisplayRects,
+    get_display_rects,
 )
 
 MAX_KELVIN_DEFAULT = 9000
@@ -58,7 +58,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     color_var: tkinter.StringVar
     default_colors: Mapping[str, Color]
     preset_dropdown: tkinter.OptionMenu
-    uservar: tkinter.StringVar
+    tk_user_def_color_var: tkinter.StringVar
     user_dropdown: tkinter.OptionMenu
     current_color: tkinter.Canvas
     hsbk: Tuple[tkinter.IntVar, tkinter.IntVar, tkinter.IntVar, tkinter.IntVar]
@@ -66,14 +66,14 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     hsbk_scale: Tuple[ColorScale, ColorScale, ColorScale, ColorScale]
     hsbk_display: Tuple[tkinter.Canvas, tkinter.Canvas, tkinter.Canvas, tkinter.Canvas]
     threads: Dict[str, color_thread.ColorThreadRunner]
-    powervar: tkinter.BooleanVar
+    tk_power_var: tkinter.BooleanVar
     option_on: tkinter.Radiobutton
     option_off: tkinter.Radiobutton
     logger: logging.Logger
     min_kelvin: int = MIN_KELVIN_DEFAULT
     max_kelvin: int = MAX_KELVIN_DEFAULT
 
-    def __init__(self, master, target: Union[lifxlan.Group, lifxlan.Light]):
+    def __init__(self, master, target: lifxlan.Device):
         super().__init__(
             master,
             padding="3 3 12 12",
@@ -87,7 +87,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         )
         self.icon_update_flag: bool = True
         # Initialize LightFrames
-        bulb_power, init_color = self.get_light_info(target)
+        bulb_power, init_color = self._get_light_info(target)
 
         # Reconfigure label with correct name
         self.configure(
@@ -105,7 +105,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.target = target
 
         # Setup logger
-        self.setup_logger()
+        self._setup_logger()
 
         # Initialize vars to hold on/off state
         self.setup_power_controls(bulb_power)
@@ -114,7 +114,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.setup_color_controls(init_color)
 
         # Add buttons for pre-made colors
-        self.setup_color_dropdowns()
+        self._setup_color_dropdowns()
 
         # Add buttons for special routines
         self.special_functions_lf = ttk.LabelFrame(
@@ -122,26 +122,26 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         )
         ####
 
-        self.setup_special_functions()
+        self._setup_special_functions()
 
         ####
         # Add custom screen region (real ugly)
-        self.setup_screen_region_select()
+        self._setup_screen_region_select()
 
         # Start update loop
         self.update_status_from_bulb()
 
-    def get_light_info(
-        self, target: Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]
-    ) -> Tuple[int, Color]:
+    def _get_light_info(self, target: lifxlan.Device) -> Tuple[int, Color]:
         bulb_power: int = 0
         init_color: Color = Color(*lifxlan.WARM_WHITE)
         try:
             self.label = target.get_label()
             bulb_power = target.get_power()
             if target.supports_multizone():
+                target: lifxlan.MultiZoneLight
                 init_color = Color(*target.get_color_zones()[0])
             else:
+                target: lifxlan.Light
                 init_color = Color(*target.get_color())
             self.min_kelvin = (
                 target.product_features.get("min_kelvin") or MIN_KELVIN_DEFAULT
@@ -151,14 +151,14 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             )
         except lifxlan.WorkflowException as exc:
             messagebox.showerror(
-                "Error building {}".format(self.__class__.__name__),
-                "Error thrown when trying to get label from bulb:\n{}".format(exc),
+                f"Error building {self.__class__.__name__}",
+                f"Error thrown when trying to get label from bulb:\n{exc}",
             )
             self.master.on_closing()
             # TODO Let this fail safely and try again later
         return bulb_power, init_color
 
-    def setup_screen_region_select(self):
+    def _setup_screen_region_select(self):
         self.screen_region_lf = ttk.LabelFrame(
             self, text="Screen Avg. Region", padding="3 3 12 12"
         )
@@ -183,14 +183,14 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.screen_region_entries["top"].insert(tkinter.END, region[1])
         self.screen_region_entries["width"].insert(tkinter.END, region[2])
         self.screen_region_entries["height"].insert(tkinter.END, region[3])
-        self.grid_horiz_coordinate_box("left", 7, "width")
-        self.grid_horiz_coordinate_box("top", 8, "height")
+        self._grid_horiz_coordinate_box("left", 7, "width")
+        self._grid_horiz_coordinate_box("top", 8, "height")
         tkinter.Button(
             self.screen_region_lf, text="Save", command=self.save_monitor_bounds
         ).grid(row=9, column=1, sticky="w")
         self.screen_region_lf.grid(row=7, columnspan=4)
 
-    def grid_horiz_coordinate_box(self, text, row, arg2):
+    def _grid_horiz_coordinate_box(self, text: str, row, arg2):
         tkinter.Label(self.screen_region_lf, text=text).grid(
             row=row, column=0, sticky="e"
         )
@@ -199,7 +199,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         tkinter.Label(self.screen_region_lf, text=arg2).grid(row=row, column=2)
         self.screen_region_entries[arg2].grid(row=row, column=3)
 
-    def setup_special_functions(self):
+    def _setup_special_functions(self):
         # Screen Avg.
         self.threads["screen"] = color_thread.ColorThreadRunner(
             self.target,
@@ -272,7 +272,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         ).grid(row=8, column=1)
         self.special_functions_lf.grid(row=6, columnspan=4)
 
-    def setup_color_dropdowns(self):
+    def _setup_color_dropdowns(self):
         self.preset_colors_lf = ttk.LabelFrame(
             self, text="Preset Colors", padding="3 3 12 12"
         )
@@ -297,10 +297,10 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.preset_dropdown.grid(row=0, column=0)
         self.preset_dropdown.configure(width=13)
         self.color_var.trace("w", self.change_preset_dropdown)
-        self.uservar = tkinter.StringVar(self, value="User Presets")
+        self.tk_user_def_color_var = tkinter.StringVar(self, value="User Presets")
         self.user_dropdown = tkinter.OptionMenu(
             self.preset_colors_lf,
-            self.uservar,
+            self.tk_user_def_color_var,
             *(
                 [*config["PresetColors"].keys()]
                 if any(config["PresetColors"].keys())
@@ -309,14 +309,14 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         )
         self.user_dropdown.grid(row=0, column=1)
         self.user_dropdown.config(width=13)
-        self.uservar.trace("w", self.change_user_dropdown)
+        self.tk_user_def_color_var.trace("w", self.change_user_dropdown)
         self.preset_colors_lf.grid(row=5, columnspan=4)
 
-    def setup_color_controls(self, init_color):
+    def setup_color_controls(self, init_color: Color):
         self.logger.info("Initial light color HSBK: %s", init_color)
         self.current_color = tkinter.Canvas(
             self,
-            background=tuple2hex(HSBKtoRGB(init_color)),
+            background=tuple2hex(hsbk_to_rgb(init_color)),
             width=40,
             height=20,
             borderwidth=3,
@@ -381,7 +381,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         ] = (
             tkinter.Canvas(
                 self,
-                background=tuple2hex(hueToRGB(360 * (init_color.hue / 65535))),
+                background=tuple2hex(hue_to_rgb(360 * (init_color.hue / 65535))),
                 width=20,
                 height=20,
                 borderwidth=3,
@@ -417,7 +417,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             ),
             tkinter.Canvas(
                 self,
-                background=tuple2hex(kelvinToRGB(init_color.kelvin)),
+                background=tuple2hex(kelvin_to_rgb(init_color.kelvin)),
                 width=20,
                 height=20,
                 borderwidth=3,
@@ -432,20 +432,24 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             self.hsbk_display[key].grid(row=key + 1, column=3)
         self.threads: Dict[str, color_thread.ColorThreadRunner] = {}
 
-    def setup_power_controls(self, bulb_power):
-        self.powervar = tkinter.BooleanVar(self)
-        self.powervar.set(bulb_power)
+    def setup_power_controls(self, bulb_power: int):
+        self.tk_power_var = tkinter.BooleanVar(self)
+        self.tk_power_var.set(bool(bulb_power))
         self.option_on = tkinter.Radiobutton(
             self,
             text="On",
-            variable=self.powervar,
+            variable=self.tk_power_var,
             value=65535,
             command=self.update_power,
         )
         self.option_off = tkinter.Radiobutton(
-            self, text="Off", variable=self.powervar, value=0, command=self.update_power
+            self,
+            text="Off",
+            variable=self.tk_power_var,
+            value=0,
+            command=self.update_power,
         )
-        if self.powervar.get() == 0:
+        if self.tk_power_var.get() == 0:
             # Light is off
             self.option_off.select()
             self.option_on.selection_clear()
@@ -455,12 +459,9 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.option_on.grid(row=0, column=0)
         self.option_off.grid(row=0, column=1)
 
-    def setup_logger(self):
+    def _setup_logger(self):
         self.logger = logging.getLogger(
-            self.master.logger.name
-            + "."
-            + self.__class__.__name__
-            + "({})".format(self.label)
+            self.master.logger.name + "." + self.__class__.__name__ + f"({self.label})"
         )
         self.logger.setLevel(logging.DEBUG)
         self.logger.info(
@@ -498,7 +499,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     def update_power(self):
         """ Send new power state to bulb when UI is changed. """
         self.stop_threads()
-        self.target.set_power(self.powervar.get())
+        self.target.set_power(self.tk_power_var.get())
 
     def update_color_from_ui(self, *_, **__):
         """ Send new color state to bulb when UI is changed. """
@@ -539,12 +540,12 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             self.hsbk_labels[3].config(text=str(self.hsbk[3].get()) + " K"),
         ][key]
 
-    def update_display(self, key):
+    def update_display(self, key: int):
         """ Update color swatches to match current device state """
         h, s, b, k = self.get_color_values_hsbk()  # pylint: disable=invalid-name
         if key == 0:
             self.hsbk_display[0].config(
-                background=tuple2hex(hueToRGB(360 * (h / 65535)))
+                background=tuple2hex(hue_to_rgb(360 * (h / 65535)))
             )
         elif key == 1:
             s = 65535 - s  # pylint: disable=invalid-name
@@ -568,12 +569,12 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                 )
             )
         elif key == 3:
-            self.hsbk_display[3].config(background=tuple2hex(kelvinToRGB(k)))
+            self.hsbk_display[3].config(background=tuple2hex(kelvin_to_rgb(k)))
 
     def get_color_from_palette(self):
         """ Asks users for color selection using standard color palette dialog. """
         color = tkinter.colorchooser.askcolor(
-            initialcolor=HSBKtoRGB(self.get_color_values_hsbk())
+            initialcolor=hsbk_to_rgb(self.get_color_values_hsbk())
         )[0]
         if color:
             # RGBtoHBSK sometimes returns >65535, so we have to truncate
@@ -590,8 +591,8 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         if not self.master.bulb_interface.power_queue[self.label].empty():
             power = self.master.bulb_interface.power_queue[self.label].get()
             require_icon_update = True
-            self.powervar.set(power)
-            if self.powervar.get() == 0:
+            self.tk_power_var.set(power)
+            if self.tk_power_var.get() == 0:
                 # Light is off
                 self.option_off.select()
                 self.option_on.selection_clear()
@@ -606,7 +607,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                 self.hsbk[key].set(hsbk[key])
                 self.update_label(key)
                 self.update_display(key)
-            self.current_color.config(background=tuple2hex(HSBKtoRGB(hsbk)))
+            self.current_color.config(background=tuple2hex(hsbk_to_rgb(hsbk)))
 
         if require_icon_update:
             self.trigger_icon_update()
@@ -631,7 +632,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         cursor_pos = mouse.get_position()
         # Convert display coords to image coords
         cursor_pos = normalizeRects(
-            getDisplayRects() + [(cursor_pos[0], cursor_pos[1], 0, 0)]
+            get_display_rects() + [(cursor_pos[0], cursor_pos[1], 0, 0)]
         )[-1][:2]
         color = screen_img.getpixel(cursor_pos)
         self.master.master.deiconify()  # Reshow window
@@ -642,26 +643,28 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         """ Change device color to selected preset option. """
         color = Color(*globals()[self.color_var.get()])
         self.preset_dropdown.config(
-            bg=tuple2hex(HSBKtoRGB(color)), activebackground=tuple2hex(HSBKtoRGB(color))
+            bg=tuple2hex(hsbk_to_rgb(color)),
+            activebackground=tuple2hex(hsbk_to_rgb(color)),
         )
         self.set_color(color, False)
 
     def change_user_dropdown(self, *_, **__):
         """ Change device color to selected user-defined option. """
-        color = str2tuple(config["PresetColors"][self.uservar.get()], int)
+        color = str2tuple(config["PresetColors"][self.tk_user_def_color_var.get()], int)
         self.user_dropdown.config(
-            bg=tuple2hex(HSBKtoRGB(color)), activebackground=tuple2hex(HSBKtoRGB(color))
+            bg=tuple2hex(hsbk_to_rgb(color)),
+            activebackground=tuple2hex(hsbk_to_rgb(color)),
         )
         self.set_color(color, rapid=False)
 
     def update_user_dropdown(self):
         """ Add newly defined color to the user color dropdown menu. """
-        # self.uservar.set('')
+        # self.tk_user_def_color_var.set('')
         self.user_dropdown["menu"].delete(0, "end")
 
         for choice in config["PresetColors"]:
             self.user_dropdown["menu"].add_command(
-                label=choice, command=_setit(self.uservar, choice)
+                label=choice, command=_setit(self.tk_user_def_color_var, choice)
             )
 
     def get_monitor_bounds(self):
@@ -672,15 +675,15 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         )
 
     def save_monitor_bounds(self):
-        """ Write monitor bounds entered in the UI into the config file. """
+        """ Write monitor bounds entered into the UI into the config file. """
         config["AverageColor"][self.label] = self.get_monitor_bounds()
         # Write to config file
-        with open("config.ini", "w") as cfg:
+        with open("config.ini", "w", encoding="utf-8") as cfg:
             config.write(cfg)
 
 
 class GroupFrame(LightFrame):
-    def get_light_info(self, target) -> Tuple[int, Color]:
+    def _get_light_info(self, target: lifxlan.Group) -> Tuple[int, Color]:
         bulb_power: int = 0
         init_color: Color = Color(*lifxlan.WARM_WHITE)
         try:
@@ -713,8 +716,8 @@ class GroupFrame(LightFrame):
 
         except lifxlan.WorkflowException as exc:
             messagebox.showerror(
-                "Error building {}".format(self.__class__.__name__),
-                "Error thrown when trying to get label from bulb:\n{}".format(exc),
+                f"Error building {self.__class__.__name__}",
+                f"Error thrown when trying to get label from bulb:\n{exc}",
             )
             self.master.on_closing()
             # TODO Let this fail safely and try again later
