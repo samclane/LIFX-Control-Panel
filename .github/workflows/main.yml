@@ -1,4 +1,4 @@
-name: Build-And-Deploy
+name: Try-Building
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Build and Deploy
+    name: Example Build
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
@@ -44,39 +44,3 @@ jobs:
           cd ./lifx_control_panel
           set PYTHONOPTIMIZE=1 && pyinstaller --onefile --noupx build_all.spec
           cd ..
-      - name: Create Release
-        if: success()
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: |
-            Changes:
-            - Change 1
-            - Change 2
-          draft: false
-          prerelease: false
-      - name: Upload Release Binaries
-        if: success()
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./lifx_control_panel/dist/lifx_control_panel.exe
-          asset_name: lifx_control_panel.exe
-          asset_content_type: vnd.microsoft.portable-executable
-  deploy:
-    needs: build
-    name: Deploy
-    runs-on: ubuntu-latest
-    steps:
-      - name: Publish Package on PYPI
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: __token__
-          password: ${{ secrets.pypi_password }}
