@@ -54,7 +54,7 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-instance-attribut
         )
         self.scroll_x = 0
         self.scroll_y = 0
-        self.bulb_dict = {}
+        self.bulb_dict: dict[str, tuple[tkinter.PhotoImage, int, int]] = {}
         self.canvas = tkinter.Canvas(
             self,
             width=self.settings.window_width,

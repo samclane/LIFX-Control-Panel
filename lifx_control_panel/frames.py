@@ -25,12 +25,15 @@ from lifx_control_panel import RED, FRAME_PERIOD_MS
 from lifx_control_panel.ui.colorscale import ColorScale
 from lifx_control_panel.ui.settings import config
 from lifx_control_panel.utilities import color_thread
-from lifx_control_panel.utilities.color_thread import getScreenAsImage, normalizeRects
+from lifx_control_panel.utilities.color_thread import (
+    get_screen_as_image,
+    normalize_rectangles,
+)
 from lifx_control_panel.utilities.utils import (
     Color,
     tuple2hex,
     hsbk_to_rgb,
-    hue_to_rgb,
+    hsv_to_rgb,
     kelvin_to_rgb,
     get_primary_monitor,
     str2list,
@@ -256,7 +259,9 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             self.special_functions_lf,
             text="Music Color",
             command=start_audio,
-            state="normal" if self.master.audio_interface.initialized else "disabled",
+            state="disabled"
+            if not self.master.audio_interface.initialized
+            else "normal",
         )
         self.music_button.grid(row=8, column=0)
         self.threads["eyedropper"] = color_thread.ColorThreadRunner(
@@ -334,12 +339,12 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.hsbk_labels: Tuple[
             tkinter.Label, tkinter.Label, tkinter.Label, tkinter.Label
         ] = (
-            tkinter.Label(self, text="%.3g" % (360 * (self.hsbk[0].get() / 65535))),
+            tkinter.Label(self, text=f"{360 * (self.hsbk[0].get() / 65535):.3g}"),
             tkinter.Label(
-                self, text=str("%.3g" % (100 * self.hsbk[1].get() / 65535)) + "%"
+                self, text=str(f"{100 * self.hsbk[1].get() / 65535:.3g}") + "%"
             ),
             tkinter.Label(
-                self, text=str("%.3g" % (100 * self.hsbk[2].get() / 65535)) + "%"
+                self, text=str(f"{100 * self.hsbk[2].get() / 65535:.3g}") + "%"
             ),
             tkinter.Label(self, text=str(self.hsbk[3].get()) + " K"),
         )
@@ -381,7 +386,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         ] = (
             tkinter.Canvas(
                 self,
-                background=tuple2hex(hue_to_rgb(360 * (init_color.hue / 65535))),
+                background=tuple2hex(hsv_to_rgb(360 * (init_color.hue / 65535))),
                 width=20,
                 height=20,
                 borderwidth=3,
@@ -529,13 +534,13 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         """ Update scale labels, formatted accordingly. """
         return [
             self.hsbk_labels[0].config(
-                text=str("%.3g" % (360 * (self.hsbk[0].get() / 65535)))
+                text=str(f"{360 * (self.hsbk[0].get() / 65535):.3g}")
             ),
             self.hsbk_labels[1].config(
-                text=str("%.3g" % (100 * (self.hsbk[1].get() / 65535))) + "%"
+                text=str(f"{100 * (self.hsbk[1].get() / 65535):.3g}") + "%"
             ),
             self.hsbk_labels[2].config(
-                text=str("%.3g" % (100 * (self.hsbk[2].get() / 65535))) + "%"
+                text=str(f"{100 * (self.hsbk[2].get() / 65535):.3g}") + "%"
             ),
             self.hsbk_labels[3].config(text=str(self.hsbk[3].get()) + " K"),
         ][key]
@@ -545,7 +550,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         h, s, b, k = self.get_color_values_hsbk()  # pylint: disable=invalid-name
         if key == 0:
             self.hsbk_display[0].config(
-                background=tuple2hex(hue_to_rgb(360 * (h / 65535)))
+                background=tuple2hex(hsv_to_rgb(360 * (h / 65535)))
             )
         elif key == 1:
             s = 65535 - s  # pylint: disable=invalid-name
@@ -585,7 +590,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     def update_status_from_bulb(self, run_once=False):
         """
         Periodically update status from the bulb to keep UI in sync.
-        :param run_once: Don't call `after` statement at end. Keeps a million workers from being instanced.
+        run_once - Don't call `after` statement at end. Keeps a million workers from being instanced.
         """
         require_icon_update = False
         if not self.master.bulb_interface.power_queue[self.label].empty():
@@ -628,10 +633,10 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                     break
             lifxlan.sleep(0.001)
         # tkinter.Button state changed
-        screen_img = getScreenAsImage()
+        screen_img = get_screen_as_image()
         cursor_pos = mouse.get_position()
         # Convert display coords to image coords
-        cursor_pos = normalizeRects(
+        cursor_pos = normalize_rectangles(
             get_display_rects() + [(cursor_pos[0], cursor_pos[1], 0, 0)]
         )[-1][:2]
         color = screen_img.getpixel(cursor_pos)

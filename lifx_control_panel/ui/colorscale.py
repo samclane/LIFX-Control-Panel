@@ -2,10 +2,14 @@ import logging
 import tkinter as tk
 from typing import List
 
-from ..utilities.utils import tuple2hex, hue_to_rgb, kelvin_to_rgb
+from ..utilities.utils import tuple2hex, hsv_to_rgb, kelvin_to_rgb
 
 
 class ColorScale(tk.Canvas):
+    """
+    A canvas that displays a color scale.
+    """
+
     def __init__(
         self,
         parent,
@@ -53,7 +57,7 @@ class ColorScale(tk.Canvas):
         self._variable.set(val)
         self._variable.trace("w", self._update_val)
 
-        self.gradient = tk.PhotoImage(master=self, width=width, height=height)
+        self.gradient = tk.PhotoImage(master=self, width=int(width), height=int(height))
 
         self.bind("<Configure>", lambda _: self._draw_gradient(val))
         self.bind("<ButtonPress-1>", self._on_click)
@@ -71,7 +75,9 @@ class ColorScale(tk.Canvas):
         self.gradient = tk.PhotoImage(master=self, width=width, height=height)
 
         line: List[str] = []
-        gradfunc = lambda x_coord: line.append(tuple2hex((0, 0, 0)))
+
+        def gradfunc(x_coord):
+            return line.append(tuple2hex((0, 0, 0)))
 
         if self.color_grad == "bw":
 
@@ -97,46 +103,51 @@ class ColorScale(tk.Canvas):
         elif self.color_grad == "hue":
 
             def gradfunc(x_coord):
-                line.append(tuple2hex(hue_to_rgb(float(x_coord) / width * 360)))
+                line.append(tuple2hex(hsv_to_rgb(float(x_coord) / width * 360)))
 
         else:
             raise ValueError(f"gradient value {self.color_grad} not recognized")
 
-        for x in range(width):
-            gradfunc(x)
+        for x_coord in range(width):
+            gradfunc(x_coord)
         line: str = "{" + " ".join(line) + "}"
         self.gradient.put(" ".join([line for _ in range(height)]))
         self.create_image(0, 0, anchor="nw", tags="gradient", image=self.gradient)
         self.lower("gradient")
 
+        x_start: float = self.min
         try:
-            x = (val - self.min) / float(self.range) * width
+            x_start = (val - self.min) / float(self.range) * width
         except ZeroDivisionError:
-            x = self.min
-        self.create_line(x, 0, x, height, width=4, fill="white", tags="cursor")
-        self.create_line(x, 0, x, height, width=2, tags="cursor")
+            x_start = self.min
+        self.create_line(
+            x_start, 0, x_start, height, width=4, fill="white", tags="cursor"
+        )
+        self.create_line(x_start, 0, x_start, height, width=2, tags="cursor")
 
     def _on_click(self, event):
         """Move selection cursor on click."""
-        x = event.x
-        if x >= 0:
+        x_coord = event.x
+        if x_coord >= 0:
             width = self.winfo_width()
-            self.update_slider_value(width, x)
+            self.update_slider_value(width, x_coord)
 
-    def update_slider_value(self, width, x):
-        for s in self.find_withtag("cursor"):
-            self.coords(s, x, 0, x, self.winfo_height())
-        self._variable.set(round((float(self.range) * x) / width + self.min, 2))
+    def update_slider_value(self, width, x_coord):
+        """Update the slider value based on slider x coordinate."""
+        height = self.winfo_height()
+        for x_start in self.find_withtag("cursor"):
+            self.coords(x_start, x_coord, 0, x_coord, height)
+        self._variable.set(round((float(self.range) * x_coord) / width + self.min, 2))
         if self.command is not None:
             self.command()
 
     def _on_move(self, event):
         """Make selection cursor follow the cursor."""
-        x = event.x
-        if x >= 0:
-            w = self.winfo_width()
-            x = min(max(abs(x), 0), w)
-            self.update_slider_value(w, x)
+        x_coord = event.x
+        if x_coord >= 0:
+            width = self.winfo_width()
+            x_coord = min(max(abs(x_coord), 0), width)
+            self.update_slider_value(width, x_coord)
 
     def _update_val(self, *_):
         val = int(self._variable.get())
@@ -154,9 +165,9 @@ class ColorScale(tk.Canvas):
         """Set cursor position on the color corresponding to the value"""
         width = self.winfo_width()
         try:
-            x = (val - self.min) / float(self.range) * width
+            x_coord = (val - self.min) / float(self.range) * width
         except ZeroDivisionError:
             return
-        for s in self.find_withtag("cursor"):
-            self.coords(s, x, 0, x, self.winfo_height())
+        for x_start in self.find_withtag("cursor"):
+            self.coords(x_start, x_coord, 0, x_coord, self.winfo_height())
         self._variable.set(val)

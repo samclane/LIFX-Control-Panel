@@ -6,6 +6,7 @@ Contains several basic "Color-Following" functions, as well as custom Stop/Start
 import logging
 import threading
 from functools import lru_cache
+from typing import List, Tuple
 
 import mss
 import numexpr as ne
@@ -26,7 +27,8 @@ def get_monitor_bounds(func):
     return func() or config["AverageColor"]["DefaultMonitor"]
 
 
-def getScreenAsImage():
+def get_screen_as_image():
+    """Grabs the entire primary screen as an image"""
     with mss.mss() as sct:
         monitor = sct.monitors[0]
 
@@ -40,7 +42,8 @@ def getScreenAsImage():
         return Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
 
 
-def getRectAsImage(bounds):
+def get_rect_as_image(bounds: Tuple[int, int, int, int]):
+    """ Grabs a rectangular area of the primary screen as an image """
     with mss.mss() as sct:
         monitor = {
             "left": bounds[0],
@@ -52,36 +55,38 @@ def getRectAsImage(bounds):
         return Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
 
 
-def normalizeRects(rects):
-    smallestX = min(rect[0] for rect in rects)
-    smallestY = min(rect[1] for rect in rects)
+def normalize_rectangles(rects: List[Tuple[int, int, int, int]]):
+    """ Normalize the rectangles to the monitor size """
+    x_min = min(rect[0] for rect in rects)
+    y_min = min(rect[1] for rect in rects)
     return [
-        (-smallestX + left, -smallestY + top, -smallestX + right, -smallestY + bottom,)
+        (-x_min + left, -y_min + top, -x_min + right, -y_min + bottom,)
         for left, top, right, bottom in rects
     ]
 
 
-def avg_screen_color(initial_color, func_bounds=lambda: None):
-    """ Capture an image of the monitor defined by func_bounds, then get the average color of the image in HSBK"""
+def avg_screen_color(initial_color_hsbk, func_bounds=lambda: None):
+    """ Capture an image of the monitor defined by func_bounds, then get the average color of the image in HSBK """
     monitor = get_monitor_bounds(func_bounds)
     if "full" in monitor:
-        screenshot = getScreenAsImage()
+        screenshot = get_screen_as_image()
     else:
-        screenshot = getRectAsImage(str2list(monitor, int))
+        screenshot = get_rect_as_image(str2list(monitor, int))
     # Resizing the image to 1x1 pixel will give us the average for the whole image (via HAMMING interpolation)
     color = screenshot.resize((1, 1), Image.HAMMING).getpixel((0, 0))
-    return list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
+    return list(utils.RGBtoHSBK(color, temperature=initial_color_hsbk[3]))
 
 
 def dominant_screen_color(initial_color, func_bounds=lambda: None):
     """
+    Gets the dominant color of the screen defined by func_bounds
     https://stackoverflow.com/questions/50899692/most-dominant-color-in-rgb-image-opencv-numpy-python
     """
     monitor = get_monitor_bounds(func_bounds)
     if "full" in monitor:
-        screenshot = getScreenAsImage()
+        screenshot = get_screen_as_image()
     else:
-        screenshot = getRectAsImage(str2list(monitor, int))
+        screenshot = get_rect_as_image(str2list(monitor, int))
 
     downscale_width, downscale_height = screenshot.width // 4, screenshot.height // 4
     screenshot = screenshot.resize((downscale_width, downscale_height), Image.HAMMING)
@@ -99,9 +104,7 @@ def dominant_screen_color(initial_color, func_bounds=lambda: None):
     a1D = ne.evaluate("a0*s0*s1+a1*s0+a2", eval_params)
     color = np.unravel_index(np.bincount(a1D).argmax(), col_range)
 
-    color_hsbk = list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
-    # color_hsbk[2] = initial_color[2]  # TODO Decide this
-    return color_hsbk
+    return list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
 
 
 class ColorThread(threading.Thread):
@@ -129,7 +132,7 @@ class ColorThreadRunner:
         self.kwargs = kwargs
         self.parent = parent  # couple to parent frame
         self.logger = logging.getLogger(
-            parent.logger.name + ".Thread({})".format(color_function.__name__)
+            parent.logger.name + f".Thread({color_function.__name__})"
         )
         self.prev_color = parent.get_color_values_hsbk()
         self.continuous = continuous

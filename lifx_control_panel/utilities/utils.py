@@ -1,19 +1,10 @@
 # -*- coding: utf-8 -*-
-"""General utility classes and functions
-
-Contains several classes and functions for quality of life. Used indiscriminately throughout the module.
-
-Notes
------
-    Functions should attempt to not contain stateful information, as this module will be called by other modules
-    throughout the program, including other Threads, and as such states may not be coherent.
-"""
+"""General utility classes and functions."""
 import os
 import sys
-import time
 from functools import lru_cache
 from math import log, floor
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 
 import mss
 
@@ -73,8 +64,10 @@ TypeHSBK = Union[Tuple[int, int, int, int], Color]
 
 
 def hsbk_to_rgb(hsbk: TypeHSBK) -> TypeRGB:
-    """ Convert Tuple in HSBK color-space to RGB space.
-    Converted from PHP https://gist.github.com/joshrp/5200913 """
+    """
+    Convert Tuple in HSBK color-space to RGB space.
+    Converted from PHP https://gist.github.com/joshrp/5200913
+    """
     # pylint: disable=invalid-name
     iH, iS, iB, iK = hsbk
     dS = (100 * iS / 65535) / 100.0  # Saturation: 0.0-1.0
@@ -135,7 +128,7 @@ def hsbk_to_rgb(hsbk: TypeHSBK) -> TypeRGB:
     return x, y, z
 
 
-def hue_to_rgb(h: float, s: float = 1, v: float = 1) -> TypeRGB:
+def hsv_to_rgb(h: float, s: float = 1, v: float = 1) -> TypeRGB:
     """ Convert a Hue-angle to an RGB value for display. """
     # pylint: disable=invalid-name
     h = float(h)
@@ -200,19 +193,19 @@ def tuple2hex(tuple_: TypeRGB) -> str:
     return "#%02x%02x%02x" % tuple_
 
 
-def str2list(string: str, type_func) -> list:
+def str2list(string: str, type_func) -> List:
     """ Takes a Python list-formatted string and returns a list of elements of type type_func """
     return list(map(type_func, string.strip("()[]").split(",")))
 
 
-def str2tuple(string: str, type_func) -> tuple:
+def str2tuple(string: str, type_func) -> Tuple:
     """ Takes a Python list-formatted string and returns a tuple of type type_func """
     return tuple(map(type_func, string.strip("()[]").split(",")))
 
 
 # Multi monitor methods
 @lru_cache(maxsize=None)
-def get_primary_monitor() -> Tuple[int, int, int, int]:
+def get_primary_monitor() -> Tuple[int, ...]:
     """ Return the system's default primary monitor rectangle bounds. """
     return [rect for rect in get_display_rects() if rect[:2] == (0, 0)][
         0
@@ -230,24 +223,7 @@ def resource_path(relative_path) -> Union[int, bytes]:
     return os.path.join(base_path, relative_path)
 
 
-# Misc
-
-
-def timeit(method):
-    def timed(*args, **kw):
-        t_start = time.time()
-        result = method(*args, **kw)
-        t_end = time.time()
-        if "log_time" in kw:
-            name = kw.get("log_name", method.__name__.upper())
-            kw["log_time"][name] = int((t_end - t_start) * 1000)
-        else:
-            print("%r  %2.2f ms" % (method.__name__, (t_end - t_start) * 1000))
-        return result
-
-    return timed
-
-
 def get_display_rects():
+    """ Return a list of tuples of monitor rectangles. """
     with mss.mss() as sct:
         return [tuple(m.values()) for m in sct.monitors]
