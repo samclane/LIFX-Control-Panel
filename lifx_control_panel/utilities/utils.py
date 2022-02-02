@@ -63,16 +63,14 @@ TypeRGB = Union[Tuple[int, int, int], Color]
 TypeHSBK = Union[Tuple[int, int, int, int], Color]
 
 
-def hsbk_to_rgb(hsbk: TypeHSBK) -> TypeRGB:
-    """
-    Convert Tuple in HSBK color-space to RGB space.
-    Converted from PHP https://gist.github.com/joshrp/5200913
-    """
+def hsbk_to_rgb(hsvk: TypeHSBK) -> TypeRGB:
+    """ Convert Tuple in HSBK color-space to RGB space.
+    Converted from PHP https://gist.github.com/joshrp/5200913 """
     # pylint: disable=invalid-name
-    iH, iS, iB, iK = hsbk
+    iH, iS, iV, iK = hsvk
     dS = (100 * iS / 65535) / 100.0  # Saturation: 0.0-1.0
-    dB = (100 * iB / 65535) / 100.0  # Lightness: 0.0-1.0
-    dC = dB * dS  # Chroma: 0.0-1.0
+    dV = (100 * iV / 65535) / 100.0  # Lightness: 0.0-1.0
+    dC = dV * dS  # Chroma: 0.0-1.0
     dH = (360 * iH / 65535) / 60.0  # H-prime: 0.0-6.0
     dT = dH  # Temp variable
 
@@ -110,7 +108,7 @@ def hsbk_to_rgb(hsbk: TypeHSBK) -> TypeRGB:
         dG = 0.0
         dB = 0.0
 
-    dM = dB - dC
+    dM = dV - dC
     dR += dM
     dG += dM
     dB += dM
