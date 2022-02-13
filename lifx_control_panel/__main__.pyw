@@ -199,6 +199,9 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
                     self.build_group_frame(group_label)
             except lifxlan.WorkflowException as exc:
                 self.logger.warning("Error when communicating with LIFX device: %s", exc)
+            except KeyError as exc:
+                self.logger.warning("Unknown device: %s: %s",
+                                    light.get_product(), light.get_label())
 
     def build_group_frame(self, group_label):
         self.device_map[group_label]: lifxlan.Group = self.lifx.get_devices_by_group(group_label)
