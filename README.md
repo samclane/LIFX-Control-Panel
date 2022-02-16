@@ -30,8 +30,6 @@ There are ~~2~~ **3** ways to install:
 
 2. Run `pip install lifx-control-panel`. To start run `python -m lifx_control_panel`. 
 
-3. Head on over to [SourceForge](https://sourceforge.net/projects/lifx-control-panel/)
-
 The `LIFX-Control-Panel-debug.exe` is a debug version that runs with a console in the background, and uses a verbose
 `lifxlan` network logger.
 
