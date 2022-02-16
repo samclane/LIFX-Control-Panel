@@ -65,7 +65,7 @@ def normalize_rectangles(rects: List[Tuple[int, int, int, int]]):
     ]
 
 
-def avg_screen_color(initial_color_hsbk, func_bounds=lambda: None):
+def avg_screen_color(initial_color, func_bounds=lambda: None):
     """ Capture an image of the monitor defined by func_bounds, then get the average color of the image in HSBK """
     monitor = get_monitor_bounds(func_bounds)
     if "full" in monitor:
@@ -74,7 +74,7 @@ def avg_screen_color(initial_color_hsbk, func_bounds=lambda: None):
         screenshot = get_rect_as_image(str2list(monitor, int))
     # Resizing the image to 1x1 pixel will give us the average for the whole image (via HAMMING interpolation)
     color = screenshot.resize((1, 1), Image.HAMMING).getpixel((0, 0))
-    return list(utils.RGBtoHSBK(color, temperature=initial_color_hsbk[3]))
+    return list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
 
 
 def dominant_screen_color(initial_color, func_bounds=lambda: None):
