@@ -93,7 +93,7 @@ exe = EXE(pyz,
 
 
 a = Analysis(
-    ['tests//dummy_devices.py', '__main__.pyw', 'utilities//color_thread.py', 'utilities//audio.py', 'ui//settings.py',
+    ['test//dummy_devices.py', '__main__.pyw', 'utilities//color_thread.py', 'utilities//audio.py', 'ui//settings.py',
      'utilities//utils.py', '_constants.py', 'ui//splashscreen.py'],
     pathex=['\\.'],
     binaries=[],
