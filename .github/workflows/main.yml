@@ -44,3 +44,12 @@ jobs:
           cd ./lifx_control_panel
           set PYTHONOPTIMIZE=1 && pyinstaller --onefile --noupx build_all.spec
           cd ..
+  test:
+    name: Test Project
+    runs-on: windows-latest
+    steps:
+      - name: Test Project
+        run: |
+          cd ./lifx_control_panel
+          python -m unittest discover test -p "*test*.py
+          cd ..
