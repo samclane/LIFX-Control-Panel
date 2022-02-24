@@ -1,6 +1,6 @@
 keyboard
 mouse
-pyaudio
+# pyaudio
 Pillow
 git+git://github.com/samclane/lifxlan@master#egg=lifxlan
 numexpr
