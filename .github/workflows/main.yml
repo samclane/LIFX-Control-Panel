@@ -46,6 +46,7 @@ jobs:
           cd ..
       - name: Test Project
         run: |
+          pip3 install --user -r requirements.txt
           cd ./lifx_control_panel
           python -m unittest discover test -p "*test*.py"
           cd ..
