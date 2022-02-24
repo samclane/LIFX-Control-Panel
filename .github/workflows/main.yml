@@ -51,5 +51,5 @@ jobs:
       - name: Test Project
         run: |
           cd ./lifx_control_panel
-          python -m unittest discover test -p "*test*.py
+          python -m unittest discover test -p "*test*.py"
           cd ..
