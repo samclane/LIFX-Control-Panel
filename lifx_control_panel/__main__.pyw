@@ -91,7 +91,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
 
         # Initialize LIFX objects
         self.tk_light_name = tkinter.StringVar(self)
-        self.device_map: Dict[str, lifxlan.Device] = OrderedDict()  # LifxLight objects
+        self.device_map: Dict[str, Union[lifxlan.Device, lifxlan.Group]] = OrderedDict()  # LifxLight objects
         self.frame_map: Dict[str, LightFrame] = {}  # corresponding LightFrame GUI
         self.current_lightframe: Optional[LightFrame] = None  # currently selected and visible LightFrame
         self.current_light: Optional[lifxlan.Light]
@@ -204,7 +204,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
                                     light.get_product(), light.get_label())
 
     def build_group_frame(self, group_label):
-        self.device_map[group_label]: lifxlan.Group = self.lifx.get_devices_by_group(group_label)
+        self.device_map[group_label] = self.lifx.get_devices_by_group(group_label)
         self.device_map[group_label].get_label = lambda: group_label  # pylint: disable=cell-var-from-loop
         # Giving an attribute here is a bit dirty, but whatever
         self.device_map[group_label].label = group_label
