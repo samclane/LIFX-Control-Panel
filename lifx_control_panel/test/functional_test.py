@@ -1,13 +1,12 @@
 import unittest
-from lifx_control_panel.utilities.utils import (
+from utilities.utils import (
+    Color,
     hsbk_to_rgb,
     hsv_to_rgb,
     tuple2hex,
     str2list,
     str2tuple,
 )
-
-from utilities.utils import Color
 
 
 class TestFunctions(unittest.TestCase):
