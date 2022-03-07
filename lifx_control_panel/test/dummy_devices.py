@@ -4,11 +4,11 @@ import logging
 import os
 import time
 import traceback
-from random import randint, sample, randrange, choice
 from tkinter import *
 from tkinter import messagebox
+from typing import Iterable
 
-from lifxlan import product_map, Group
+from lifxlan import Group
 
 from utilities.utils import Color as DummyColor
 from utilities.utils import resource_path
@@ -24,29 +24,13 @@ elif __file__:
 LOGFILE = os.path.join(application_path, LOGFILE)
 
 
-# Helpers
-def randomMAC():
-    return [
-        0x00,
-        0x16,
-        0x3E,
-        randint(0x00, 0x7F),
-        randint(0x00, 0xFF),
-        randint(0x00, 0xFF),
-    ]
-
-
-def randomIP():
-    return ".".join(map(str, (randint(0, 255) for _ in range(4))))
-
-
 # Dummy classes
 class DummyDevice:
     def __init__(self, label="No label"):
         self.label = label
         self.power = False
-        self.mac_addr = randomMAC()
-        self.ip_addr = randomIP()
+        self.mac_addr = "00:16:3e:2a:8d:00"
+        self.ip_addr = "63.218.207.187"
         self.build_timestamp = 1521690429000000000
         self.version = 2.75
         self.wifi_signal_mw = 32.0
@@ -55,12 +39,46 @@ class DummyDevice:
         self.wifi_build_timestamp = 0
         self.wifi_version = 0.0
         self.vendor = 1
-        self.product = choice(list(product_map.keys()))
+        self.product = 0x65
         self.location_label = "My Home"
-        self.location_tuple = sample(range(255), 16)
+        self.location_tuple = (
+            3,
+            238,
+            83,
+            151,
+            159,
+            43,
+            44,
+            177,
+            180,
+            149,
+            11,
+            191,
+            243,
+            219,
+            79,
+            115,
+        )
         self.location_updated_at = 1516997252637000000
         self.group_label = "Room 2"
-        self.group_tuple = sample(range(255), 16)
+        self.group_tuple = (
+            50,
+            71,
+            100,
+            191,
+            135,
+            165,
+            21,
+            163,
+            195,
+            54,
+            66,
+            226,
+            0,
+            175,
+            217,
+            223,
+        )
         self.group_updated_at = 1516997252642000000
 
         self._start_time = time.time()
@@ -187,12 +205,7 @@ class DummyDevice:
 class DummyBulb(DummyDevice):
     def __init__(self, color=None, label="N/A"):
         super().__init__(label)
-        self.color = color or DummyColor(
-            randrange(0, 65535),
-            randrange(0, 65535),
-            randrange(0, 65535),
-            randrange(1500, 9000),
-        )
+        self.color = color or DummyColor(6097, 46851, 38791, 3014,)
         self.power: int = 0
 
     # Official api
@@ -354,10 +367,10 @@ class LifxLANDummy:
             light for light in self.devices.values() if type(light) is TileChainDummy
         )
 
-    def get_device_by_name(self, name):
+    def get_device_by_name(self, name: str):
         return self.devices[name]
 
-    def get_devices_by_names(self, names):
+    def get_devices_by_names(self, names: Iterable[str]):
         return Group(
             [light for light in self.devices.values() if light.get_label() in names]
         )
