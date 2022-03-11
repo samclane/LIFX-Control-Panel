@@ -47,9 +47,10 @@ jobs:
       - name: Test Project
         run: |
           pip3 install --user -r requirements.txt
-          pip3 install --user -r requirements-dev.txt
+          pip install -r requirements-dev.txt
           cd ./lifx_control_panel
-          set PYTHONPATH=. && coverage run -m unittest discover test -p "*test*.py"
+          set PYTHONPATH=.
+          python -m coverage run -m unittest discover test -p "*test*.py"
           cd ..
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v2
