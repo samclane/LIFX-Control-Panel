@@ -52,9 +52,10 @@ jobs:
           set PYTHONPATH=.
           coverage run -m unittest discover test -p "*test*.py"
           coverage report
+          coverage xml -o coverage.xml
           cd ..
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v2
         with:
-          files: ./lifx_control_panel/.coverage
+          files: ./lifx_control_panel/coverage.xml
           flags: unittests
