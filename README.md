@@ -1,5 +1,9 @@
 # LIFX-Control-Panel 
 
+[![codecov](https://codecov.io/gh/samclane/LIFX-Control-Panel/branch/master/graph/badge.svg?token=GLAxucmOo6)](https://codecov.io/gh/samclane/LIFX-Control-Panel)
+![Try-Building](https://github.com/samclane/LIFX-Control-Panel/actions/workflows/main.yml/badge.svg)
+
+
 <img align="right" width="120" height="120" title="LIFX-Control-Panel Logo" src="./res/lifx-animated-logo.gif">
      
 LIFX-Control-Panel is an open source application for controlling your LIFX brand lights. It integrates simple features, 
