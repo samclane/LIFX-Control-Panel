@@ -1,4 +1,4 @@
-name: Example-Build And Test
+name: Smoke Build And Test
 
 on:
   push:
@@ -6,8 +6,7 @@ on:
       - master
 
 jobs:
-  build:
-    name: Example Build
+  smoke-build:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
