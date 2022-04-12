@@ -7,6 +7,8 @@ import logging
 import threading
 from functools import lru_cache
 from typing import List, Tuple
+import time
+import math
 
 import mss
 import numexpr as ne
@@ -18,6 +20,10 @@ from lifxlan import utils
 
 from .utils import str2list
 from ..ui.settings import config
+
+from lifx_control_panel.utilities.utils import (
+    hsv_to_rgb,
+)
 
 
 @lru_cache(maxsize=32)
@@ -64,6 +70,20 @@ def normalize_rectangles(rects: List[Tuple[int, int, int, int]]):
         for left, top, right, bottom in rects
     ]
 
+cycleColor = (255, 0, 0)
+lastChange = time.time()
+pos = 0
+def color_cycle(initial_color):
+    global pos
+    global lastChange
+    global cycleColor
+    if time.time() - lastChange > .1:
+        pos = pos + 1
+        if not pos < 360:
+            pos = 0
+        cycleColor = hsv_to_rgb(pos, 1, 1)
+        lastChange = time.time()
+    return list(utils.RGBtoHSBK(cycleColor, temperature=initial_color[3]))
 
 def avg_screen_color(initial_color, func_bounds=lambda: None):
     """ Capture an image of the monitor defined by func_bounds, then get the average color of the image in HSBK """
