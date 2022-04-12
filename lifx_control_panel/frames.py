@@ -599,7 +599,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         if color:
             # RGBtoHBSK sometimes returns >65535, so we have to truncate
             hsbk = [min(c, 65535) for c in lifxlan.RGBtoHSBK(color, self.hsbk[3].get())]
-            self.set_color(hsbk);
+            self.set_color(hsbk)
             self.logger.info("Color set to HSBK %s from palette.", hsbk)
 
     def update_status_from_bulb(self, run_once=False):

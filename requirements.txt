@@ -1,11 +1,10 @@
 keyboard
 mouse
-# pyaudio
 Pillow
 git+https://github.com/samclane/lifxlan@master#egg=lifxlan
 numexpr
 numpy
 mss
 pystray
-pypiwin32
-pyaudio
+pywin32
+# pyaudio
