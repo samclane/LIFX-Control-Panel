@@ -203,6 +203,21 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.screen_region_entries[arg2].grid(row=row, column=3)
 
     def _setup_special_functions(self):
+        # Color cycle
+        self.threads["cycle"] = color_thread.ColorThreadRunner(
+            self.target,
+            color_thread.color_cycle,
+            self
+        )
+        def start_color_cycle():
+            self.color_cycle_btn.config(bg="Green")
+            self.threads["cycle"].start()
+        self.color_cycle_btn = tkinter.Button(
+            self.special_functions_lf,
+            text="Color Cycle",
+            command=start_color_cycle,
+        )
+        self.color_cycle_btn.grid(row=9, column=0)
         # Screen Avg.
         self.threads["screen"] = color_thread.ColorThreadRunner(
             self.target,
@@ -210,7 +225,6 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             self,
             func_bounds=self.get_monitor_bounds,
         )
-
         def start_screen_avg():
             """ Allow the screen avg. to be run in a separate thread. Also turns button green while running. """
             self.avg_screen_btn.config(bg="Green")
@@ -498,6 +512,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.music_button.config(bg="SystemButtonFace")
         self.avg_screen_btn.config(bg="SystemButtonFace")
         self.dominant_screen_btn.config(bg="SystemButtonFace")
+        self.color_cycle_btn.config(bg="SystemButtonFace")
         for thread in self.threads.values():
             thread.stop()
 
@@ -584,7 +599,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         if color:
             # RGBtoHBSK sometimes returns >65535, so we have to truncate
             hsbk = [min(c, 65535) for c in lifxlan.RGBtoHSBK(color, self.hsbk[3].get())]
-            self.set_color(hsbk)
+            self.set_color(hsbk);
             self.logger.info("Color set to HSBK %s from palette.", hsbk)
 
     def update_status_from_bulb(self, run_once=False):
