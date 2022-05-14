@@ -205,17 +205,15 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     def _setup_special_functions(self):
         # Color cycle
         self.threads["cycle"] = color_thread.ColorThreadRunner(
-            self.target,
-            color_thread.color_cycle,
-            self
+            self.target, color_thread.ColorCycle(), self
         )
+
         def start_color_cycle():
             self.color_cycle_btn.config(bg="Green")
             self.threads["cycle"].start()
+
         self.color_cycle_btn = tkinter.Button(
-            self.special_functions_lf,
-            text="Color Cycle",
-            command=start_color_cycle,
+            self.special_functions_lf, text="Color Cycle", command=start_color_cycle,
         )
         self.color_cycle_btn.grid(row=9, column=0)
         # Screen Avg.
@@ -225,6 +223,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             self,
             func_bounds=self.get_monitor_bounds,
         )
+
         def start_screen_avg():
             """ Allow the screen avg. to be run in a separate thread. Also turns button green while running. """
             self.avg_screen_btn.config(bg="Green")

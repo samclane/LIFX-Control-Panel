@@ -18,12 +18,10 @@ import numpy as np
 from PIL import Image
 from lifxlan import utils
 
-from .utils import str2list
+from .utils import str2list, Color
 from ..ui.settings import config
 
-from lifx_control_panel.utilities.utils import (
-    hsv_to_rgb,
-)
+from lifx_control_panel.utilities.utils import hsv_to_rgb
 
 
 @lru_cache(maxsize=32)
@@ -70,20 +68,30 @@ def normalize_rectangles(rects: List[Tuple[int, int, int, int]]):
         for left, top, right, bottom in rects
     ]
 
-cycleColor = (255, 0, 0)
-lastChange = time.time()
-pos = 0
-def color_cycle(initial_color):
-    global pos
-    global lastChange
-    global cycleColor
-    if time.time() - lastChange > .1:
-        pos = pos + 1
-        if not pos < 360:
-            pos = 0
-        cycleColor = hsv_to_rgb(pos, 1, 1)
-        lastChange = time.time()
-    return list(utils.RGBtoHSBK(cycleColor, temperature=initial_color[3]))
+
+class ColorCycle:
+    def __init__(self):
+        self.initial_color = Color(255, 0, 0, 0)
+        self.last_change = time.time()
+        self.pos = 0
+        self.cycle_color = hsv_to_rgb(self.pos, 1, 1)
+
+    def get_color(self):
+        if time.time() - self.last_change > 0.1:
+            self.pos = (self.pos + 1) % 360
+            self.cycle_color = hsv_to_rgb(self.pos, 1, 1)
+            self.last_change = time.time()
+        return list(
+            utils.RGBtoHSBK(self.cycle_color, temperature=self.initial_color[3])
+        )
+
+    def __call__(self, initial_color):
+        self.initial_color = initial_color
+        return self.get_color()
+
+    def __name__(self):
+        return "ColorCycle"
+
 
 def avg_screen_color(initial_color, func_bounds=lambda: None):
     """ Capture an image of the monitor defined by func_bounds, then get the average color of the image in HSBK """
