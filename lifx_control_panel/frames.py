@@ -203,6 +203,19 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.screen_region_entries[arg2].grid(row=row, column=3)
 
     def _setup_special_functions(self):
+        # Color cycle
+        self.threads["cycle"] = color_thread.ColorThreadRunner(
+            self.target, color_thread.ColorCycle(), self
+        )
+
+        def start_color_cycle():
+            self.color_cycle_btn.config(bg="Green")
+            self.threads["cycle"].start()
+
+        self.color_cycle_btn = tkinter.Button(
+            self.special_functions_lf, text="Color Cycle", command=start_color_cycle,
+        )
+        self.color_cycle_btn.grid(row=9, column=0)
         # Screen Avg.
         self.threads["screen"] = color_thread.ColorThreadRunner(
             self.target,
@@ -498,6 +511,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.music_button.config(bg="SystemButtonFace")
         self.avg_screen_btn.config(bg="SystemButtonFace")
         self.dominant_screen_btn.config(bg="SystemButtonFace")
+        self.color_cycle_btn.config(bg="SystemButtonFace")
         for thread in self.threads.values():
             thread.stop()
 

@@ -7,6 +7,8 @@ import logging
 import threading
 from functools import lru_cache
 from typing import List, Tuple
+import time
+import math
 
 import mss
 import numexpr as ne
@@ -16,8 +18,10 @@ import numpy as np
 from PIL import Image
 from lifxlan import utils
 
-from .utils import str2list
+from .utils import str2list, Color
 from ..ui.settings import config
+
+from lifx_control_panel.utilities.utils import hsv_to_rgb
 
 
 @lru_cache(maxsize=32)
@@ -63,6 +67,30 @@ def normalize_rectangles(rects: List[Tuple[int, int, int, int]]):
         (-x_min + left, -y_min + top, -x_min + right, -y_min + bottom,)
         for left, top, right, bottom in rects
     ]
+
+
+class ColorCycle:
+    def __init__(self):
+        self.initial_color = Color(255, 0, 0, 0)
+        self.last_change = time.time()
+        self.pos = 0
+        self.cycle_color = hsv_to_rgb(self.pos, 1, 1)
+
+    def get_color(self):
+        if time.time() - self.last_change > 0.1:
+            self.pos = (self.pos + 1) % 360
+            self.cycle_color = hsv_to_rgb(self.pos, 1, 1)
+            self.last_change = time.time()
+        return list(
+            utils.RGBtoHSBK(self.cycle_color, temperature=self.initial_color[3])
+        )
+
+    def __call__(self, initial_color):
+        self.initial_color = initial_color
+        return self.get_color()
+
+    def __name__(self):
+        return "ColorCycle"
 
 
 def avg_screen_color(initial_color, func_bounds=lambda: None):
