@@ -49,9 +49,6 @@ You can now install through PyPI, by running `pip install lifx-control-panel`. T
 To manually install the dependencies, run `pip install -r requirements.txt`. PyHook3 has given me some grief installing from pip
 in the past, but your millage may vary.
 
-To run the code from source, simply run `python gui.pyw` from the command line. To run with "Dummy" devices included,
-run `python dummy_devices.py`.
-
 # Building
 
 LIFX-Control-Panel uses PyInstaller. After downloading the repository, open a command window in the `LIFX-Control-Panel`
