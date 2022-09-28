@@ -34,21 +34,13 @@ There are ~~2~~ **3** ways to install:
 
 2. Run `pip install lifx-control-panel`. To start run `python -m lifx_control_panel`.
 
-The `LIFX-Control-Panel-debug.exe` is a debug version that runs with a console in the background, and uses a verbose
-`lifxlan` network logger.
-
-`LIFX-Control-Panel-demo.exe` features several "Dummy" bulbs in addition to any real devices on your network. You can use
-this distribution to test the software on computers that do not have a LIFX device on the LAN.
-
 Starting the program takes a moment, as it first must scan your LAN for any LIFX devices.
 
 # Running the source code
 
 You can now install through PyPI, by running `pip install lifx-control-panel`. This will automatically install dependencies.
 
-To manually install the dependencies, run `pip install -r requirements.txt`. PyHook3 has given me some grief installing from pip
-in the past, but your millage may vary.
-
+To manually install the dependencies, run `pip install -r requirements.txt`. 
 # Building
 
 LIFX-Control-Panel uses PyInstaller. After downloading the repository, open a command window in the `LIFX-Control-Panel`
@@ -83,6 +75,13 @@ and on the following LIFX devices:
 - LIFX Z Firmware v1.22
 - LIFX Mini White Firmware v3.41
 
+I've tried to test on the following operating systems:
+- MacOS X
+- Fedora Linux
+
+However, the biggest hurdle seems to be the `tk` GUI library, which is not supported on MacOS X, and requires
+extra library installations on Linux.
+
 # Feedback
 
 If you have any comments or concerns, please feel free to make a post on the [Issues page](https://github.com/samclane/LIFX-Control-Panel/issues).
@@ -91,7 +90,7 @@ If you enjoy LIFX-Control-Panel, please Like and leave a review on [AlternativeT
 
 ### NEW
 
-[Join our Discord Server](https://discord.gg/3pG9jaDG)
+[Join our Discord Server](https://discord.gg/Wse9jX94Vq)
 
 # Donate
 
