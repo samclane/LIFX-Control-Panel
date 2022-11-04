@@ -41,6 +41,14 @@ Starting the program takes a moment, as it first must scan your LAN for any LIFX
 You can now install through PyPI, by running `pip install lifx-control-panel`. This will automatically install dependencies.
 
 To manually install the dependencies, run `pip install -r requirements.txt`. 
+
+Due to some initial PyCharm cruft, the environment paths are a bit messed up. 
+- The main script path is:
+  - `..\LIFX-Control-Panel\lifx_control_panel\__main__.pyw`
+- The Working Directory is:
+  - `..\LIFX-Control-Panel\lifx_control_panel`
+- Additionally, the `Add content roots to PYTHONPATH` and `Add source roots to PYTHONPATH` boxes are checked
+  - I haven't been able to reproduce this in VSCode, yet.
 # Building
 
 LIFX-Control-Panel uses PyInstaller. After downloading the repository, open a command window in the `LIFX-Control-Panel`
@@ -74,6 +82,7 @@ and on the following LIFX devices:
 - LIFX A13 Firmware v2.76
 - LIFX Z Firmware v1.22
 - LIFX Mini White Firmware v3.41
+- LIFX Beam
 
 I've tried to test on the following operating systems:
 - MacOS X
