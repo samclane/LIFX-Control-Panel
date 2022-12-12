@@ -76,10 +76,10 @@ class ColorCycle:
         self.pos = 0
         self.cycle_color = hsv_to_rgb(self.pos, 1, 1)
 
-    def get_color(self):
+    def get_color(self, *args, **kwargs):
         if time.time() - self.last_change > 0.1:
             self.pos = (self.pos + 1) % 360
-            self.cycle_color = hsv_to_rgb(self.pos, 1, 1)
+            self.cycle_color = hsv_to_rgb(self.pos, 1, self.initial_color[2] / 65535)
             self.last_change = time.time()
         return list(
             utils.RGBtoHSBK(self.cycle_color, temperature=self.initial_color[3])
