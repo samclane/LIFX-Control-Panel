@@ -1,3 +1,5 @@
+## Development is now being continued on the new [Mantle](https://github.com/samclane/mantle) project
+
 # LIFX-Control-Panel
 
 [![codecov](https://codecov.io/gh/samclane/LIFX-Control-Panel/branch/master/graph/badge.svg?token=GLAxucmOo6)](https://codecov.io/gh/samclane/LIFX-Control-Panel)
