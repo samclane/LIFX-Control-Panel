@@ -27,7 +27,7 @@ jobs:
         working-directory: ./lifx_control_panel
         env:
           PYTHONOPTIMIZE: '1'
-        run: pyinstaller --onefile --noupx build_all.spec
+        run: pyinstaller build_all.spec
   
   test:
     runs-on: windows-latest
