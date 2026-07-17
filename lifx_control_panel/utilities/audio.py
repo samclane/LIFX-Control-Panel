@@ -12,11 +12,16 @@ from collections import deque
 from math import ceil
 from tkinter import messagebox
 
-import pyaudio
+try:
+    import pyaudio
+except ImportError:
+    # ponytail: pyaudio is optional (commented out in requirements.txt); without it
+    # AudioInterface stays uninitialized and the UI disables music-following.
+    pyaudio = None
 
 # Audio processing constants
 CHUNK = 1024
-FORMAT = pyaudio.paInt16
+FORMAT = pyaudio.paInt16 if pyaudio else None
 CHANNELS = 2
 RATE = 44100
 
@@ -31,7 +36,7 @@ class AudioInterface:
      music intensity. """
 
     def __init__(self):
-        self.interface = pyaudio.PyAudio()
+        self.interface = pyaudio.PyAudio() if pyaudio else None
         self.num_devices = 0
         self.stream = None
         self.initialized = False
@@ -40,6 +45,9 @@ class AudioInterface:
     def init_audio(self, config):
         """ Attempt to make a connection to the audio device given in config.ini or Stereo Mix. Will attempt
          to automatically find a Stereo Mix """
+        if pyaudio is None:
+            self.initialized = False
+            return
         if self.initialized:
             self.interface.close(self.stream)
             self.num_devices = 0

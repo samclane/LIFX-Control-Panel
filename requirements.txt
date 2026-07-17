@@ -2,6 +2,9 @@ keyboard
 mouse
 Pillow
 git+https://github.com/samclane/lifxlan@master#egg=lifxlan
+# lifxlan's bare-number pack formats ("64", "48") mean uint only in bitstring 3.x;
+# 4.x reads them as bits and packing fails.
+bitstring<4
 numexpr
 numpy
 mss
