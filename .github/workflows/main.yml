@@ -12,40 +12,22 @@ jobs:
   smoke-build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v1
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.8.x' # Semantic version range syntax or exact version of a Python version
-          architecture: 'x64'
-      - name: Cache pip
-        uses: actions/cache@v1
-        with:
-          path: ~/.cache/pip # This path is specific to Ubuntu
-          # Look to see if there is a cache hit for the corresponding requirements file
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-            ${{ runner.os }}-
-      - name: Install swig
-        env:
-          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-        run: |
-          (New-Object System.Net.WebClient).DownloadFile("http://prdownloads.sourceforge.net/swig/swigwin-4.0.1.zip","swigwin-4.0.1.zip");
-          Expand-Archive .\swigwin-4.0.1.zip .;
-          echo "::add-path::./swigwin-4.0.1"
-      - name: Check swig
-        run: swig -version
-      - name: Install python and deps
+          python-version: '3.14'
+          cache: 'pip'
+      - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pyinstaller==4.8
+          pip install pyinstaller==6.21.0
       - name: Build Project
-        run: |
-          cd ./lifx_control_panel
-          set PYTHONOPTIMIZE=1 && pyinstaller --onefile --noupx build_all.spec
-          cd ..
+        working-directory: ./lifx_control_panel
+        env:
+          PYTHONOPTIMIZE: '1'
+        run: pyinstaller --onefile --noupx build_all.spec
   
   test:
     runs-on: windows-latest
