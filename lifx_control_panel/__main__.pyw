@@ -27,7 +27,7 @@ if os.name == 'nt':
 
 from lifx_control_panel import HEARTBEAT_RATE_MS, FRAME_PERIOD_MS, LOGFILE
 from lifx_control_panel._constants import BUILD_DATE, AUTHOR, DEBUGGING, VERSION
-from lifx_control_panel.frames import LightFrame, MultiZoneFrame, GroupFrame
+from lifx_control_panel.frames import LightFrame, GroupFrame
 from lifx_control_panel.ui import settings
 from lifx_control_panel.ui.icon_list import BulbIconList
 from lifx_control_panel.ui.settings import config
@@ -116,23 +116,16 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.group_icons.canvas.bind('<Button-1>', self.on_bulb_canvas_click)
 
         # Setup tray icon
-        def lambda_quit(self_):
-            """ Build an anonymous function call w/ correct 'self' scope"""
-            return lambda *_, **__: self_.on_closing()
-
-        def lambda_adjust(self_):
-            return lambda *_, **__: self_.master.deiconify()
-
         def run_tray_icon():
             """ Allow SysTrayIcon in a separate thread """
             image = Image.open(resource_path('res/icon_vector.ico'))
 
             icon = pystray.Icon("LIFX Control Panel", image, menu=pystray.Menu(
                 pystray.MenuItem('Open',
-                                 lambda_adjust(self),
+                                 lambda *_, **__: self.master.deiconify(),
                                  default=True),
                 pystray.MenuItem('Quit',
-                                 lambda_quit(self)),
+                                 lambda *_, **__: self.on_closing()),
             ))
             icon.run()
 
@@ -165,8 +158,6 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         if not stop_event.is_set():
             stop_event.set()
         device_list: List[Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]] = self.lifx.get_devices()
-        if self.bulb_interface:
-            del self.bulb_interface
         self.bulb_interface = AsyncBulbInterface(stop_event, HEARTBEAT_RATE_MS)
         self.bulb_interface.set_device_list(device_list)
         self.bulb_interface.daemon = True
@@ -184,10 +175,8 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
                 if label not in self.bulb_icons.bulb_dict:
                     self.bulb_icons.draw_bulb_icon(light, label)
                 if label not in self.frame_map:
-                    if light.supports_multizone():
-                        self.frame_map[label] = MultiZoneFrame(self, light)
-                    else:
-                        self.frame_map[label] = LightFrame(self, light)
+                    # LightFrame._get_light_info already handles multizone devices
+                    self.frame_map[label] = LightFrame(self, light)
                     self.current_lightframe = self.frame_map[label]
                     try:
                         self.bulb_icons.set_selected_bulb(label)
@@ -260,13 +249,9 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
 
     def save_keybind(self, light, keypress, color):
         """ Builds a new anonymous function changing light to color when keypress is entered. """
-
-        def lambda_factory(self, light, color):
-            """ https://stackoverflow.com/questions/938429/scope-of-lambda-functions-and-their-parameters """
-            return lambda *_, **__: self.device_map[light].set_color(color,
-                                                                     duration=float(config["AverageColor"]["duration"]))
-
-        func = lambda_factory(self, light, color)
+        # default args bind light/color now, not at call time
+        func = lambda *_, light=light, color=color, **__: self.device_map[light].set_color(
+            color, duration=float(config["AverageColor"]["duration"]))
         self.key_listener.register_function(keypress, func)
 
     def delete_keybind(self, keycombo):

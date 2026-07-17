@@ -1,0 +1,69 @@
+import os
+import sys
+import unittest
+
+# color_thread uses package-relative imports, so make the repo root importable
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+
+from lifx_control_panel.utilities.color_thread import (
+    ColorCycle,
+    get_monitor_bounds,
+    normalize_rectangles,
+)
+from lifx_control_panel.utilities.utils import Color
+
+
+class TestNormalizeRectangles(unittest.TestCase):
+    def test_shifts_origin_to_zero(self):
+        rects = [(-1920, 0, 0, 1080), (0, 0, 1920, 1080)]
+        self.assertEqual(
+            normalize_rectangles(rects),
+            [(0, 0, 1920, 1080), (1920, 0, 3840, 1080)],
+        )
+
+    def test_already_normalized_is_unchanged(self):
+        rects = [(0, 0, 800, 600)]
+        self.assertEqual(normalize_rectangles(rects), rects)
+
+
+class TestGetMonitorBounds(unittest.TestCase):
+    def test_uses_func_result_when_truthy(self):
+        self.assertEqual(get_monitor_bounds(lambda: "[0, 0, 100, 100]"), "[0, 0, 100, 100]")
+
+
+class TestColorCycle(unittest.TestCase):
+    def _tick(self, cycle):
+        # Backdate the throttle so get_color advances immediately
+        cycle.last_change = 0
+        return cycle.get_color()
+
+    def test_respects_brightness(self):
+        cycle = ColorCycle()
+        cycle.initial_color = Color(0, 65535, 0, 3500)
+        hsbk = self._tick(cycle)
+        self.assertEqual(hsbk[2], 0)  # zero input brightness stays dark
+
+        cycle.initial_color = Color(0, 65535, 65535, 3500)
+        hsbk = self._tick(cycle)
+        self.assertEqual(hsbk[2], 65535)
+
+    def test_hue_advances_and_wraps(self):
+        cycle = ColorCycle()
+        cycle.initial_color = Color(0, 65535, 65535, 3500)
+        cycle.pos = 359
+        self._tick(cycle)
+        self.assertEqual(cycle.pos, 0)
+        self._tick(cycle)
+        self.assertEqual(cycle.pos, 1)
+
+    def test_throttles_within_interval(self):
+        cycle = ColorCycle()
+        cycle.initial_color = Color(0, 65535, 65535, 3500)
+        self._tick(cycle)
+        pos = cycle.pos
+        cycle.get_color()  # last_change is fresh, so no advance
+        self.assertEqual(cycle.pos, pos)
+
+
+if __name__ == "__main__":
+    unittest.main()

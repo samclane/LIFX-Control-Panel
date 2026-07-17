@@ -1,61 +1,22 @@
 # -*- coding: utf-8 -*-
 """General utility classes and functions."""
+import colorsys
 import os
 import sys
 from functools import lru_cache
 from math import log, floor
-from typing import Union, Tuple, List
+from typing import NamedTuple, Union, Tuple, List
 
 import mss
 
 
-class Color:
-    """ Container class for a single color vector in HSBK color-space. """
+class Color(NamedTuple):
+    """ A single color vector in HSBK color-space. """
 
-    __slots__ = ["hue", "saturation", "brightness", "kelvin"]
-
-    def __init__(self, hue: int, saturation: int, brightness: int, kelvin: int):
-        self.hue = hue
-        self.saturation = saturation
-        self.brightness = brightness
-        self.kelvin = kelvin
-
-    def __getitem__(self, item) -> int:
-        return self.__getattribute__(self.__slots__[item])
-
-    def __len__(self) -> int:
-        return 4
-
-    def __setitem__(self, key, value):
-        self.__setattr__(self.__slots__[key], value)
-
-    def __str__(self) -> str:
-        return f"[{self.hue}, {self.saturation}, {self.brightness}, {self.kelvin}]"
-
-    def __repr__(self) -> str:
-        return [self.hue, self.saturation, self.brightness, self.kelvin].__repr__()
-
-    def __eq__(self, other) -> bool:
-        return (
-            self.hue == other.hue
-            and self.brightness == other.brightness
-            and self.saturation == other.saturation
-            and self.kelvin == other.kelvin
-        )
-
-    def __add__(self, other):
-        return Color(
-            self.hue + other[0],
-            self.saturation + other[1],
-            self.brightness + other[2],
-            self.kelvin + other[3],
-        )
-
-    def __sub__(self, other):
-        return self.__add__([-v for v in other])
-
-    def __iter__(self):
-        return iter([self.hue, self.saturation, self.brightness, self.kelvin])
+    hue: int
+    saturation: int
+    brightness: int
+    kelvin: int
 
 
 # Derived types
@@ -128,32 +89,7 @@ def hsbk_to_rgb(hsvk: TypeHSBK) -> TypeRGB:
 
 def hsv_to_rgb(h: float, s: float = 1, v: float = 1) -> TypeRGB:
     """ Convert a Hue-angle to an RGB value for display. """
-    # pylint: disable=invalid-name
-    h = float(h)
-    s = float(s)
-    v = float(v)
-    h60 = h / 60.0
-    h60f = floor(h60)
-    hi = int(h60f) % 6
-    f = h60 - h60f
-    p = v * (1 - s)
-    q = v * (1 - f * s)
-    t = v * (1 - (1 - f) * s)
-    r, g, b = 0, 0, 0
-    if hi == 0:
-        r, g, b = v, t, p
-    elif hi == 1:
-        r, g, b = q, v, p
-    elif hi == 2:
-        r, g, b = p, v, t
-    elif hi == 3:
-        r, g, b = p, q, v
-    elif hi == 4:
-        r, g, b = t, p, v
-    elif hi == 5:
-        r, g, b = v, p, q
-    r, g, b = int(r * 255), int(g * 255), int(b * 255)
-    return r, g, b
+    return tuple(int(c * 255) for c in colorsys.hsv_to_rgb(float(h) / 360, s, v))
 
 
 def kelvin_to_rgb(temperature: int) -> TypeRGB:
@@ -198,16 +134,15 @@ def str2list(string: str, type_func) -> List:
 
 def str2tuple(string: str, type_func) -> Tuple:
     """ Takes a Python list-formatted string and returns a tuple of type type_func """
-    return tuple(map(type_func, string.strip("()[]").split(",")))
+    return tuple(str2list(string, type_func))
 
 
 # Multi monitor methods
 @lru_cache(maxsize=None)
 def get_primary_monitor() -> Tuple[int, ...]:
     """ Return the system's default primary monitor rectangle bounds. """
-    return [rect for rect in get_display_rects() if rect[:2] == (0, 0)][
-        0
-    ]  # primary monitor has top left as 0, 0
+    # primary monitor has top left as 0, 0
+    return next(rect for rect in get_display_rects() if rect[:2] == (0, 0))
 
 
 def resource_path(relative_path) -> Union[int, bytes]:
@@ -216,7 +151,9 @@ def resource_path(relative_path) -> Union[int, bytes]:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS  # pylint: disable=protected-access,no-member
     except Exception:  # pylint: disable=broad-except
-        base_path = os.path.abspath("../")
+        # repo root = two dirs up from this file (lifx_control_panel/utilities/utils.py).
+        # CWD-independent, unlike the old os.path.abspath("../").
+        base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
     return os.path.join(base_path, relative_path)
 

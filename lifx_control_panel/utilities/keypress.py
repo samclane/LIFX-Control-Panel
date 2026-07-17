@@ -42,19 +42,6 @@ class KeybindManager:
             "Unregistered function at keycombo <%s>", key_combo.lower(),
         )
 
-    def _on_key_down(self, event: keyboard.KeyboardEvent):
-        """ Simply adds the key to keys held. """
-        try:
-            self.keys_held.add(event.name)
-        except Exception as exc:
-            self.logger.error("Error in _on_key_down, %s", exc)
-        return True
-
-    def _on_key_up(self, event: keyboard.KeyboardEvent):
-        """ If a function for the given key_combo is found, call it """
-        if not self.sticky and event.name in self.keys_held:
-            self.keys_held.discard(event.name)
-
     def shutdown(self):
         """ Stop following keyboard events. """
         keyboard.unhook_all()

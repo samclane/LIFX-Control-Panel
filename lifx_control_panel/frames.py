@@ -3,7 +3,6 @@ import tkinter
 from tkinter import ttk, font as font, messagebox, _setit
 from typing import Union, List, Tuple, Dict, Mapping
 
-import mouse
 import lifxlan
 import win32api
 
@@ -544,20 +543,12 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                 "Color changed to HSBK: %s", color
             )  # Don't pollute log with rapid color changes
 
-    def update_label(self, key: int):
+    def update_label(self):
         """ Update scale labels, formatted accordingly. """
-        return [
-            self.hsbk_labels[0].config(
-                text=str(f"{360 * (self.hsbk[0].get() / 65535):.3g}")
-            ),
-            self.hsbk_labels[1].config(
-                text=str(f"{100 * (self.hsbk[1].get() / 65535):.3g}") + "%"
-            ),
-            self.hsbk_labels[2].config(
-                text=str(f"{100 * (self.hsbk[2].get() / 65535):.3g}") + "%"
-            ),
-            self.hsbk_labels[3].config(text=str(self.hsbk[3].get()) + " K"),
-        ][key]
+        self.hsbk_labels[0].config(text=f"{360 * (self.hsbk[0].get() / 65535):.3g}")
+        self.hsbk_labels[1].config(text=f"{100 * (self.hsbk[1].get() / 65535):.3g}%")
+        self.hsbk_labels[2].config(text=f"{100 * (self.hsbk[2].get() / 65535):.3g}%")
+        self.hsbk_labels[3].config(text=f"{self.hsbk[3].get()} K")
 
     def update_display(self, key: int):
         """ Update color swatches to match current device state """
@@ -632,8 +623,8 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             require_icon_update = True
             for key, _ in enumerate(self.hsbk):
                 self.hsbk[key].set(hsbk[key])
-                self.update_label(key)
                 self.update_display(key)
+            self.update_label()
             self.current_color.config(background=tuple2hex(hsbk_to_rgb(hsbk)))
 
         if require_icon_update:
@@ -656,7 +647,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             lifxlan.sleep(0.001)
         # tkinter.Button state changed
         screen_img = get_screen_as_image()
-        cursor_pos = mouse.get_position()
+        cursor_pos = win32api.GetCursorPos()
         # Convert display coords to image coords
         cursor_pos = normalize_rectangles(
             get_display_rects() + [(cursor_pos[0], cursor_pos[1], 0, 0)]
@@ -752,7 +743,3 @@ class GroupFrame(LightFrame):
 
     def update_status_from_bulb(self, run_once=False):
         return
-
-
-class MultiZoneFrame(LightFrame):
-    pass

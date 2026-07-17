@@ -61,7 +61,6 @@ class ColorScale(tk.Canvas):
 
         self.bind("<Configure>", lambda _: self._draw_gradient(val))
         self.bind("<ButtonPress-1>", self._on_click)
-        # self.bind('<ButtonRelease-1>', self._on_release)
         self.bind("<B1-Motion>", self._on_move)
 
     def _draw_gradient(self, val):

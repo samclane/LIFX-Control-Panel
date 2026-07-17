@@ -2,6 +2,7 @@
 
 import logging
 import os
+import sys
 import time
 import traceback
 from tkinter import *
@@ -240,16 +241,16 @@ class DummyBulb(DummyDevice):
         self.infared_brightness = val
 
     def set_hue(self, hue, duration=0, rapid=False):
-        self.color.hue = hue
+        self.color = self.color._replace(hue=hue)
 
     def set_brightness(self, brightness, duration=0, rapid=False):
-        self.color.brightness = brightness
+        self.color = self.color._replace(brightness=brightness)
 
     def set_saturation(self, saturation, duration=0, rapid=False):
-        self.color.saturation = saturation
+        self.color = self.color._replace(saturation=saturation)
 
     def set_colortemp(self, kelvin, duration=0, rapid=False):
-        self.color.kelvin = kelvin
+        self.color = self.color._replace(kelvin=kelvin)
 
 
 class MultiZoneDummy(DummyBulb):

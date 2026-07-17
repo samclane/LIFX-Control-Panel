@@ -7,10 +7,20 @@ Notes
 -----
     Not really complete yet; still need to integrate with other screen averaging functions.
 """
-import audioop
+from array import array
 from collections import deque
-from math import ceil
+from math import ceil, sqrt
 from tkinter import messagebox
+
+
+def _rms(data):
+    """RMS of little-endian signed 16-bit samples. Replaces audioop.rms(data, 2),
+    removed from the stdlib in Python 3.13."""
+    samples = array("h")  # signed short
+    samples.frombytes(data)
+    if not samples:
+        return 0
+    return int(sqrt(sum(s * s for s in samples) / len(samples)))
 
 try:
     import pyaudio
@@ -109,7 +119,7 @@ class AudioInterface:
         """ Calculate the RMS power of the waveform, and return that as the initial_color with the calculated brightness
         """
         data = self.stream.read(CHUNK)
-        frame_rms = audioop.rms(data, 2)
+        frame_rms = _rms(data)
         level = min(frame_rms / (2.0 ** 16) * SCALE, 1.0)
         level = level ** EXPONENT
         level = int(level * 65535)

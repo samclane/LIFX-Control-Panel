@@ -4,17 +4,12 @@
 Contains several basic "Color-Following" functions, as well as custom Stop/Start threads for these effects.
 """
 import logging
+import sys
 import threading
-from functools import lru_cache
 from typing import List, Tuple
 import time
-import math
 
 import mss
-import numexpr as ne
-import numpy as np
-
-# from lib.color_functions import dominant_color
 from PIL import Image
 from lifxlan import utils
 
@@ -24,7 +19,6 @@ from ..ui.settings import config
 from lifx_control_panel.utilities.utils import hsv_to_rgb
 
 
-@lru_cache(maxsize=32)
 def get_monitor_bounds(func):
     """ Returns the rectangular coordinates of the desired Avg. Screen area. Can pass a function to find the result
     procedurally """
@@ -35,13 +29,12 @@ def get_screen_as_image():
     """Grabs the entire primary screen as an image"""
     with mss.mss() as sct:
         monitor = sct.monitors[0]
-
-        # Capture a bbox using percent values
-        left = monitor["left"]  # + monitor["width"] * 5 // 100  # 5% from the left
-        top = monitor["top"]  # + monitor["height"] * 5 // 100  # 5% from the top
-        right = monitor["left"] + monitor["width"]  # left + 400  # 400px width
-        lower = monitor["top"] + monitor["height"]  # top + 400  # 400px height
-        bbox = (left, top, right, lower)
+        bbox = (
+            monitor["left"],
+            monitor["top"],
+            monitor["left"] + monitor["width"],
+            monitor["top"] + monitor["height"],
+        )
         sct_img = sct.grab(bbox)
         return Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
 
@@ -119,18 +112,10 @@ def dominant_screen_color(initial_color, func_bounds=lambda: None):
     downscale_width, downscale_height = screenshot.width // 4, screenshot.height // 4
     screenshot = screenshot.resize((downscale_width, downscale_height), Image.HAMMING)
 
-    a = np.array(screenshot)
-    a2D = a.reshape(-1, a.shape[-1])
-    col_range = (256, 256, 256)  # generically : a2D.max(0)+1
-    eval_params = {
-        "a0": a2D[:, 0],
-        "a1": a2D[:, 1],
-        "a2": a2D[:, 2],
-        "s0": col_range[0],
-        "s1": col_range[1],
-    }
-    a1D = ne.evaluate("a0*s0*s1+a1*s0+a2", eval_params)
-    color = np.unravel_index(np.bincount(a1D).argmax(), col_range)
+    color = max(
+        screenshot.getcolors(downscale_width * downscale_height),
+        key=lambda count_pixel: count_pixel[0],
+    )[1]
 
     return list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
 
@@ -202,7 +187,6 @@ class ColorThreadRunner:
         """ Start the match_color thread"""
         if self.thread.stopped():
             self.thread = ColorThread(target=self.match_color, args=(self.bulb,))
-            self.thread.setDaemon(True)
         try:
             self.thread.start()
             self.logger.debug("Thread started.")
@@ -224,28 +208,7 @@ class ColorThreadRunner:
         return int(config["AverageColor"]["brightnessoffset"])
 
 
-def install_thread_excepthook():
-    """
-    Workaround for sys.excepthook thread bug
-    (https://sourceforge.net/tracker/?func=detail&atid=105470&aid=1230540&group_label=5470).
-    Call once from __main__ before creating any threads.
-    If using psyco, call psycho.cannotcompile(threading.Thread.run)
-    since this replaces a new-style class method.
-    """
-    import sys
-
-    run_old = threading.Thread.run
-
-    def run(*args, **kwargs):
-        """ Monkey-patch for the run function that installs local excepthook """
-        try:
-            run_old(*args, **kwargs)
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except:  # pylint: disable=bare-except
-            sys.excepthook(*sys.exc_info())
-
-    threading.Thread.run = run
-
-
-install_thread_excepthook()
+# Route uncaught thread exceptions through sys.excepthook so they land in the app log.
+threading.excepthook = lambda args: sys.excepthook(
+    args.exc_type, args.exc_value, args.exc_traceback
+)

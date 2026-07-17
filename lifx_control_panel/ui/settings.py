@@ -48,9 +48,6 @@ from ..utilities.utils import resource_path, str2list
 config = configparser.ConfigParser()  # pylint: disable=invalid-name
 config.read([resource_path("default.ini"), "config.ini"])
 
-# Compare datetimes
-DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
-
 
 # boilerplate code from http://effbot.org/tkinterbook/tkinter-dialog-windows.htm
 class Dialog(Toplevel):
@@ -262,10 +259,6 @@ class SettingsDisplay(Dialog):
                 "get_primary_monitor",
                 *[tuple(m.values()) for m in sct.monitors],
             ]
-        # lst = get_display_rects()
-        # for i in range(1, len(lst) + 1):
-        #    els = [list(x) for x in itertools.combinations(lst, i)]
-        #    options.extend(els)
         self.avg_monitor_dropdown = OptionMenu(master, self.avg_monitor, *options)
 
         self.duration_scale = Scale(
