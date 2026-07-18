@@ -20,14 +20,12 @@ setup(
     keywords=["lifx", "iot", "smartbulb", "smartlight", "lan", "application"],
     install_requires=[
         "keyboard",
-        "mouse",
-        "pyaudio",
         "Pillow",
         "lifxlan",
-        "numexpr",
-        "numpy",
+        "bitstring<4",
         "mss",
         "pystray",
+        "pywin32",
     ],
     download_url=(
         ("https://github.com/samclane/LIFX-Control-Panel/archive/" + str(VERSION))
