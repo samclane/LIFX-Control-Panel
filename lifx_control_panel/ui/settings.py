@@ -48,6 +48,9 @@ from ..utilities.utils import resource_path, str2list
 config = configparser.ConfigParser()  # pylint: disable=invalid-name
 config.read([resource_path("default.ini"), "config.ini"])
 
+# Non-color keybind actions, stored in config in place of a color
+KEYBIND_ACTIONS = ("Toggle Power", "Brightness Up", "Brightness Down")
+
 
 # boilerplate code from http://effbot.org/tkinterbook/tkinter-dialog-windows.htm
 class Dialog(Toplevel):
@@ -312,6 +315,7 @@ class SettingsDisplay(Dialog):
         self.keybind_color_dropdown = OptionMenu(
             master,
             self.keybind_color_selection,
+            *KEYBIND_ACTIONS,
             *self.root_window.frame_map[
                 self.keybind_bulb_selection.get()
             ].default_colors,
@@ -389,12 +393,13 @@ class SettingsDisplay(Dialog):
 
     def register_keybinding(self, bulb: str, keys: str, color: str):
         """ Get the keybind from the input box and pass the color off to the root window. """
-        try:
-            color = self.root_window.frame_map[
-                self.keybind_bulb_selection.get()
-            ].default_colors[color]
-        except KeyError:  # must be using a custom color
-            color = str2list(config["PresetColors"][color], int)
+        if color not in KEYBIND_ACTIONS:
+            try:
+                color = self.root_window.frame_map[
+                    self.keybind_bulb_selection.get()
+                ].default_colors[color]
+            except KeyError:  # must be using a custom color
+                color = str2list(config["PresetColors"][color], int)
         self.root_window.save_keybind(bulb, keys, color)
         config["Keybinds"][str(keys)] = str(bulb + ":" + str(color))
         self.mlb.insert(END, (str(bulb), str(keys), str(color)))

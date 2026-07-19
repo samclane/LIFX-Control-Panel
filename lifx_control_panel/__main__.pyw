@@ -30,7 +30,7 @@ from lifx_control_panel._constants import BUILD_DATE, AUTHOR, DEBUGGING, VERSION
 from lifx_control_panel.frames import LightFrame, GroupFrame
 from lifx_control_panel.ui import settings
 from lifx_control_panel.ui.icon_list import BulbIconList
-from lifx_control_panel.ui.settings import config
+from lifx_control_panel.ui.settings import config, KEYBIND_ACTIONS
 from lifx_control_panel.ui.splashscreen import Splash
 from lifx_control_panel.utilities import audio
 from lifx_control_panel.utilities.async_bulb_interface import AsyncBulbInterface
@@ -139,8 +139,9 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.key_listener = KeybindManager(self)
         for keypress, function in dict(config['Keybinds']).items():
             light, color = function.split(':')
-            color = Color(*globals()[color]) if color in globals().keys() else str2tuple(
-                color, int)
+            if color not in KEYBIND_ACTIONS:
+                color = Color(*globals()[color]) if color in globals().keys() else str2tuple(
+                    color, int)
             self.save_keybind(light, keypress, color)
 
         # Stop splashscreen and start main function
@@ -265,10 +266,26 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.after(FRAME_PERIOD_MS, self.update_icons)
 
     def save_keybind(self, light, keypress, color):
-        """ Builds a new anonymous function changing light to color when keypress is entered. """
+        """ Builds a new anonymous function running the keybind action (a color, or a
+        power/brightness action from KEYBIND_ACTIONS) when keypress is entered. """
         # default args bind light/color now, not at call time
-        func = lambda *_, light=light, color=color, **__: self.device_map[light].set_color(
-            color, duration=float(config["AverageColor"]["duration"]))
+        def func(*_, light=light, color=color, **__):
+            device = self.device_map[light]
+            duration = float(config["AverageColor"]["duration"])
+            # Groups have no getters, so read state from member bulbs individually
+            is_group = isinstance(device, lifxlan.Group)
+            if color == "Toggle Power":
+                devices = device.get_device_list() if is_group else [device]
+                device.set_power(0 if any(dev.get_power() for dev in devices) else 65535)
+            elif color in ("Brightness Up", "Brightness Down"):
+                step = 65535 // 10 if color == "Brightness Up" else -(65535 // 10)
+                devices = device.get_device_list() if is_group else [device]
+                for dev in devices:
+                    hue, sat, brightness, kelvin = dev.get_color()
+                    brightness = max(0, min(65535, brightness + step))
+                    dev.set_color((hue, sat, brightness, kelvin), duration=duration)
+            else:
+                device.set_color(color, duration=duration)
         self.key_listener.register_function(keypress, func)
 
     def delete_keybind(self, keycombo):
