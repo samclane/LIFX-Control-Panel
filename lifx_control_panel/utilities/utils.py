@@ -2,6 +2,7 @@
 """General utility classes and functions."""
 import colorsys
 import os
+import subprocess
 import sys
 from functools import lru_cache
 from math import log, floor
@@ -162,3 +163,44 @@ def get_display_rects():
     """ Return a list of tuples of monitor rectangles. """
     with mss.mss() as sct:
         return [tuple(m.values()) for m in sct.monitors]
+
+
+# ponytail: a Startup-folder .lnk instead of a registry Run entry — the app reads
+# config.ini relative to cwd, and only a shortcut can set the working directory.
+STARTUP_LNK = os.path.join(
+    os.environ.get("APPDATA", ""),
+    r"Microsoft\Windows\Start Menu\Programs\Startup",
+    "LIFX-Control-Panel.lnk",
+)
+
+
+def get_launch_on_startup() -> bool:
+    """ The shortcut's existence is the setting; no config entry to drift out of sync. """
+    return os.path.exists(STARTUP_LNK)
+
+
+def set_launch_on_startup(enable: bool):
+    """ Create or remove the Startup-folder shortcut. """
+    if not enable:
+        if os.path.exists(STARTUP_LNK):
+            os.remove(STARTUP_LNK)
+        return
+    if getattr(sys, "frozen", False):  # PyInstaller exe
+        target, args = sys.executable, ""
+    else:
+        target = sys.executable.replace("python.exe", "pythonw.exe")
+        args = '"{}"'.format(os.path.abspath(sys.argv[0]))
+    subprocess.run(
+        [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            "$s=(New-Object -ComObject WScript.Shell).CreateShortcut('{lnk}');"
+            "$s.TargetPath='{target}';$s.Arguments='{args}';"
+            "$s.WorkingDirectory='{cwd}';$s.Save()".format(
+                lnk=STARTUP_LNK, target=target, args=args, cwd=os.getcwd()
+            ),
+        ],
+        check=True,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+    )

@@ -43,7 +43,12 @@ import mss
 from lifxlan.utils import RGBtoHSBK
 
 from ..utilities.keypress import KeybindManager
-from ..utilities.utils import resource_path, str2list
+from ..utilities.utils import (
+    resource_path,
+    str2list,
+    get_launch_on_startup,
+    set_launch_on_startup,
+)
 
 config = configparser.ConfigParser()  # pylint: disable=invalid-name
 config.read([resource_path("default.ini"), "config.ini"])
@@ -238,6 +243,7 @@ class SettingsDisplay(Dialog):
         self.key_listener = KeybindManager(self, sticky=True)
         # Labels
         Label(master, text="Start Minimized?: ").grid(row=0, column=0)
+        Label(master, text="Launch on Startup?: ").grid(row=0, column=2)
         Label(master, text="Avg. Monitor Default: ").grid(row=1, column=0)
         Label(master, text="Smooth Transition Time (sec): ").grid(row=2, column=0)
         Label(master, text="Brightness Offset: ").grid(row=3, column=0)
@@ -251,6 +257,10 @@ class SettingsDisplay(Dialog):
             master, value=config.getboolean("AppSettings", "start_minimized")
         )
         self.start_mini_check = Checkbutton(master, variable=self.start_mini)
+
+        # Launch on Windows startup
+        self.launch_startup = BooleanVar(master, value=get_launch_on_startup())
+        self.launch_startup_check = Checkbutton(master, variable=self.launch_startup)
 
         # Avg monitor color match
         self.avg_monitor = StringVar(
@@ -340,6 +350,7 @@ class SettingsDisplay(Dialog):
 
         # Insert
         self.start_mini_check.grid(row=0, column=1)
+        self.launch_startup_check.grid(row=0, column=3)
         ttk.Separator(master, orient=HORIZONTAL).grid(
             row=0, sticky="esw", columnspan=100
         )
@@ -370,6 +381,8 @@ class SettingsDisplay(Dialog):
         self.keybind_delete_button.grid(row=8, column=0)
 
     def validate(self) -> int:
+        if self.launch_startup.get() != get_launch_on_startup():
+            set_launch_on_startup(self.launch_startup.get())
         config["AppSettings"]["start_minimized"] = str(self.start_mini.get())
         config["AverageColor"]["DefaultMonitor"] = str(self.avg_monitor.get())
         config["AverageColor"]["Duration"] = str(self.duration_scale.get())
