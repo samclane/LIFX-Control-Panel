@@ -85,6 +85,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         file_menu = tkinter.Menu(self.menubar, tearoff=0)
         file_menu.add_command(label="Rescan", command=self.scan_for_lights)
         file_menu.add_command(label="Settings", command=self.show_settings)
+        file_menu.add_command(label="Save Current State", command=self.save_state)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.on_closing)
         self.menubar.add_cascade(label="File", menu=file_menu)
@@ -105,6 +106,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         if any(self.device_map):
             self.tk_light_name.set(next(iter(self.device_map.keys())))
             self.current_light = self.device_map[self.tk_light_name.get()]
+            self.restore_state()
         else:
             messagebox.showwarning("No lights found.", "No LIFX devices were found on your LAN. Try using File->Rescan"
                                                        " to search again.")
@@ -238,6 +240,38 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.frame_map[group_label] = GroupFrame(self, self.device_map[group_label])
         self.logger.info("Building new frame: %s", self.frame_map[group_label].get_label())
 
+    def save_state(self):
+        """ Save each light's current power/color to config.ini; restore_state re-applies it on launch. """
+        # ponytail: whole-bulb color only; multizone zone data isn't saved. Add get_color_zones if needed.
+        if not config.has_section("SavedState"):
+            config.add_section("SavedState")
+        for label, device in self.device_map.items():
+            if isinstance(device, lifxlan.Group):
+                continue
+            try:
+                config["SavedState"][label] = f"{device.get_power()};{tuple(device.get_color())}"
+            except lifxlan.WorkflowException as exc:
+                self.logger.warning("Couldn't save state for %s: %s", label, exc)
+        with open("config.ini", "w", encoding="utf-8") as cfg:
+            config.write(cfg)
+
+    def restore_state(self):
+        """ Re-apply the power/color saved by save_state to any devices found on the LAN. """
+        if not config.has_section("SavedState"):
+            return
+        for label, device in self.device_map.items():
+            # ConfigParser lowercases keys, so match on lowered label
+            state = config["SavedState"].get(label.lower())
+            if state is None or isinstance(device, lifxlan.Group):
+                continue
+            try:
+                power, color = state.split(";")
+                device.set_color(str2tuple(color, int), rapid=True)
+                device.set_power(int(power), rapid=True)
+                self.logger.info("Restored saved state for %s", label)
+            except (lifxlan.WorkflowException, ValueError) as exc:
+                self.logger.warning("Couldn't restore state for %s: %s", label, exc)
+
     def bulb_changed(self, *_, **__):
         """ Change current display frame when bulb icon is clicked. """
         self.master.unbind('<Unmap>')  # unregister unmap so grid_remove doesn't trip it
@@ -332,6 +366,10 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
     def on_closing(self):
         """ Should always be called before the application exits. Shuts down all threads and closes the program. """
         self.logger.info('Shutting down.\n')
+        try:
+            self.save_state()
+        except Exception as exc:  # pylint: disable=broad-except
+            self.logger.warning("Couldn't save state on exit: %s", exc)  # never block shutdown
         self.master.destroy()
         self.bulb_interface.stopped.set()
         sys.exit(0)
