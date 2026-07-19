@@ -86,6 +86,18 @@ class ColorCycle:
         return "ColorCycle"
 
 
+def _screen_rgb_to_hsbk(rgb, temperature):
+    """Convert a captured screen pixel to HSBK, desaturating near-black pixels.
+
+    RGBtoHSBK derives hue/saturation from (cmax-cmin)/cmax, so a noise pixel like
+    (1, 0, 1) comes out fully-saturated magenta. Treat anything that dark as black.
+    """
+    hue, saturation, brightness, kelvin = utils.RGBtoHSBK(rgb, temperature=temperature)
+    if max(rgb) < 10:  # ponytail: fixed threshold; make configurable if it clips dim scenes
+        saturation = 0
+    return [hue, saturation, brightness, kelvin]
+
+
 def avg_screen_color(initial_color, func_bounds=lambda: None):
     """ Capture an image of the monitor defined by func_bounds, then get the average color of the image in HSBK """
     monitor = get_monitor_bounds(func_bounds)
@@ -95,7 +107,7 @@ def avg_screen_color(initial_color, func_bounds=lambda: None):
         screenshot = get_rect_as_image(str2list(monitor, int))
     # Resizing the image to 1x1 pixel will give us the average for the whole image (via HAMMING interpolation)
     color = screenshot.resize((1, 1), Image.HAMMING).getpixel((0, 0))
-    return list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
+    return _screen_rgb_to_hsbk(color, initial_color[3])
 
 
 def dominant_screen_color(initial_color, func_bounds=lambda: None):
@@ -117,7 +129,7 @@ def dominant_screen_color(initial_color, func_bounds=lambda: None):
         key=lambda count_pixel: count_pixel[0],
     )[1]
 
-    return list(utils.RGBtoHSBK(color, temperature=initial_color[3]))
+    return _screen_rgb_to_hsbk(color, initial_color[3])
 
 
 class ColorThread(threading.Thread):

@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from lifx_control_panel.utilities.color_thread import (
     ColorCycle,
+    _screen_rgb_to_hsbk,
     get_monitor_bounds,
     normalize_rectangles,
 )
@@ -29,6 +30,17 @@ class TestNormalizeRectangles(unittest.TestCase):
 class TestGetMonitorBounds(unittest.TestCase):
     def test_uses_func_result_when_truthy(self):
         self.assertEqual(get_monitor_bounds(lambda: "[0, 0, 100, 100]"), "[0, 0, 100, 100]")
+
+
+class TestScreenRgbToHsbk(unittest.TestCase):
+    def test_near_black_noise_is_desaturated(self):
+        # (1, 0, 1) would otherwise convert to fully-saturated magenta
+        hsbk = _screen_rgb_to_hsbk((1, 0, 1), 3500)
+        self.assertEqual(hsbk[1], 0)
+
+    def test_real_colors_keep_saturation(self):
+        hsbk = _screen_rgb_to_hsbk((255, 0, 0), 3500)
+        self.assertEqual(hsbk[1], 65535)
 
 
 class TestColorCycle(unittest.TestCase):
