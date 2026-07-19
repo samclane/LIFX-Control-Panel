@@ -300,12 +300,12 @@ class SettingsDisplay(Dialog):
                 + " "
                 + device_names[int(config["Audio"]["InputIndex"])]
             )
-        except ValueError:
+        except (ValueError, KeyError):
             init_string = " None"
         self.audio_source = StringVar(
             master, init_string
         )  # AudioSource index is grabbed from [1], so add a space at [0]
-        as_choices = device_names.items()
+        as_choices = device_names.items() or [" None"]
         self.as_dropdown = OptionMenu(master, self.audio_source, *as_choices)
 
         # Add keybindings

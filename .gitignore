@@ -145,3 +145,4 @@ cython_debug/
 .idea/
 
 lifxlan/
+config.ini
