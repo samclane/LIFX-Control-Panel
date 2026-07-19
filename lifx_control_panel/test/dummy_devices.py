@@ -254,19 +254,21 @@ class DummyBulb(DummyDevice):
 
 
 class MultiZoneDummy(DummyBulb):
-    def __init__(self, color=DummyColor(0, 0, 0, 1500), label="N/A"):
+    def __init__(self, color=DummyColor(0, 0, 0, 1500), label="N/A", num_zones=8):
         super().__init__(color, label)
+        self.zones = [self.color] * num_zones
 
     # Multizone API
 
     def get_color_zones(self, start=0, end=0):
-        pass
+        return self.zones[start:end] if end else self.zones[start:]
 
     def set_zone_color(self, start, end, color, duration=0, rapid=False, apply=1):
-        pass
+        for i in range(start, min(end, len(self.zones))):
+            self.zones[i] = color
 
     def set_zone_colors(self, colors, duration=0, rapid=False):
-        pass
+        self.zones = list(colors)
 
 
 class TileDummy(DummyBulb):

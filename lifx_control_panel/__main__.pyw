@@ -7,6 +7,7 @@ Notes
 -----
     This is the "main" function of the app, and can be run simply with 'python main.pyw'
 """
+import ast
 import logging
 import os
 import sys
@@ -241,15 +242,19 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.logger.info("Building new frame: %s", self.frame_map[group_label].get_label())
 
     def save_state(self):
-        """ Save each light's current power/color to config.ini; restore_state re-applies it on launch. """
-        # ponytail: whole-bulb color only; multizone zone data isn't saved. Add get_color_zones if needed.
+        """ Save each light's current power/color to config.ini; restore_state re-applies it on launch.
+        Multizone devices store a list of per-zone colors instead of a single color. """
         if not config.has_section("SavedState"):
             config.add_section("SavedState")
         for label, device in self.device_map.items():
             if isinstance(device, lifxlan.Group):
                 continue
             try:
-                config["SavedState"][label] = f"{device.get_power()};{tuple(device.get_color())}"
+                if hasattr(device, "get_color_zones"):  # multizone; hasattr also matches test dummies
+                    color = [tuple(zone) for zone in device.get_color_zones()]
+                else:
+                    color = tuple(device.get_color())
+                config["SavedState"][label] = f"{device.get_power()};{color}"
             except lifxlan.WorkflowException as exc:
                 self.logger.warning("Couldn't save state for %s: %s", label, exc)
         with open("config.ini", "w", encoding="utf-8") as cfg:
@@ -265,11 +270,17 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
             if state is None or isinstance(device, lifxlan.Group):
                 continue
             try:
-                power, color = state.split(";")
-                device.set_color(str2tuple(color, int), rapid=True)
+                power, color = state.split(";", 1)
+                color = ast.literal_eval(color)  # tuple (single color) or list of tuples (zones)
+                if isinstance(color, list) and hasattr(device, "set_zone_colors"):
+                    device.set_zone_colors(color, rapid=True)
+                else:
+                    if isinstance(color, list):  # zones saved, but device rediscovered as plain Light
+                        color = color[0]
+                    device.set_color(color, rapid=True)
                 device.set_power(int(power), rapid=True)
                 self.logger.info("Restored saved state for %s", label)
-            except (lifxlan.WorkflowException, ValueError) as exc:
+            except (lifxlan.WorkflowException, ValueError, SyntaxError, IndexError) as exc:
                 self.logger.warning("Couldn't restore state for %s: %s", label, exc)
 
     def bulb_changed(self, *_, **__):
