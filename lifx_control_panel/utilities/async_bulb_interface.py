@@ -35,8 +35,7 @@ class AsyncBulbInterface(threading.Thread):
                 label = dev.get_label()
                 self.color_queue[label] = queue.Queue()
                 try:
-                    if dev.supports_multizone():
-                        dev: lifxlan.MultiZoneLight
+                    if hasattr(dev, "get_color_zones"):  # multizone; hasattr also matches test dummies
                         color = dev.get_color_zones()[0]
                     else:
                         color = getattr(dev, "color", None)

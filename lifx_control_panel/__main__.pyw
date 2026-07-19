@@ -46,6 +46,8 @@ LOGFILE = os.path.join(APPLICATION_PATH, LOGFILE)
 
 SPLASH_FILE = resource_path('res/splash_vector.png')
 
+SCAN_ATTEMPTS = 3  # retries per bulb for transient UDP timeouts during discovery
+
 
 class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
     """ Parent frame of application. Holds icons for each Device/Group. """
@@ -158,6 +160,16 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         if not stop_event.is_set():
             stop_event.set()
         device_list: List[Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]] = self.lifx.get_devices()
+        for index, device in enumerate(device_list):
+            # lifxlan falls back to a plain Light if GetVersion times out during discovery;
+            # rebuild misclassified multizone devices so get_color_zones exists
+            try:
+                if device.supports_multizone() and not isinstance(device, lifxlan.MultiZoneLight):
+                    device_list[index] = lifxlan.MultiZoneLight(
+                        device.mac_addr, device.ip_addr, device.service,
+                        device.port, device.source_id, device.verbose)
+            except lifxlan.WorkflowException as exc:
+                self.logger.warning("Error checking device type for %s: %s", device.mac_addr, exc)
         self.bulb_interface = AsyncBulbInterface(stop_event, HEARTBEAT_RATE_MS)
         self.bulb_interface.set_device_list(device_list)
         self.bulb_interface.daemon = True
@@ -166,31 +178,36 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
 
         light: lifxlan.Device
         for light in self.bulb_interface.device_list:
-            try:
-                product: str = lifxlan.product_map[light.get_product()]
-                label: str = light.get_label()
-                # light.get_color()
-                self.device_map[label] = light
-                self.logger.info('Light found: %s: "%s"', product, label)
-                if label not in self.bulb_icons.bulb_dict:
-                    self.bulb_icons.draw_bulb_icon(light, label)
-                if label not in self.frame_map:
-                    # LightFrame._get_light_info already handles multizone devices
-                    self.frame_map[label] = LightFrame(self, light)
-                    self.current_lightframe = self.frame_map[label]
-                    try:
-                        self.bulb_icons.set_selected_bulb(label)
-                    except KeyError:
-                        self.group_icons.set_selected_bulb(label)
-                    self.logger.info("Building new frame: %s", self.frame_map[label].get_label())
-                group_label = light.get_group_label()
-                if group_label not in self.device_map.keys():
-                    self.build_group_frame(group_label)
-            except lifxlan.WorkflowException as exc:
-                self.logger.warning("Error when communicating with LIFX device: %s", exc)
-            except KeyError as exc:
-                self.logger.warning("Unknown device: %s: %s",
-                                    light.get_product(), light.get_label())
+            # retry transient UDP timeouts (WorkflowException) instead of skipping the bulb
+            for attempt in range(1, SCAN_ATTEMPTS + 1):
+                try:
+                    product: str = lifxlan.product_map[light.get_product()]
+                    label: str = light.get_label()
+                    # light.get_color()
+                    self.device_map[label] = light
+                    self.logger.info('Light found: %s: "%s"', product, label)
+                    if label not in self.bulb_icons.bulb_dict:
+                        self.bulb_icons.draw_bulb_icon(light, label)
+                    if label not in self.frame_map:
+                        # LightFrame._get_light_info already handles multizone devices
+                        self.frame_map[label] = LightFrame(self, light)
+                        self.current_lightframe = self.frame_map[label]
+                        try:
+                            self.bulb_icons.set_selected_bulb(label)
+                        except KeyError:
+                            self.group_icons.set_selected_bulb(label)
+                        self.logger.info("Building new frame: %s", self.frame_map[label].get_label())
+                    group_label = light.get_group_label()
+                    if group_label not in self.device_map.keys():
+                        self.build_group_frame(group_label)
+                    break
+                except lifxlan.WorkflowException as exc:
+                    self.logger.warning("Error when communicating with LIFX device (attempt %d/%d): %s",
+                                        attempt, SCAN_ATTEMPTS, exc)
+                except KeyError as exc:
+                    self.logger.warning("Unknown device: %s: %s",
+                                        light.get_product(), light.get_label())
+                    break
 
     def build_group_frame(self, group_label):
         self.device_map[group_label] = self.lifx.get_devices_by_group(group_label)

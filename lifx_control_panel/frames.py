@@ -1,6 +1,6 @@
 import logging
 import tkinter
-from tkinter import ttk, font as font, messagebox, _setit
+from tkinter import ttk, font as font, _setit
 from typing import Union, List, Tuple, Dict, Mapping
 
 import lifxlan
@@ -64,7 +64,10 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     user_dropdown: tkinter.OptionMenu
     current_color: tkinter.Canvas
     hsbk: Tuple[tkinter.IntVar, tkinter.IntVar, tkinter.IntVar, tkinter.IntVar]
-    hsbk_labels: Tuple[tkinter.Label, tkinter.Label, tkinter.Label, tkinter.Label]
+    hsbk_labels: Tuple[tkinter.Entry, tkinter.Entry, tkinter.Entry, tkinter.Entry]
+    hsbk_entry_vars: Tuple[
+        tkinter.StringVar, tkinter.StringVar, tkinter.StringVar, tkinter.StringVar
+    ]
     hsbk_scale: Tuple[ColorScale, ColorScale, ColorScale, ColorScale]
     hsbk_display: Tuple[tkinter.Canvas, tkinter.Canvas, tkinter.Canvas, tkinter.Canvas]
     threads: Dict[str, color_thread.ColorThreadRunner]
@@ -134,30 +137,18 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.update_status_from_bulb()
 
     def _get_light_info(self, target: lifxlan.Device) -> Tuple[int, Color]:
-        bulb_power: int = 0
-        init_color: Color = Color(*lifxlan.WARM_WHITE)
-        try:
-            self.label = target.get_label()
-            bulb_power = target.get_power()
-            if target.supports_multizone():
-                target: lifxlan.MultiZoneLight
-                init_color = Color(*target.get_color_zones()[0])
-            else:
-                target: lifxlan.Light
-                init_color = Color(*target.get_color())
-            self.min_kelvin = (
-                target.product_features.get("min_kelvin") or MIN_KELVIN_DEFAULT
-            )
-            self.max_kelvin = (
-                target.product_features.get("max_kelvin") or MAX_KELVIN_DEFAULT
-            )
-        except lifxlan.WorkflowException as exc:
-            messagebox.showerror(
-                f"Error building {self.__class__.__name__}",
-                f"Error thrown when trying to get label from bulb:\n{exc}",
-            )
-            self.master.on_closing()
-            # TODO Let this fail safely and try again later
+        # WorkflowException propagates up to scan_for_lights, which retries the frame build
+        self.label = target.get_label()
+        bulb_power: int = target.get_power()
+        if hasattr(target, "get_color_zones"):  # multizone; hasattr also matches test dummies
+            init_color = Color(*target.get_color_zones()[0])
+        else:
+            target: lifxlan.Light
+            init_color = Color(*target.get_color())
+        # get_product_features() populates lazily; raw .product_features can still be None
+        features = target.get_product_features()
+        self.min_kelvin = features.get("min_kelvin") or MIN_KELVIN_DEFAULT
+        self.max_kelvin = features.get("max_kelvin") or MAX_KELVIN_DEFAULT
         return bulb_power, init_color
 
     def _setup_screen_region_select(self):
@@ -348,18 +339,16 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         )
         for i in self.hsbk:
             i.trace("w", self.trigger_icon_update)
-        self.hsbk_labels: Tuple[
-            tkinter.Label, tkinter.Label, tkinter.Label, tkinter.Label
-        ] = (
-            tkinter.Label(self, text=f"{360 * (self.hsbk[0].get() / 65535):.3g}"),
-            tkinter.Label(
-                self, text=str(f"{100 * self.hsbk[1].get() / 65535:.3g}") + "%"
-            ),
-            tkinter.Label(
-                self, text=str(f"{100 * self.hsbk[2].get() / 65535:.3g}") + "%"
-            ),
-            tkinter.Label(self, text=str(self.hsbk[3].get()) + " K"),
+        self.hsbk_entry_vars = tuple(
+            tkinter.StringVar(self, str(var.get())) for var in self.hsbk
         )
+        self.hsbk_labels = tuple(
+            tkinter.Entry(self, textvariable=svar, width=7)
+            for svar in self.hsbk_entry_vars
+        )
+        for key, entry in enumerate(self.hsbk_labels):
+            entry.bind("<Return>", lambda _, k=key: self.commit_entry(k))
+            entry.bind("<FocusOut>", lambda _, k=key: self.commit_entry(k))
         self.hsbk_scale: Tuple[ColorScale, ColorScale, ColorScale, ColorScale] = (
             ColorScale(
                 self,
@@ -544,11 +533,21 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             )  # Don't pollute log with rapid color changes
 
     def update_label(self):
-        """ Update scale labels, formatted accordingly. """
-        self.hsbk_labels[0].config(text=f"{360 * (self.hsbk[0].get() / 65535):.3g}")
-        self.hsbk_labels[1].config(text=f"{100 * (self.hsbk[1].get() / 65535):.3g}%")
-        self.hsbk_labels[2].config(text=f"{100 * (self.hsbk[2].get() / 65535):.3g}%")
-        self.hsbk_labels[3].config(text=f"{self.hsbk[3].get()} K")
+        """ Refresh entry fields to match current HSBK values. """
+        for key, svar in enumerate(self.hsbk_entry_vars):
+            svar.set(str(self.hsbk[key].get()))
+
+    def commit_entry(self, key: int):
+        """ Apply a manually-typed HSBK value from its entry field, clamped to range. """
+        scale = self.hsbk_scale[key]
+        try:
+            val = int(float(self.hsbk_entry_vars[key].get()))
+        except ValueError:
+            val = self.hsbk[key].get()
+        val = min(max(val, int(scale.min)), int(scale.max))
+        self.hsbk_entry_vars[key].set(str(val))
+        self.hsbk[key].set(val)
+        self.update_color_from_ui()
 
     def update_display(self, key: int):
         """ Update color swatches to match current device state """
@@ -702,43 +701,34 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
 
 class GroupFrame(LightFrame):
     def _get_light_info(self, target: lifxlan.Group) -> Tuple[int, Color]:
-        bulb_power: int = 0
         init_color: Color = Color(*lifxlan.WARM_WHITE)
-        try:
-            devices: List[
-                Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]
-            ] = target.get_device_list()
-            if not devices:
-                logging.error("No devices found in group list")
-                self.label = "<No Group Found>"
-                self.min_kelvin, self.max_kelvin = 0, 99999  # arbitrary range
-                return 0, Color(0, 0, 0, 0)
+        # WorkflowException propagates up to scan_for_lights, which retries the frame build
+        devices: List[
+            Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]
+        ] = target.get_device_list()
+        if not devices:
+            logging.error("No devices found in group list")
+            self.label = "<No Group Found>"
+            self.min_kelvin, self.max_kelvin = 0, 99999  # arbitrary range
+            return 0, Color(0, 0, 0, 0)
 
-            self.label = devices[0].get_group_label()
-            bulb_power = devices[0].get_power()
-            # Find an init_color- ensure device has color attribute, otherwise fallback
-            color_devices: List[
-                Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]
-            ] = list(filter(lambda d: d.supports_color(), devices))
-            if color_devices and hasattr(color_devices[0], "get_color"):
-                init_color = Color(*color_devices[0].get_color())
-            self.min_kelvin = min(
-                device.product_features.get("min_kelvin") or MIN_KELVIN_DEFAULT
-                for device in target.get_device_list()
-            )
-
-            self.max_kelvin = max(
-                device.product_features.get("max_kelvin") or MAX_KELVIN_DEFAULT
-                for device in target.get_device_list()
-            )
-
-        except lifxlan.WorkflowException as exc:
-            messagebox.showerror(
-                f"Error building {self.__class__.__name__}",
-                f"Error thrown when trying to get label from bulb:\n{exc}",
-            )
-            self.master.on_closing()
-            # TODO Let this fail safely and try again later
+        self.label = devices[0].get_group_label()
+        bulb_power: int = devices[0].get_power()
+        # Find an init_color- ensure device has color attribute, otherwise fallback
+        color_devices: List[
+            Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]
+        ] = list(filter(lambda d: d.supports_color(), devices))
+        if color_devices and hasattr(color_devices[0], "get_color"):
+            init_color = Color(*color_devices[0].get_color())
+        # get_product_features() populates lazily; raw .product_features can still be None
+        self.min_kelvin = min(
+            device.get_product_features().get("min_kelvin") or MIN_KELVIN_DEFAULT
+            for device in devices
+        )
+        self.max_kelvin = max(
+            device.get_product_features().get("max_kelvin") or MAX_KELVIN_DEFAULT
+            for device in devices
+        )
         return bulb_power, init_color
 
     def update_status_from_bulb(self, run_once=False):
