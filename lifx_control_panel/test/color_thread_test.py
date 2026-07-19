@@ -7,9 +7,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from lifx_control_panel.utilities.color_thread import (
     ColorCycle,
+    ColorThreadRunner,
     _screen_rgb_to_hsbk,
     get_monitor_bounds,
     normalize_rectangles,
+    config,
 )
 from lifx_control_panel.utilities.utils import Color
 
@@ -75,6 +77,30 @@ class TestColorCycle(unittest.TestCase):
         pos = cycle.pos
         cycle.get_color()  # last_change is fresh, so no advance
         self.assertEqual(cycle.pos, pos)
+
+
+class TestLimitBrightness(unittest.TestCase):
+    def setUp(self):
+        self._saved = dict(config["AverageColor"])
+
+    def tearDown(self):
+        config["AverageColor"].clear()
+        config["AverageColor"].update(self._saved)
+
+    def test_defaults_only_clamp_to_full_range(self):
+        config["AverageColor"].pop("maxbrightness", None)
+        config["AverageColor"].pop("minbrightnesscutoff", None)
+        self.assertEqual(ColorThreadRunner.limit_brightness(70000), 65535)
+        self.assertEqual(ColorThreadRunner.limit_brightness(100), 100)
+
+    def test_max_caps_brightness(self):
+        config["AverageColor"]["maxbrightness"] = "30000"
+        self.assertEqual(ColorThreadRunner.limit_brightness(50000), 30000)
+
+    def test_below_min_cutoff_snaps_to_zero(self):
+        config["AverageColor"]["minbrightnesscutoff"] = "10000"
+        self.assertEqual(ColorThreadRunner.limit_brightness(9999), 0)
+        self.assertEqual(ColorThreadRunner.limit_brightness(10000), 10000)
 
 
 if __name__ == "__main__":

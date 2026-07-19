@@ -182,7 +182,9 @@ class ColorThreadRunner:
                 color = list(
                     self.color_function(initial_color=self.prev_color, **self.kwargs)
                 )
-                color[2] = min(color[2] + self.get_brightness_offset(), 65535)
+                color[2] = self.limit_brightness(
+                    color[2] + self.get_brightness_offset()
+                )
                 bulb.set_color(
                     color, duration=self.get_duration() * 1000, rapid=self.continuous
                 )
@@ -218,6 +220,16 @@ class ColorThreadRunner:
     def get_brightness_offset():
         """ Read the brightness offset from the config file. """
         return int(config["AverageColor"]["brightnessoffset"])
+
+    @staticmethod
+    def limit_brightness(brightness):
+        """ Cap brightness at the configured max; snap to 0 below the configured min cutoff. """
+        brightness = min(
+            brightness, config["AverageColor"].getint("maxbrightness", fallback=65535)
+        )
+        if brightness < config["AverageColor"].getint("minbrightnesscutoff", fallback=0):
+            brightness = 0
+        return brightness
 
 
 # Route uncaught thread exceptions through sys.excepthook so they land in the app log.

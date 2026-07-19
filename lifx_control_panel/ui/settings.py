@@ -247,9 +247,11 @@ class SettingsDisplay(Dialog):
         Label(master, text="Avg. Monitor Default: ").grid(row=1, column=0)
         Label(master, text="Smooth Transition Time (sec): ").grid(row=2, column=0)
         Label(master, text="Brightness Offset: ").grid(row=3, column=0)
-        Label(master, text="Add Preset Color: ").grid(row=4, column=0)
-        Label(master, text="Audio Input Source: ").grid(row=5, column=0)
-        Label(master, text="Add keyboard shortcut").grid(row=6, column=0)
+        Label(master, text="Max. Brightness: ").grid(row=4, column=0)
+        Label(master, text="Min. Brightness Cutoff: ").grid(row=5, column=0)
+        Label(master, text="Add Preset Color: ").grid(row=6, column=0)
+        Label(master, text="Audio Input Source: ").grid(row=7, column=0)
+        Label(master, text="Add keyboard shortcut").grid(row=8, column=0)
 
         # Widgets
         # Starting minimized
@@ -283,6 +285,20 @@ class SettingsDisplay(Dialog):
             master, from_=0, to_=65535, resolution=1, orient=HORIZONTAL
         )
         self.brightness_offset.set(int(config["AverageColor"]["brightnessoffset"]))
+
+        self.max_brightness = Scale(
+            master, from_=0, to_=65535, resolution=1, orient=HORIZONTAL
+        )
+        self.max_brightness.set(
+            config["AverageColor"].getint("maxbrightness", fallback=65535)
+        )
+
+        self.min_brightness_cutoff = Scale(
+            master, from_=0, to_=65535, resolution=1, orient=HORIZONTAL
+        )
+        self.min_brightness_cutoff.set(
+            config["AverageColor"].getint("minbrightnesscutoff", fallback=0)
+        )
 
         # Custom preset color
         self.preset_color_name = Entry(master)
@@ -357,28 +373,30 @@ class SettingsDisplay(Dialog):
         self.avg_monitor_dropdown.grid(row=1, column=1)
         self.duration_scale.grid(row=2, column=1)
         self.brightness_offset.grid(row=3, column=1)
-        ttk.Separator(master, orient=HORIZONTAL).grid(
-            row=3, sticky="esw", columnspan=100
-        )
-        self.preset_color_name.grid(row=4, column=1)
-        self.preset_color_button.grid(row=4, column=2)
-        ttk.Separator(master, orient=HORIZONTAL).grid(
-            row=4, sticky="esw", columnspan=100
-        )
-        self.as_dropdown.grid(row=5, column=1)
+        self.max_brightness.grid(row=4, column=1)
+        self.min_brightness_cutoff.grid(row=5, column=1)
         ttk.Separator(master, orient=HORIZONTAL).grid(
             row=5, sticky="esw", columnspan=100
         )
-        self.keybind_bulb_dropdown.grid(row=6, column=1)
-        self.keybind_keys_select.grid(row=6, column=2)
-        self.keybind_color_dropdown.grid(row=6, column=3)
-        self.keybind_add_button.grid(row=6, column=4)
+        self.preset_color_name.grid(row=6, column=1)
+        self.preset_color_button.grid(row=6, column=2)
+        ttk.Separator(master, orient=HORIZONTAL).grid(
+            row=6, sticky="esw", columnspan=100
+        )
+        self.as_dropdown.grid(row=7, column=1)
+        ttk.Separator(master, orient=HORIZONTAL).grid(
+            row=7, sticky="esw", columnspan=100
+        )
+        self.keybind_bulb_dropdown.grid(row=8, column=1)
+        self.keybind_keys_select.grid(row=8, column=2)
+        self.keybind_color_dropdown.grid(row=8, column=3)
+        self.keybind_add_button.grid(row=8, column=4)
         self.mlb = MultiListbox(master, (("Bulb", 5), ("Keybind", 5), ("Color", 5)))
         for keypress, fnx in dict(config["Keybinds"]).items():
             label, color = fnx.split(":")
             self.mlb.insert(END, (label, keypress, color))
-        self.mlb.grid(row=7, columnspan=100, sticky="esw")
-        self.keybind_delete_button.grid(row=8, column=0)
+        self.mlb.grid(row=9, columnspan=100, sticky="esw")
+        self.keybind_delete_button.grid(row=10, column=0)
 
     def validate(self) -> int:
         if self.launch_startup.get() != get_launch_on_startup():
@@ -387,6 +405,10 @@ class SettingsDisplay(Dialog):
         config["AverageColor"]["DefaultMonitor"] = str(self.avg_monitor.get())
         config["AverageColor"]["Duration"] = str(self.duration_scale.get())
         config["AverageColor"]["BrightnessOffset"] = str(self.brightness_offset.get())
+        config["AverageColor"]["MaxBrightness"] = str(self.max_brightness.get())
+        config["AverageColor"]["MinBrightnessCutoff"] = str(
+            self.min_brightness_cutoff.get()
+        )
         config["Audio"]["InputIndex"] = str(self.audio_source.get()[1])
         # Write to config file
         with open("config.ini", "w", encoding="utf-8") as cfg:
