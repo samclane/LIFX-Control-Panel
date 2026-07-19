@@ -122,13 +122,29 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
             """ Allow SysTrayIcon in a separate thread """
             image = Image.open(resource_path('res/icon_vector.ico'))
 
+            def device_menu_items():
+                # default arg binds device now, not at call time
+                for label, device in self.device_map.items():
+                    yield pystray.MenuItem(label, pystray.Menu(
+                        pystray.MenuItem('On',
+                                         lambda *_, device=device, **__: device.set_power(65535, rapid=True)),
+                        pystray.MenuItem('Off',
+                                         lambda *_, device=device, **__: device.set_power(0, rapid=True)),
+                    ))
+
             icon = pystray.Icon("LIFX Control Panel", image, menu=pystray.Menu(
                 pystray.MenuItem('Open',
                                  lambda *_, **__: self.master.deiconify(),
                                  default=True),
+                pystray.MenuItem('All Lights On',
+                                 lambda *_, **__: self.lifx.set_power_all_lights(65535, rapid=True)),
+                pystray.MenuItem('All Lights Off',
+                                 lambda *_, **__: self.lifx.set_power_all_lights(0, rapid=True)),
+                pystray.MenuItem('Lights', pystray.Menu(device_menu_items)),
                 pystray.MenuItem('Quit',
                                  lambda *_, **__: self.on_closing()),
             ))
+            self.tray_icon = icon
             icon.run()
 
         self.systray_thread = threading.Thread(target=run_tray_icon, daemon=True)
@@ -209,6 +225,8 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
                     self.logger.warning("Unknown device: %s: %s",
                                         light.get_product(), light.get_label())
                     break
+        if hasattr(self, 'tray_icon'):  # first scan runs before the tray icon exists
+            self.tray_icon.update_menu()
 
     def build_group_frame(self, group_label):
         self.device_map[group_label] = self.lifx.get_devices_by_group(group_label)
