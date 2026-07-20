@@ -95,8 +95,10 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-instance-attribut
             bulb_power = self.master.bulb_interface.power_cache[bulb.label]
             bulb_brightness = bulb_color[2]
             sprite, image, _ = self.bulb_dict[bulb.label]
-        except TypeError:
-            # First run will give us None; Is immediately corrected on next pass
+        except (TypeError, KeyError):
+            # TypeError: first run gives None; KeyError: bulb missed during a rescan
+            # (WorkflowException in set_device_list) so the new cache lacks its label.
+            # Both are corrected on a later pass.
             return
         # Calculate what number, 0-11, corresponds to current brightness
         brightness_scale = (int((bulb_brightness / 65535) * 10) * (bulb_power > 0)) - 1

@@ -43,10 +43,11 @@ class TestDevice(unittest.TestCase):
 
 class TestMultiZone(unittest.TestCase):
     def test_paint_single_zone(self):
-        # frames.LightFrame.paint_zone relies on set_zone_color(i, i+1) touching exactly one zone
+        # frames.LightFrame.paint_zone relies on set_zone_color(i, i) touching exactly one
+        # zone: protocol SetColorZones end_index is inclusive
         bulb = MultiZoneDummy(label="Beam", num_zones=8)
         color = Color(1, 2, 3, 3500)
-        bulb.set_zone_color(3, 4, color, rapid=True)
+        bulb.set_zone_color(3, 3, color, rapid=True)
         zones = bulb.get_color_zones()
         self.assertEqual(zones[3], color)
         for i in (0, 1, 2, 4, 5, 6, 7):

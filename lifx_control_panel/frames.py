@@ -193,8 +193,8 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.stop_threads()
         color = self.get_color_values_hsbk()
         try:
-            # lifxlan set_zone_color paints [start, end); (i, i+1) is a single zone
-            self.target.set_zone_color(index, index + 1, color, rapid=True)
+            # protocol SetColorZones end_index is INCLUSIVE; (i, i) is a single zone
+            self.target.set_zone_color(index, index, color, rapid=True)
         except lifxlan.WorkflowException:
             pass  # rapid painting; next drag event retries anyway
         self.zone_canvas.itemconfig(

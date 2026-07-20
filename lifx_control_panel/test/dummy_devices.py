@@ -264,7 +264,8 @@ class MultiZoneDummy(DummyBulb):
         return self.zones[start:end] if end else self.zones[start:]
 
     def set_zone_color(self, start, end, color, duration=0, rapid=False, apply=1):
-        for i in range(start, min(end, len(self.zones))):
+        # end is INCLUSIVE, matching the real SetColorZones protocol message
+        for i in range(start, min(end + 1, len(self.zones))):
             self.zones[i] = color
 
     def set_zone_colors(self, colors, duration=0, rapid=False):
