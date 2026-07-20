@@ -183,13 +183,16 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         for index, device in enumerate(device_list):
             # lifxlan falls back to a plain Light if GetVersion times out during discovery;
             # rebuild misclassified multizone devices so get_color_zones exists
-            try:
-                if device.supports_multizone() and not isinstance(device, lifxlan.MultiZoneLight):
-                    device_list[index] = lifxlan.MultiZoneLight(
-                        device.mac_addr, device.ip_addr, device.service,
-                        device.port, device.source_id, device.verbose)
-            except lifxlan.WorkflowException as exc:
-                self.logger.warning("Error checking device type for %s: %s", device.mac_addr, exc)
+            for attempt in range(1, SCAN_ATTEMPTS + 1):
+                try:
+                    if device.supports_multizone() and not isinstance(device, lifxlan.MultiZoneLight):
+                        device_list[index] = lifxlan.MultiZoneLight(
+                            device.mac_addr, device.ip_addr, device.service,
+                            device.port, device.source_id, device.verbose)
+                    break
+                except lifxlan.WorkflowException as exc:
+                    self.logger.warning("Error checking device type for %s (attempt %d/%d): %s",
+                                        device.mac_addr, attempt, SCAN_ATTEMPTS, exc)
         self.bulb_interface = AsyncBulbInterface(stop_event, HEARTBEAT_RATE_MS)
         self.bulb_interface.set_device_list(device_list)
         self.bulb_interface.daemon = True
@@ -203,20 +206,25 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
                 try:
                     product: str = lifxlan.product_map[light.get_product()]
                     label: str = light.get_label()
-                    # light.get_color()
+                    # Build the frame before registering the device/icon: a WorkflowException
+                    # mid-build otherwise leaves a clickable entry with no frame,
+                    # which KeyErrors in bulb_changed
+                    new_frame = None
+                    if label not in self.frame_map:
+                        # LightFrame._get_light_info already handles multizone devices
+                        new_frame = LightFrame(self, light)
                     self.device_map[label] = light
                     self.logger.info('Light found: %s: "%s"', product, label)
                     if label not in self.bulb_icons.bulb_dict:
                         self.bulb_icons.draw_bulb_icon(light, label)
-                    if label not in self.frame_map:
-                        # LightFrame._get_light_info already handles multizone devices
-                        self.frame_map[label] = LightFrame(self, light)
-                        self.current_lightframe = self.frame_map[label]
+                    if new_frame is not None:
+                        self.frame_map[label] = new_frame
+                        self.current_lightframe = new_frame
                         try:
                             self.bulb_icons.set_selected_bulb(label)
                         except KeyError:
                             self.group_icons.set_selected_bulb(label)
-                        self.logger.info("Building new frame: %s", self.frame_map[label].get_label())
+                        self.logger.info("Building new frame: %s", new_frame.get_label())
                     group_label = light.get_group_label()
                     if group_label not in self.device_map.keys():
                         self.build_group_frame(group_label)
@@ -232,13 +240,17 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
             self.tray_icon.update_menu()
 
     def build_group_frame(self, group_label):
-        self.device_map[group_label] = self.lifx.get_devices_by_group(group_label)
-        self.device_map[group_label].get_label = lambda: group_label  # pylint: disable=cell-var-from-loop
+        group = self.lifx.get_devices_by_group(group_label)
+        group.get_label = lambda: group_label  # pylint: disable=cell-var-from-loop
         # Giving an attribute here is a bit dirty, but whatever
-        self.device_map[group_label].label = group_label
+        group.label = group_label
+        # Frame first: registering the group before GroupFrame succeeds strands a
+        # frameless entry in device_map (and the retry in scan_for_lights skips
+        # rebuilding it), which KeyErrors in bulb_changed
+        self.frame_map[group_label] = GroupFrame(self, group)
+        self.device_map[group_label] = group
         self.group_icons.draw_bulb_icon(None, group_label)
         self.logger.info("Group found: %s", group_label)
-        self.frame_map[group_label] = GroupFrame(self, self.device_map[group_label])
         self.logger.info("Building new frame: %s", self.frame_map[group_label].get_label())
 
     def save_state(self):
@@ -254,7 +266,9 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
                     color = [tuple(zone) for zone in device.get_color_zones()]
                 else:
                     color = tuple(device.get_color())
-                config["SavedState"][label] = f"{device.get_power()};{color}"
+                # Labels can carry trailing padding from the bulb; configparser strips
+                # trailing whitespace on read, so unstripped keys collide as duplicates
+                config["SavedState"][label.strip()] = f"{device.get_power()};{color}"
             except lifxlan.WorkflowException as exc:
                 self.logger.warning("Couldn't save state for %s: %s", label, exc)
         with open("config.ini", "w", encoding="utf-8") as cfg:
@@ -266,7 +280,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
             return
         for label, device in self.device_map.items():
             # ConfigParser lowercases keys, so match on lowered label
-            state = config["SavedState"].get(label.lower())
+            state = config["SavedState"].get(label.strip().lower())
             if state is None or isinstance(device, lifxlan.Group):
                 continue
             try:

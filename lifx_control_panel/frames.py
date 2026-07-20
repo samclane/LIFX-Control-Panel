@@ -133,6 +133,10 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         # Add custom screen region (real ugly)
         self._setup_screen_region_select()
 
+        # Per-zone editing for multizone devices (Beam, Z strip)
+        if hasattr(target, "get_color_zones"):  # hasattr also matches test dummies
+            self._setup_zone_controls()
+
         # Start update loop
         self.update_status_from_bulb()
 
@@ -141,7 +145,10 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.label = target.get_label()
         bulb_power: int = target.get_power()
         if hasattr(target, "get_color_zones"):  # multizone; hasattr also matches test dummies
-            init_color = Color(*target.get_color_zones()[0])
+            # fetch once and reuse in _setup_zone_controls: a lossy bulb (e.g. Beam on
+            # weak Wi-Fi) gets one timeout window during frame build, not two
+            self.initial_zones = [Color(*zone) for zone in target.get_color_zones()]
+            init_color = self.initial_zones[0]
         else:
             target: lifxlan.Light
             init_color = Color(*target.get_color())
@@ -150,6 +157,49 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.min_kelvin = features.get("min_kelvin") or MIN_KELVIN_DEFAULT
         self.max_kelvin = features.get("max_kelvin") or MAX_KELVIN_DEFAULT
         return bulb_power, init_color
+
+    def _setup_zone_controls(self):
+        """ Clickable strip of zone swatches; click/drag paints zones with the current slider color. """
+        zones = self.initial_zones  # fetched in _get_light_info; avoid a second round-trip
+        zones_lf = ttk.LabelFrame(
+            self, text="Zones (click/drag to paint)", padding="3 3 12 12"
+        )
+        canvas_width = 360
+        self.zone_width: float = canvas_width / len(zones)
+        self.zone_canvas = tkinter.Canvas(
+            zones_lf, width=canvas_width, height=20, borderwidth=1, relief=tkinter.GROOVE
+        )
+        self.zone_rects = [
+            self.zone_canvas.create_rectangle(
+                index * self.zone_width,
+                0,
+                (index + 1) * self.zone_width,
+                20,
+                fill=tuple2hex(hsbk_to_rgb(zone)),
+                outline="",
+            )
+            for index, zone in enumerate(zones)
+        ]
+        self.zone_canvas.bind("<Button-1>", self.paint_zone)
+        self.zone_canvas.bind("<B1-Motion>", self.paint_zone)
+        self.zone_canvas.pack()
+        zones_lf.grid(row=8, columnspan=4)
+
+    def paint_zone(self, event):
+        """ Set the clicked zone to the color currently selected in the HSBK sliders. """
+        index = int(event.x // self.zone_width)
+        if not 0 <= index < len(self.zone_rects):
+            return
+        self.stop_threads()
+        color = self.get_color_values_hsbk()
+        try:
+            # lifxlan set_zone_color paints [start, end); (i, i+1) is a single zone
+            self.target.set_zone_color(index, index + 1, color, rapid=True)
+        except lifxlan.WorkflowException:
+            pass  # rapid painting; next drag event retries anyway
+        self.zone_canvas.itemconfig(
+            self.zone_rects[index], fill=tuple2hex(hsbk_to_rgb(color))
+        )
 
     def _setup_screen_region_select(self):
         self.screen_region_lf = ttk.LabelFrame(
@@ -527,6 +577,9 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         except lifxlan.WorkflowException as exc:
             if not rapid:
                 raise exc
+        if hasattr(self, "zone_rects"):  # whole-device set makes all zones uniform
+            for rect in self.zone_rects:
+                self.zone_canvas.itemconfig(rect, fill=tuple2hex(hsbk_to_rgb(color)))
         if not rapid:
             self.logger.debug(
                 "Color changed to HSBK: %s", color
