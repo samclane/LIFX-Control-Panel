@@ -21,26 +21,41 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-instance-attribut
         # Parameters
         self.is_group = is_group
 
+        # Integer DPI zoom so icons match the DPI-scaled fonts. Derived from the parent's
+        # DPI (96 = 100%); zoom/NEAREST keep the exact palette values update_icon and
+        # set_selected_bulb key off of (interpolation would blend them and break coloring).
+        master = args[0] if args else kwargs.get("master")
+        self.scale = max(1, round(master.winfo_fpixels("1i") / 96))
+        self.icon_width = ICON_WIDTH * self.scale
+        self.icon_height = ICON_HEIGHT * self.scale
+        self.icon_padding = ICON_PADDING * self.scale
+        window_width = WINDOW_WIDTH * self.scale
+
         # Initialization
-        super().__init__(*args, width=WINDOW_WIDTH, height=ICON_HEIGHT, **kwargs)
+        super().__init__(*args, width=window_width, height=self.icon_height, **kwargs)
         self.scroll_x = 0
         self.scroll_y = 0
         self.bulb_dict: dict[str, tuple[tkinter.PhotoImage, int, int]] = {}
         self.canvas = tkinter.Canvas(
             self,
-            width=WINDOW_WIDTH,
-            height=ICON_HEIGHT,
+            width=window_width,
+            height=self.icon_height,
             scrollregion=(0, 0, self.scroll_x, self.scroll_y),
         )
         h_scroll = tkinter.Scrollbar(self, orient=tkinter.HORIZONTAL)
         h_scroll.pack(side=tkinter.BOTTOM, fill=tkinter.X)
         h_scroll.config(command=self.canvas.xview)
-        self.canvas.config(width=WINDOW_WIDTH, height=ICON_HEIGHT)
+        self.canvas.config(width=window_width, height=self.icon_height)
         self.canvas.config(xscrollcommand=h_scroll.set)
         self.canvas.pack(side=tkinter.LEFT, expand=True, fill=tkinter.BOTH)
         self.current_icon_width = 0
         path = self.icon_path()
-        self.original_icon = pImage.open(path).load()
+        source = pImage.open(path)
+        if self.scale > 1:  # NEAREST keeps palette values aligned 1:1 with the zoomed sprite
+            source = source.resize(
+                (source.width * self.scale, source.height * self.scale), pImage.NEAREST
+            )
+        self.original_icon = source.load()
         self._current_icon = None
 
     @property
@@ -59,23 +74,25 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-instance-attribut
     def draw_bulb_icon(self, bulb, label):
         """ Given a bulb and a name, add the icon to the end of the row. """
         # Make room on canvas
-        self.scroll_x += ICON_WIDTH
+        self.scroll_x += self.icon_width
         self.canvas.configure(scrollregion=(0, 0, self.scroll_x, self.scroll_y))
         # Build icon
         path = self.icon_path()
         sprite = tkinter.PhotoImage(file=path, master=self.master)
+        if self.scale > 1:  # integer nearest-neighbor zoom; preserves palette values
+            sprite = sprite.zoom(self.scale)
         image = self.canvas.create_image(
             (
-                self.current_icon_width + ICON_WIDTH - ICON_PADDING,
-                ICON_HEIGHT / 2 + 2 * ICON_PADDING,
+                self.current_icon_width + self.icon_width - self.icon_padding,
+                self.icon_height / 2 + 2 * self.icon_padding,
             ),
             image=sprite,
             anchor=tkinter.SE,
             tags=[label],
         )
         text = self.canvas.create_text(
-            self.current_icon_width + ICON_PADDING / 2,
-            ICON_HEIGHT / 2 + 2 * ICON_PADDING,
+            self.current_icon_width + self.icon_padding / 2,
+            self.icon_height / 2 + 2 * self.icon_padding,
             text=label[:8],
             anchor=tkinter.NW,
             tags=[label],
@@ -83,7 +100,7 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-instance-attribut
         self.bulb_dict[label] = (sprite, image, text)
         self.update_icon(bulb)
         # update sizing info
-        self.current_icon_width += ICON_WIDTH
+        self.current_icon_width += self.icon_width
 
     def update_icon(self, bulb: lifxlan.Device):
         """ If changes have been detected in the interface, update the bulb state. """

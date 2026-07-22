@@ -404,7 +404,17 @@ def main():
     """ Start the GUI, bulb_interface, loggers, exception handling, and finally run the app """
     root = None
     try:
+        # Declare per-monitor DPI awareness so Windows renders at native resolution
+        # instead of blurry-upscaling, then scale Tk to match the monitor's DPI so
+        # widgets/fonts aren't tiny on high-res displays.
+        if os.name == 'nt':
+            import ctypes
+            try:
+                ctypes.windll.shcore.SetProcessDpiAwareness(1)
+            except (AttributeError, OSError):
+                pass  # pre-8.1 Windows; nothing to do
         root = tkinter.Tk()
+        root.tk.call('tk', 'scaling', root.winfo_fpixels('1i') / 72.0)
         root.title("lifx_control_panel")
         root.resizable(False, False)
 
