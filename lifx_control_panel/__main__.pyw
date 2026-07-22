@@ -10,6 +10,7 @@ Notes
 import ast
 import logging
 import os
+import socket as _socket
 import sys
 import threading
 import tkinter
@@ -48,6 +49,31 @@ LOGFILE = os.path.join(APPLICATION_PATH, LOGFILE)
 SPLASH_FILE = resource_path('res/splash_vector.png')
 
 SCAN_ATTEMPTS = 3  # retries per bulb for transient UDP timeouts during discovery
+
+
+class _ResetTolerantSocket(_socket.socket):
+    """A UDP socket that ignores spurious ConnectionResetErrors on recvfrom.
+
+    On Windows, lifxlan blasts discovery packets at every interface's broadcast
+    address, including a VPN NIC's. A sendto that hits an unreachable port makes
+    the OS surface the ICMP error as a ConnectionResetError on the *next*
+    recvfrom. lifxlan only guards recvfrom against socket.timeout, so that reset
+    propagates out and aborts discovery -- no bulbs found. Draining past it lets
+    the real LAN bulbs' replies come through.
+    """
+
+    def recvfrom(self, *args, **kwargs):
+        while True:
+            try:
+                return super().recvfrom(*args, **kwargs)
+            except ConnectionResetError:
+                continue  # stale ICMP-unreachable from a prior VPN broadcast; keep reading
+
+
+# lifxlan's LifxLAN and Device both `from socket import ... socket`; swap that
+# bound name so every socket they open tolerates the reset.
+lifxlan.lifxlan.socket = _ResetTolerantSocket
+lifxlan.device.socket = _ResetTolerantSocket
 
 
 class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
