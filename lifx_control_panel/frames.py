@@ -133,9 +133,11 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         # Add custom screen region (real ugly)
         self._setup_screen_region_select()
 
-        # Per-zone editing for multizone devices (Beam, Z strip)
-        if hasattr(target, "get_color_zones"):  # hasattr also matches test dummies
-            self._setup_zone_controls()
+        # Per-zone editing for multizone devices (Beam, Z strip) — disabled: unreliable
+        # against real hardware (Beam drops/ignores fire-and-forget SetColorZones). The
+        # _setup_zone_controls/paint_zone/commit_paint machinery is kept for when it's revisited.
+        # if hasattr(target, "get_color_zones"):  # hasattr also matches test dummies
+        #     self._setup_zone_controls()
 
         # Start update loop
         self.update_status_from_bulb()
@@ -164,7 +166,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         zones_lf = ttk.LabelFrame(
             self, text="Zones (click/drag to paint)", padding="3 3 12 12"
         )
-        canvas_width = 360
+        canvas_width = 200
         self.zone_width: float = canvas_width / len(zones)
         self.zone_canvas = tkinter.Canvas(
             zones_lf, width=canvas_width, height=20, borderwidth=1, relief=tkinter.GROOVE
@@ -180,26 +182,46 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             )
             for index, zone in enumerate(zones)
         ]
+        self._last_painted_zone = None
+        self._painted_this_drag = {}
         self.zone_canvas.bind("<Button-1>", self.paint_zone)
         self.zone_canvas.bind("<B1-Motion>", self.paint_zone)
+        self.zone_canvas.bind("<ButtonRelease-1>", self.commit_paint)
         self.zone_canvas.pack()
         zones_lf.grid(row=8, columnspan=4)
 
     def paint_zone(self, event):
-        """ Set the clicked zone to the color currently selected in the HSBK sliders. """
+        """ Set the zone under the cursor to the color currently selected in the HSBK sliders. """
         index = int(event.x // self.zone_width)
         if not 0 <= index < len(self.zone_rects):
             return
+        # <B1-Motion> fires per pixel; only send when the drag crosses into a new zone,
+        # otherwise a socket-per-event flood freezes the GUI thread mid-drag.
+        if index == self._last_painted_zone:
+            return
+        self._last_painted_zone = index
         self.stop_threads()
         color = self.get_color_values_hsbk()
-        try:
-            # protocol SetColorZones end_index is INCLUSIVE; (i, i) is a single zone
-            self.target.set_zone_color(index, index, color, rapid=True)
-        except lifxlan.WorkflowException:
-            pass  # rapid painting; next drag event retries anyway
+        self.logger.debug("paint_zone %d -> HSBK %s", index, tuple(color))
+        self._painted_this_drag[index] = color
+        # rapid=fire-and-forget: the Beam doesn't ack MultiZoneSetColorZones, so a blocking
+        # req_with_ack would stall the GUI for the full timeout on every click/drag event.
+        self.target.set_zone_color(index, index, color, rapid=True)
         self.zone_canvas.itemconfig(
             self.zone_rects[index], fill=tuple2hex(hsbk_to_rgb(color))
         )
+
+    def commit_paint(self, *_):
+        """ Re-send the gesture's zones on mouse release.
+
+        Painting has to be fire-and-forget (the bulb never acks SetColorZones), so a single
+        dropped UDP packet silently leaves that zone unpainted. Sending each painted zone once
+        more on release covers those drops without the per-pixel flood that froze the GUI.
+        """
+        for index, color in self._painted_this_drag.items():
+            self.target.set_zone_color(index, index, color, rapid=True)
+        self._painted_this_drag.clear()
+        self._last_painted_zone = None  # so re-clicking the same zone repaints
 
     def _setup_screen_region_select(self):
         self.screen_region_lf = ttk.LabelFrame(
@@ -577,6 +599,16 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         except lifxlan.WorkflowException as exc:
             if not rapid:
                 raise exc
+        # Keep the sliders in sync with the chosen color. paint_zone reads them as its source,
+        # and for multizone the heartbeat no longer syncs a device color, so presets/palette
+        # would otherwise leave the sliders (and thus painting) stuck at the dim init color.
+        # Also refresh the swatches/entries here: update_status_from_bulb used to be the only
+        # thing driving them, and it no longer sees a color for multizone devices.
+        for key, value in enumerate(color):
+            if self.hsbk[key].get() != value:
+                self.hsbk[key].set(value)
+            self.update_display(key)
+        self.update_label()
         if hasattr(self, "zone_rects"):  # whole-device set makes all zones uniform
             for rect in self.zone_rects:
                 self.zone_canvas.itemconfig(rect, fill=tuple2hex(hsbk_to_rgb(color)))

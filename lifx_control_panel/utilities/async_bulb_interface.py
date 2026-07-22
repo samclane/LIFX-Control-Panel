@@ -62,6 +62,12 @@ class AsyncBulbInterface(threading.Thread):
             if pwr != self.power_cache[target.label]:
                 self.power_queue[target.label].put(pwr)
                 self.power_cache[target.label] = pwr
+            # Skip color polling for multizone strips: get_color() reads back black (no single
+            # aggregate color) and stomps the sliders, while get_color_zones() is ~10 round-trips
+            # per tick that saturate a lossy Beam and starve the paint packets. The sliders are
+            # the user's paint input here, not a device mirror, so leave them alone.
+            if hasattr(target, "get_color_zones"):
+                return
             clr = target.get_color()
             if clr != self.color_cache[target.label]:
                 self.color_queue[target.label].put(clr)

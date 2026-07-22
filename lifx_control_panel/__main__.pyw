@@ -292,7 +292,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
                     if isinstance(color, list):  # zones saved, but device rediscovered as plain Light
                         color = color[0]
                     device.set_color(color, rapid=True)
-                device.set_power(int(power), rapid=True)
+                device.set_power(65535 if int(power) else 0, rapid=True)
                 self.logger.info("Restored saved state for %s", label)
             except (lifxlan.WorkflowException, ValueError, SyntaxError, IndexError) as exc:
                 self.logger.warning("Couldn't restore state for %s: %s", label, exc)
