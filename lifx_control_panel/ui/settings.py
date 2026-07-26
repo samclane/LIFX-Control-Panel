@@ -13,29 +13,32 @@ import logging
 from tkinter import ttk
 from tkinter import (
     Toplevel,
-    Frame,
-    Button,
     ACTIVE,
     LEFT,
     YES,
-    Label,
     Listbox,
     FLAT,
     X,
     BOTH,
-    RAISED,
     FALSE,
     VERTICAL,
     Y,
-    Scrollbar,
     END,
     BooleanVar,
-    Checkbutton,
     StringVar,
-    OptionMenu,
     Scale,
     HORIZONTAL,
+)
+
+# themed equivalents, so the dialog matches the main window
+from tkinter.ttk import (
+    Button,
+    Checkbutton,
     Entry,
+    Frame,
+    Label,
+    OptionMenu,
+    Scrollbar,
 )
 from tkinter.colorchooser import askcolor
 
@@ -133,7 +136,9 @@ class MultiListbox(Frame):  # pylint: disable=too-many-ancestors
         for list_, widget in lists:
             frame = Frame(self)
             frame.pack(side=LEFT, expand=YES, fill=BOTH)
-            Label(frame, text=list_, borderwidth=1, relief=RAISED).pack(fill=X)
+            Label(frame, text=list_, relief="raised", anchor="center", padding=2).pack(
+                fill=X
+            )
             list_box = Listbox(
                 frame,
                 width=widget,
@@ -151,7 +156,7 @@ class MultiListbox(Frame):  # pylint: disable=too-many-ancestors
             list_box.bind("<Button-2>", lambda e, s=self: s._button2(e.x, e.y))
         frame = Frame(self)
         frame.pack(side=LEFT, fill=Y)
-        Label(frame, borderwidth=1, relief=RAISED).pack(fill=X)
+        Label(frame, relief="raised", padding=2).pack(fill=X)
         scroll = Scrollbar(frame, orient=VERTICAL, command=self._scroll)
         scroll.pack(expand=YES, fill=Y)
         self.lists[0]["yscrollcommand"] = scroll.set
@@ -274,7 +279,9 @@ class SettingsDisplay(Dialog):
                 "get_primary_monitor",
                 *[tuple(m.values()) for m in sct.monitors],
             ]
-        self.avg_monitor_dropdown = OptionMenu(master, self.avg_monitor, *options)
+        self.avg_monitor_dropdown = OptionMenu(
+            master, self.avg_monitor, self.avg_monitor.get(), *options
+        )
 
         self.duration_scale = Scale(
             master, from_=0, to_=2, resolution=1 / 15, orient=HORIZONTAL
@@ -322,13 +329,15 @@ class SettingsDisplay(Dialog):
             master, init_string
         )  # AudioSource index is grabbed from [1], so add a space at [0]
         as_choices = device_names.items() or [" None"]
-        self.as_dropdown = OptionMenu(master, self.audio_source, *as_choices)
+        self.as_dropdown = OptionMenu(
+            master, self.audio_source, init_string, *as_choices
+        )
 
         # Add keybindings
         light_names = list(self.root_window.device_map.keys())
         self.keybind_bulb_selection = StringVar(master, value=light_names[0])
         self.keybind_bulb_dropdown = OptionMenu(
-            master, self.keybind_bulb_selection, *light_names
+            master, self.keybind_bulb_selection, light_names[0], *light_names
         )
         self.keybind_keys_select = Entry(master)
         self.keybind_keys_select.insert(END, "Add key-combo...")
@@ -341,6 +350,7 @@ class SettingsDisplay(Dialog):
         self.keybind_color_dropdown = OptionMenu(
             master,
             self.keybind_color_selection,
+            "Color",
             *KEYBIND_ACTIONS,
             *self.root_window.frame_map[
                 self.keybind_bulb_selection.get()
@@ -397,6 +407,13 @@ class SettingsDisplay(Dialog):
             self.mlb.insert(END, (label, keypress, color))
         self.mlb.grid(row=9, columnspan=100, sticky="esw")
         self.keybind_delete_button.grid(row=10, column=0)
+
+        # Uniform spacing/alignment, instead of repeating it on ~25 grid() calls
+        for child in master.winfo_children():
+            if child.winfo_manager() == "grid":
+                child.grid_configure(padx=4, pady=3)
+            if isinstance(child, Label):
+                child.grid_configure(sticky="w")
 
     def validate(self) -> int:
         if self.launch_startup.get() != get_launch_on_startup():

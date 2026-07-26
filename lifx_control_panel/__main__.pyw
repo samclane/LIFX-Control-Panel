@@ -19,7 +19,7 @@ import traceback
 from collections import OrderedDict
 from logging.handlers import RotatingFileHandler
 from PIL import Image
-from tkinter import messagebox, ttk
+from tkinter import font as tkfont, messagebox, ttk
 from typing import List, Dict, Union, Optional
 
 import pystray
@@ -89,7 +89,8 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.splashscreen.__enter__()
 
         # Setup frame and grid
-        ttk.Frame.__init__(self, master, padding="3 3 12 12")
+        self._setup_styles()
+        ttk.Frame.__init__(self, master, padding="8 6 8 8")
         self.master: tkinter.Tk = master
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.grid(column=0, row=0, sticky=(tkinter.N, tkinter.W, tkinter.E, tkinter.S))
@@ -198,6 +199,21 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         # Minimize if in config
         if config.getboolean("AppSettings", "start_minimized"):
             self.master.withdraw()
+
+    @staticmethod
+    def _setup_styles():
+        """ Native-looking widgets: the themed engine on Windows, plus the two custom
+        styles the frames use (device title, running-effect button). """
+        style = ttk.Style()
+        if 'vista' in style.theme_names():
+            style.theme_use('vista')
+        base = tkfont.nametofont("TkDefaultFont")
+        style.configure("Title.TLabel",
+                        font=(base.cget("family"), base.cget("size") + 2, "bold"),
+                        foreground="#0046d5")
+        # vista's TButton ignores -background, so a running effect is flagged by text color
+        style.configure("Running.TButton", foreground="#0a7d22", font=(base.cget("family"),
+                                                                      base.cget("size"), "bold"))
 
     def scan_for_lights(self):
         """ Communicating with the interface Thread, attempt to find any new devices """

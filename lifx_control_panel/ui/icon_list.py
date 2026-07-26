@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tkinter
+from tkinter import ttk
 from PIL import Image as pImage
 
 import lifxlan
@@ -10,6 +11,7 @@ WINDOW_WIDTH = 285
 ICON_WIDTH = 50
 ICON_HEIGHT = 75
 ICON_PADDING = 5
+LABEL_ROOM = 14  # vertical space under an icon for its (possibly wrapped) label
 HIGHLIGHT_SATURATION = 95
 COLOR_CODE = {"BULB_TOP": 11, "BACKGROUND": 15}
 
@@ -30,22 +32,26 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-instance-attribut
         self.icon_height = ICON_HEIGHT * self.scale
         self.icon_padding = ICON_PADDING * self.scale
         window_width = WINDOW_WIDTH * self.scale
+        # room for a label that wraps to a second line; icon placement stays on icon_height
+        canvas_height = self.icon_height + LABEL_ROOM * self.scale
 
         # Initialization
-        super().__init__(*args, width=window_width, height=self.icon_height, **kwargs)
+        super().__init__(*args, width=window_width, height=canvas_height, **kwargs)
         self.scroll_x = 0
         self.scroll_y = 0
         self.bulb_dict: dict[str, tuple[tkinter.PhotoImage, int, int]] = {}
         self.canvas = tkinter.Canvas(
             self,
             width=window_width,
-            height=self.icon_height,
+            height=canvas_height,
             scrollregion=(0, 0, self.scroll_x, self.scroll_y),
+            background=self["background"],  # blend with the frame instead of a white slab
+            highlightthickness=0,
         )
-        h_scroll = tkinter.Scrollbar(self, orient=tkinter.HORIZONTAL)
+        h_scroll = ttk.Scrollbar(self, orient=tkinter.HORIZONTAL)
         h_scroll.pack(side=tkinter.BOTTOM, fill=tkinter.X)
         h_scroll.config(command=self.canvas.xview)
-        self.canvas.config(width=window_width, height=self.icon_height)
+        self.canvas.config(width=window_width, height=canvas_height)
         self.canvas.config(xscrollcommand=h_scroll.set)
         self.canvas.pack(side=tkinter.LEFT, expand=True, fill=tkinter.BOTH)
         self.current_icon_width = 0
@@ -91,10 +97,12 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-instance-attribut
             tags=[label],
         )
         text = self.canvas.create_text(
-            self.current_icon_width + self.icon_padding / 2,
+            self.current_icon_width + self.icon_width / 2,
             self.icon_height / 2 + 2 * self.icon_padding,
-            text=label[:8],
-            anchor=tkinter.NW,
+            text=label,
+            width=self.icon_width - self.icon_padding,  # wrap instead of running into the next icon
+            justify=tkinter.CENTER,
+            anchor=tkinter.N,
             tags=[label],
         )
         self.bulb_dict[label] = (sprite, image, text)

@@ -14,8 +14,8 @@ class ColorScale(tk.Canvas):
         self,
         parent,
         val=0,
-        height=13,
-        width=100,
+        height=18,
+        width=120,
         variable=None,
         from_=0,
         to=360,
@@ -37,6 +37,9 @@ class ColorScale(tk.Canvas):
             * gradient: The type of background coloration
             * **kwargs: Any other keyword argument accepted by a tkinter Canvas
         """
+        kwargs.setdefault("borderwidth", 0)
+        kwargs.setdefault("highlightthickness", 1)
+        kwargs.setdefault("highlightbackground", "#909090")
         tk.Canvas.__init__(self, parent, width=width, height=height, **kwargs)
         self.parent = parent
         self.max = to
