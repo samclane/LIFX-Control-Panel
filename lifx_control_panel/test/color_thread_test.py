@@ -31,7 +31,9 @@ class TestNormalizeRectangles(unittest.TestCase):
 
 class TestGetMonitorBounds(unittest.TestCase):
     def test_uses_func_result_when_truthy(self):
-        self.assertEqual(get_monitor_bounds(lambda: "[0, 0, 100, 100]"), "[0, 0, 100, 100]")
+        self.assertEqual(
+            get_monitor_bounds(lambda: "[0, 0, 100, 100]"), "[0, 0, 100, 100]"
+        )
 
 
 class TestScreenRgbToHsbk(unittest.TestCase):

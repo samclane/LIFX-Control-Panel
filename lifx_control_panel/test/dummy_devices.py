@@ -1,4 +1,4 @@
-""" This is not a standard test file (yet), but used to simulate a multi-device environment. """
+"""This is not a standard test file (yet), but used to simulate a multi-device environment."""
 
 import logging
 import os
@@ -206,7 +206,12 @@ class DummyDevice:
 class DummyBulb(DummyDevice):
     def __init__(self, color=None, label="N/A"):
         super().__init__(label)
-        self.color = color or DummyColor(6097, 46851, 38791, 3014,)
+        self.color = color or DummyColor(
+            6097,
+            46851,
+            38791,
+            3014,
+        )
         self.power: int = 0
 
     # Official api

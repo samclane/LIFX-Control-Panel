@@ -55,9 +55,7 @@ class TestFunctions(unittest.TestCase):
 
     def test_hsbk_to_rgb_desaturated(self):
         # Zero saturation falls through to the kelvin white point
-        self.assertEqual(
-            hsbk_to_rgb(Color(0, 0, 65535, 6500)), kelvin_to_rgb(6500)
-        )
+        self.assertEqual(hsbk_to_rgb(Color(0, 0, 65535, 6500)), kelvin_to_rgb(6500))
 
     def test_kelvin_to_rgb(self):
         # Known white points: warm is red-heavy, cool is blue-heavy

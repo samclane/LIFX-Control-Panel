@@ -9,7 +9,7 @@ import lifxlan
 
 
 class AsyncBulbInterface(threading.Thread):
-    """ Asynchronous networking layer between LIFX devices and the GUI. """
+    """Asynchronous networking layer between LIFX devices and the GUI."""
 
     def __init__(self, event, heartbeat_ms):
         threading.Thread.__init__(self)
@@ -27,15 +27,18 @@ class AsyncBulbInterface(threading.Thread):
         self.logger = logging.getLogger("root")
 
     def set_device_list(
-        self, device_list: List[lifxlan.Device],
+        self,
+        device_list: List[lifxlan.Device],
     ):
-        """ Set internet device list to passed list of LIFX devices. """
+        """Set internet device list to passed list of LIFX devices."""
         for dev in device_list:
             try:
                 label = dev.get_label()
                 self.color_queue[label] = queue.Queue()
                 try:
-                    if hasattr(dev, "get_color_zones"):  # multizone; hasattr also matches test dummies
+                    if hasattr(
+                        dev, "get_color_zones"
+                    ):  # multizone; hasattr also matches test dummies
                         color = dev.get_color_zones()[0]
                     else:
                         color = getattr(dev, "color", None)
@@ -56,7 +59,7 @@ class AsyncBulbInterface(threading.Thread):
                 )
 
     def query_device(self, target):
-        """ Check if target has new state. If it does, push it to the queue and cache the value. """
+        """Check if target has new state. If it does, push it to the queue and cache the value."""
         try:
             pwr = target.get_power()
             if pwr != self.power_cache[target.label]:
@@ -76,7 +79,7 @@ class AsyncBulbInterface(threading.Thread):
             pass
 
     def run(self):
-        """ Continuous loop that has a thread query each device every HEARTBEAT ms. """
+        """Continuous loop that has a thread query each device every HEARTBEAT ms."""
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=max(1, len(self.device_list))
         ) as executor:

@@ -17,7 +17,7 @@ COLOR_CODE = {"BULB_TOP": 11, "BACKGROUND": 15}
 
 
 class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-instance-attributes
-    """ Holds the dynamic icons for each Device and Group """
+    """Holds the dynamic icons for each Device and Group"""
 
     def __init__(self, *args, is_group: bool = False, **kwargs):
         # Parameters
@@ -45,7 +45,9 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-instance-attribut
             width=window_width,
             height=canvas_height,
             scrollregion=(0, 0, self.scroll_x, self.scroll_y),
-            background=self["background"],  # blend with the frame instead of a white slab
+            background=self[
+                "background"
+            ],  # blend with the frame instead of a white slab
             highlightthickness=0,
         )
         h_scroll = ttk.Scrollbar(self, orient=tkinter.HORIZONTAL)
@@ -57,7 +59,9 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-instance-attribut
         self.current_icon_width = 0
         path = self.icon_path()
         source = pImage.open(path)
-        if self.scale > 1:  # NEAREST keeps palette values aligned 1:1 with the zoomed sprite
+        if (
+            self.scale > 1
+        ):  # NEAREST keeps palette values aligned 1:1 with the zoomed sprite
             source = source.resize(
                 (source.width * self.scale, source.height * self.scale), pImage.NEAREST
             )
@@ -66,11 +70,11 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-instance-attribut
 
     @property
     def current_icon(self):
-        """ Returns the name of the currently selected Device/Group """
+        """Returns the name of the currently selected Device/Group"""
         return self._current_icon
 
     def icon_path(self):
-        """ Returns the correct icon path for single Device or Group """
+        """Returns the correct icon path for single Device or Group"""
         return (
             utils.resource_path("res/group.png")
             if self.is_group
@@ -78,7 +82,7 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-instance-attribut
         )
 
     def draw_bulb_icon(self, bulb, label):
-        """ Given a bulb and a name, add the icon to the end of the row. """
+        """Given a bulb and a name, add the icon to the end of the row."""
         # Make room on canvas
         self.scroll_x += self.icon_width
         self.canvas.configure(scrollregion=(0, 0, self.scroll_x, self.scroll_y))
@@ -100,7 +104,8 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-instance-attribut
             self.current_icon_width + self.icon_width / 2,
             self.icon_height / 2 + 2 * self.icon_padding,
             text=label,
-            width=self.icon_width - self.icon_padding,  # wrap instead of running into the next icon
+            width=self.icon_width
+            - self.icon_padding,  # wrap instead of running into the next icon
             justify=tkinter.CENTER,
             anchor=tkinter.N,
             tags=[label],
@@ -111,7 +116,7 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-instance-attribut
         self.current_icon_width += self.icon_width
 
     def update_icon(self, bulb: lifxlan.Device):
-        """ If changes have been detected in the interface, update the bulb state. """
+        """If changes have been detected in the interface, update the bulb state."""
         if self.is_group:
             return
         try:
@@ -158,7 +163,7 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-instance-attribut
         self.canvas.itemconfig(image, image=sprite)
 
     def set_selected_bulb(self, light_name):
-        """ Highlight the newly selected bulb icon when changed. """
+        """Highlight the newly selected bulb icon when changed."""
         if self._current_icon:
             self.clear_selected()
         sprite, image, _ = self.bulb_dict[light_name]
@@ -181,7 +186,7 @@ class BulbIconList(tkinter.Frame):  # pylint: disable=too-many-instance-attribut
         self._current_icon = light_name
 
     def clear_selected(self):
-        """ Reset background to original state (from highlighted). """
+        """Reset background to original state (from highlighted)."""
         sprite, image, _ = self.bulb_dict[self._current_icon]
         color_string = ""
         for y in range(sprite.height()):  # pylint: disable=invalid-name

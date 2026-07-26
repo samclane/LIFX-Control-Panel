@@ -3,6 +3,7 @@
 
 Contains several basic "Color-Following" functions, as well as custom Stop/Start threads for these effects.
 """
+
 import logging
 import sys
 import threading
@@ -20,8 +21,8 @@ from lifx_control_panel.utilities.utils import hsv_to_rgb
 
 
 def get_monitor_bounds(func):
-    """ Returns the rectangular coordinates of the desired Avg. Screen area. Can pass a function to find the result
-    procedurally """
+    """Returns the rectangular coordinates of the desired Avg. Screen area. Can pass a function to find the result
+    procedurally"""
     return func() or config["AverageColor"]["DefaultMonitor"]
 
 
@@ -40,7 +41,7 @@ def get_screen_as_image():
 
 
 def get_rect_as_image(bounds: Tuple[int, int, int, int]):
-    """ Grabs a rectangular area of the primary screen as an image """
+    """Grabs a rectangular area of the primary screen as an image"""
     with mss.mss() as sct:
         monitor = {
             "left": bounds[0],
@@ -53,11 +54,16 @@ def get_rect_as_image(bounds: Tuple[int, int, int, int]):
 
 
 def normalize_rectangles(rects: List[Tuple[int, int, int, int]]):
-    """ Normalize the rectangles to the monitor size """
+    """Normalize the rectangles to the monitor size"""
     x_min = min(rect[0] for rect in rects)
     y_min = min(rect[1] for rect in rects)
     return [
-        (-x_min + left, -y_min + top, -x_min + right, -y_min + bottom,)
+        (
+            -x_min + left,
+            -y_min + top,
+            -x_min + right,
+            -y_min + bottom,
+        )
         for left, top, right, bottom in rects
     ]
 
@@ -93,13 +99,15 @@ def _screen_rgb_to_hsbk(rgb, temperature):
     (1, 0, 1) comes out fully-saturated magenta. Treat anything that dark as black.
     """
     hue, saturation, brightness, kelvin = utils.RGBtoHSBK(rgb, temperature=temperature)
-    if max(rgb) < 10:  # ponytail: fixed threshold; make configurable if it clips dim scenes
+    if (
+        max(rgb) < 10
+    ):  # ponytail: fixed threshold; make configurable if it clips dim scenes
         saturation = 0
     return [hue, saturation, brightness, kelvin]
 
 
 def avg_screen_color(initial_color, func_bounds=lambda: None):
-    """ Capture an image of the monitor defined by func_bounds, then get the average color of the image in HSBK """
+    """Capture an image of the monitor defined by func_bounds, then get the average color of the image in HSBK"""
     monitor = get_monitor_bounds(func_bounds)
     if "full" in monitor:
         screenshot = get_screen_as_image()
@@ -133,23 +141,23 @@ def dominant_screen_color(initial_color, func_bounds=lambda: None):
 
 
 class ColorThread(threading.Thread):
-    """ A Simple Thread which runs when the _stop event isn't set """
+    """A Simple Thread which runs when the _stop event isn't set"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, daemon=True, **kwargs)
         self._stop = threading.Event()
 
     def stop(self):
-        """ Stop thread by setting event """
+        """Stop thread by setting event"""
         self._stop.set()
 
     def stopped(self):
-        """ Check if thread has been stopped """
+        """Check if thread has been stopped"""
         return self._stop.isSet()
 
 
 class ColorThreadRunner:
-    """ Manages an asynchronous color-change with a Device. Can be run continuously, stopped and started. """
+    """Manages an asynchronous color-change with a Device. Can be run continuously, stopped and started."""
 
     def __init__(self, bulb, color_function, parent, continuous=True, **kwargs):
         self.bulb = bulb
@@ -172,7 +180,7 @@ class ColorThreadRunner:
         )
 
     def match_color(self, bulb):
-        """ ColorThread target which calls the 'change_color' function on the bulb. """
+        """ColorThread target which calls the 'change_color' function on the bulb."""
         self.logger.debug("Starting color match.")
         self.prev_color = (
             self.parent.get_color_values_hsbk()
@@ -198,7 +206,7 @@ class ColorThreadRunner:
         self.logger.debug("Color match finished.")
 
     def start(self):
-        """ Start the match_color thread"""
+        """Start the match_color thread"""
         if self.thread.stopped():
             self.thread = ColorThread(target=self.match_color, args=(self.bulb,))
         try:
@@ -208,26 +216,28 @@ class ColorThreadRunner:
             self.logger.error("Tried to start ColorThread again.")
 
     def stop(self):
-        """ Stop the match_color thread"""
+        """Stop the match_color thread"""
         self.thread.stop()
 
     @staticmethod
     def get_duration():
-        """ Read the transition duration from the config file. """
+        """Read the transition duration from the config file."""
         return float(config["AverageColor"]["duration"])
 
     @staticmethod
     def get_brightness_offset():
-        """ Read the brightness offset from the config file. """
+        """Read the brightness offset from the config file."""
         return int(config["AverageColor"]["brightnessoffset"])
 
     @staticmethod
     def limit_brightness(brightness):
-        """ Cap brightness at the configured max; snap to 0 below the configured min cutoff. """
+        """Cap brightness at the configured max; snap to 0 below the configured min cutoff."""
         brightness = min(
             brightness, config["AverageColor"].getint("maxbrightness", fallback=65535)
         )
-        if brightness < config["AverageColor"].getint("minbrightnesscutoff", fallback=0):
+        if brightness < config["AverageColor"].getint(
+            "minbrightnesscutoff", fallback=0
+        ):
             brightness = 0
         return brightness
 

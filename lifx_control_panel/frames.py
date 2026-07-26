@@ -46,7 +46,7 @@ MIN_KELVIN_DEFAULT = 1500
 
 
 class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
-    """ Holds control and state information about a single device. """
+    """Holds control and state information about a single device."""
 
     label: str
     target: Union[lifxlan.Group, lifxlan.Device]
@@ -133,8 +133,8 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.update_status_from_bulb()
 
     def _pad_children(self, parent=None):
-        """ Give every gridded widget the same breathing room, instead of padding each
-        of the ~40 grid() calls individually. """
+        """Give every gridded widget the same breathing room, instead of padding each
+        of the ~40 grid() calls individually."""
         for child in (parent or self).winfo_children():
             if child.winfo_manager() == "grid":
                 child.grid_configure(padx=4, pady=3)
@@ -145,7 +145,9 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         # WorkflowException propagates up to scan_for_lights, which retries the frame build
         self.label = target.get_label()
         bulb_power: int = target.get_power()
-        if hasattr(target, "get_color_zones"):  # multizone; hasattr also matches test dummies
+        if hasattr(
+            target, "get_color_zones"
+        ):  # multizone; hasattr also matches test dummies
             # fetch once and reuse in _setup_zone_controls: a lossy bulb (e.g. Beam on
             # weak Wi-Fi) gets one timeout window during frame build, not two
             self.initial_zones = [Color(*zone) for zone in target.get_color_zones()]
@@ -160,15 +162,21 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         return bulb_power, init_color
 
     def _setup_zone_controls(self):
-        """ Clickable strip of zone swatches; click/drag paints zones with the current slider color. """
-        zones = self.initial_zones  # fetched in _get_light_info; avoid a second round-trip
+        """Clickable strip of zone swatches; click/drag paints zones with the current slider color."""
+        zones = (
+            self.initial_zones
+        )  # fetched in _get_light_info; avoid a second round-trip
         zones_lf = ttk.LabelFrame(
             self, text="Zones (click/drag to paint)", padding="3 3 12 12"
         )
         canvas_width = 200
         self.zone_width: float = canvas_width / len(zones)
         self.zone_canvas = tkinter.Canvas(
-            zones_lf, width=canvas_width, height=20, borderwidth=1, relief=tkinter.GROOVE
+            zones_lf,
+            width=canvas_width,
+            height=20,
+            borderwidth=1,
+            relief=tkinter.GROOVE,
         )
         self.zone_rects = [
             self.zone_canvas.create_rectangle(
@@ -190,7 +198,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         zones_lf.grid(row=8, columnspan=4)
 
     def paint_zone(self, event):
-        """ Set the zone under the cursor to the color currently selected in the HSBK sliders. """
+        """Set the zone under the cursor to the color currently selected in the HSBK sliders."""
         index = int(event.x // self.zone_width)
         if not 0 <= index < len(self.zone_rects):
             return
@@ -211,7 +219,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         )
 
     def commit_paint(self, *_):
-        """ Re-send the gesture's zones on mouse release.
+        """Re-send the gesture's zones on mouse release.
 
         Painting has to be fire-and-forget (the bulb never acks SetColorZones), so a single
         dropped UDP packet silently leaves that zone unpainted. Sending each painted zone once
@@ -233,9 +241,11 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             "height": ttk.Entry(self.screen_region_lf, width=6),
         }
         region = config["AverageColor"][
-            self.label
-            if self.label in config["AverageColor"].keys()
-            else "defaultmonitor"
+            (
+                self.label
+                if self.label in config["AverageColor"].keys()
+                else "defaultmonitor"
+            )
         ]
         if region == "full":
             region = ["full"] * 4
@@ -272,7 +282,9 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             self.threads["cycle"].start()
 
         self.color_cycle_btn = ttk.Button(
-            self.special_functions_lf, text="Color Cycle", command=start_color_cycle,
+            self.special_functions_lf,
+            text="Color Cycle",
+            command=start_color_cycle,
         )
         self.color_cycle_btn.grid(row=7, column=1, sticky="ew")
         # Screen Avg.
@@ -284,7 +296,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         )
 
         def start_screen_avg():
-            """ Allow the screen avg. to be run in a separate thread. Also highlights the button while running. """
+            """Allow the screen avg. to be run in a separate thread. Also highlights the button while running."""
             self.avg_screen_btn.config(style="Running.TButton")
             self.threads["screen"].start()
 
@@ -323,7 +335,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         )
 
         def start_audio():
-            """ Allow the audio to be run in a separate thread. Also highlights the button while running. """
+            """Allow the audio to be run in a separate thread. Also highlights the button while running."""
             self.music_button.config(style="Running.TButton")
             self.threads["audio"].start()
 
@@ -331,9 +343,9 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             self.special_functions_lf,
             text="Music Color",
             command=start_audio,
-            state="disabled"
-            if not self.master.audio_interface.initialized
-            else "normal",
+            state=(
+                "disabled" if not self.master.audio_interface.initialized else "normal"
+            ),
         )
         self.music_button.grid(row=7, column=0, sticky="ew")
         self.threads["eyedropper"] = color_thread.ColorThreadRunner(
@@ -454,6 +466,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                 gradient="kelvin",
             ),
         )
+
         def gray(value: int):
             return (int(255 * (value / 65535)),) * 3
 
@@ -519,24 +532,24 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         )
 
     def restart(self):
-        """ Get updated information for the bulb when clicked. """
+        """Get updated information for the bulb when clicked."""
         self.update_status_from_bulb()
         self.logger.info("Light frame Restarted.")
 
     def get_label(self):
-        """ Getter method for the label attribute. Often is monkey-patched. """
+        """Getter method for the label attribute. Often is monkey-patched."""
         return self.label
 
     def trigger_icon_update(self, *_, **__):
-        """ Just sets a flag for now. Could be more advanced in the future. """
+        """Just sets a flag for now. Could be more advanced in the future."""
         self.icon_update_flag = True
 
     def get_color_values_hsbk(self):
-        """ Get color values entered into GUI"""
+        """Get color values entered into GUI"""
         return Color(*tuple(v.get() for v in self.hsbk))
 
     def stop_threads(self):
-        """ Stop all ColorRunner threads """
+        """Stop all ColorRunner threads"""
         for button in (
             self.music_button,
             self.avg_screen_btn,
@@ -548,24 +561,24 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             thread.stop()
 
     def update_power(self):
-        """ Send new power state to bulb when UI is changed. """
+        """Send new power state to bulb when UI is changed."""
         self.stop_threads()
         self.target.set_power(self.tk_power_var.get())
 
     def update_color_from_ui(self, *_, **__):
-        """ Send new color state to bulb when UI is changed. """
+        """Send new color state to bulb when UI is changed."""
         self.stop_threads()
         self.set_color(self.get_color_values_hsbk(), rapid=True)
 
     def set_color(self, color, rapid=False):
-        """ Should be called whenever the bulb wants to change color. Sends bulb command and updates UI accordingly. """
+        """Should be called whenever the bulb wants to change color. Sends bulb command and updates UI accordingly."""
         self.stop_threads()
         try:
             self.target.set_color(
                 color,
-                duration=0
-                if rapid
-                else float(config["AverageColor"]["duration"]) * 1000,
+                duration=(
+                    0 if rapid else float(config["AverageColor"]["duration"]) * 1000
+                ),
                 rapid=rapid,
             )
         except lifxlan.WorkflowException as exc:
@@ -590,12 +603,12 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             )  # Don't pollute log with rapid color changes
 
     def update_label(self):
-        """ Refresh entry fields to match current HSBK values. """
+        """Refresh entry fields to match current HSBK values."""
         for key, svar in enumerate(self.hsbk_entry_vars):
             svar.set(str(self.hsbk[key].get()))
 
     def commit_entry(self, key: int):
-        """ Apply a manually-typed HSBK value from its entry field, clamped to range. """
+        """Apply a manually-typed HSBK value from its entry field, clamped to range."""
         scale = self.hsbk_scale[key]
         try:
             val = int(float(self.hsbk_entry_vars[key].get()))
@@ -607,7 +620,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         self.update_color_from_ui()
 
     def update_display(self, key: int):
-        """ Update color swatches to match current device state """
+        """Update color swatches to match current device state"""
         h, s, b, k = self.get_color_values_hsbk()  # pylint: disable=invalid-name
         if key == 0:
             self.hsbk_display[0].config(
@@ -638,7 +651,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             self.hsbk_display[3].config(background=tuple2hex(kelvin_to_rgb(k)))
 
     def get_color_from_palette(self):
-        """ Asks users for color selection using standard color palette dialog. """
+        """Asks users for color selection using standard color palette dialog."""
         color = tkinter.colorchooser.askcolor(
             initialcolor=hsbk_to_rgb(self.get_color_values_hsbk())
         )[0]
@@ -682,7 +695,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             self.after(FRAME_PERIOD_MS, self.update_status_from_bulb)
 
     def eyedropper(self, *_, **__):
-        """ Allows user to select a color pixel from the screen. """
+        """Allows user to select a color pixel from the screen."""
         self.master.master.withdraw()  # Hide window
         state_left = win32api.GetKeyState(
             0x01
@@ -707,17 +720,17 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         return lifxlan.RGBtoHSBK(color, temperature=self.get_color_values_hsbk().kelvin)
 
     def change_preset_dropdown(self, *_, **__):
-        """ Change device color to selected preset option. """
+        """Change device color to selected preset option."""
         color = Color(*globals()[self.color_var.get()])
         self.set_color(color, False)
 
     def change_user_dropdown(self, *_, **__):
-        """ Change device color to selected user-defined option. """
+        """Change device color to selected user-defined option."""
         color = str2tuple(config["PresetColors"][self.tk_user_def_color_var.get()], int)
         self.set_color(color, rapid=False)
 
     def update_user_dropdown(self):
-        """ Add newly defined color to the user color dropdown menu. """
+        """Add newly defined color to the user color dropdown menu."""
         # self.tk_user_def_color_var.set('')
         self.user_dropdown["menu"].delete(0, "end")
 
@@ -727,14 +740,14 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             )
 
     def get_monitor_bounds(self):
-        """ Return the 4 rectangle coordinates from the entry boxes in the UI """
+        """Return the 4 rectangle coordinates from the entry boxes in the UI"""
         return (
             f"[{self.screen_region_entries['left'].get()}, {self.screen_region_entries['top'].get()}, "
             f"{self.screen_region_entries['width'].get()}, {self.screen_region_entries['height'].get()}]"
         )
 
     def save_monitor_bounds(self):
-        """ Write monitor bounds entered into the UI into the config file. """
+        """Write monitor bounds entered into the UI into the config file."""
         config["AverageColor"][self.label] = self.get_monitor_bounds()
         # Write to config file
         with open("config.ini", "w", encoding="utf-8") as cfg:
@@ -745,9 +758,9 @@ class GroupFrame(LightFrame):
     def _get_light_info(self, target: lifxlan.Group) -> Tuple[int, Color]:
         init_color: Color = Color(*lifxlan.WARM_WHITE)
         # WorkflowException propagates up to scan_for_lights, which retries the frame build
-        devices: List[
-            Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]
-        ] = target.get_device_list()
+        devices: List[Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]] = (
+            target.get_device_list()
+        )
         if not devices:
             logging.error("No devices found in group list")
             self.label = "<No Group Found>"

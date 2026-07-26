@@ -8,6 +8,7 @@ Notes
     Uses a really funky design pattern for a dialog that I copied from an old project. It's bad and I should probably
     ript it out
 """
+
 import configparser
 import logging
 from tkinter import ttk
@@ -62,7 +63,7 @@ KEYBIND_ACTIONS = ("Toggle Power", "Brightness Up", "Brightness Down")
 
 # boilerplate code from http://effbot.org/tkinterbook/tkinter-dialog-windows.htm
 class Dialog(Toplevel):
-    """ Template for dialogs that include an Ok and Cancel button, and return validated user input data. """
+    """Template for dialogs that include an Ok and Cancel button, and return validated user input data."""
 
     def __init__(self, parent, title=None):
         Toplevel.__init__(self, parent)
@@ -88,7 +89,7 @@ class Dialog(Toplevel):
         """create dialog body.  return widget that should have initial focus. This method should be overridden"""
 
     def buttonbox(self):
-        """ add standard button box. override if you don't want the standard buttons """
+        """add standard button box. override if you don't want the standard buttons"""
         box = Frame(self)
         # pylint: disable=invalid-name
         ok = Button(box, text="OK", width=10, command=self.ok, default=ACTIVE)
@@ -102,7 +103,7 @@ class Dialog(Toplevel):
         box.pack()
 
     def ok(self, _=None):  # pylint: disable=invalid-name
-        """ Standard ok semantics """
+        """Standard ok semantics"""
         if not self.validate():
             self.initial_focus.focus_set()  # put focus back
             return
@@ -119,16 +120,17 @@ class Dialog(Toplevel):
 
     # command hooks
     def validate(self):  # pylint: disable=no-self-use
-        """ Override """
+        """Override"""
         return 1  # override
 
     def apply(self):
-        """ Override """
+        """Override"""
 
 
 class MultiListbox(Frame):  # pylint: disable=too-many-ancestors
-    """ Shows information about items in a column-format
-    https://www.safaribooksonline.com/library/view/python-cookbook/0596001673/ch09s05.html """
+    """Shows information about items in a column-format
+    https://www.safaribooksonline.com/library/view/python-cookbook/0596001673/ch09s05.html
+    """
 
     def __init__(self, master, lists):
         Frame.__init__(self, master)
@@ -162,7 +164,7 @@ class MultiListbox(Frame):  # pylint: disable=too-many-ancestors
         self.lists[0]["yscrollcommand"] = scroll.set
 
     def _select(self, y):  # pylint: disable=invalid-name
-        """ Select a row when clicked """
+        """Select a row when clicked"""
         row = self.lists[0].nearest(y)
         self.selection_clear(0, END)
         self.selection_set(row)
@@ -179,42 +181,42 @@ class MultiListbox(Frame):  # pylint: disable=too-many-ancestors
         return "break"
 
     def _scroll(self, *args):
-        """ Move the list down """
+        """Move the list down"""
         for list_ in self.lists:
             list_.yview(*args)
 
     def curselection(self):
-        """ Return currently selected list item """
+        """Return currently selected list item"""
         return self.lists[0].curselection()
 
     def delete(self, first, last=None):
-        """ Remove an item from the list and GUI """
+        """Remove an item from the list and GUI"""
         for list_ in self.lists:
             list_.delete(first, last)
 
     def get(self, first, last=None):
-        """ Get specific item from the list """
+        """Get specific item from the list"""
         result = [list_.get(first, last) for list_ in self.lists]
         if last:
             return map(*([None] + result))
         return result
 
     def index(self, index):
-        """ Get index of item at index"""
+        """Get index of item at index"""
         self.lists[0].index(index)
 
     def insert(self, index, *elements):
-        """ Insert element into list"""
+        """Insert element into list"""
         for elm in elements:
             for i, list_ in enumerate(self.lists):
                 list_.insert(index, elm[i])
 
     def size(self):
-        """ Size of internal list at call time """
+        """Size of internal list at call time"""
         return self.lists[0].size()
 
     def see(self, index):
-        """ Wrapper for see function that calls on each list """
+        """Wrapper for see function that calls on each list"""
         for list_ in self.lists:
             list_.see(index)
 
@@ -223,22 +225,22 @@ class MultiListbox(Frame):  # pylint: disable=too-many-ancestors
             list_.selection_anchor(index)
 
     def selection_clear(self, first, last=None):
-        """ Clear selection highlight """
+        """Clear selection highlight"""
         for list_ in self.lists:
             list_.selection_clear(first, last)
 
     def selection_includes(self, index):
-        """ Check if item at index is in user selection """
+        """Check if item at index is in user selection"""
         return self.lists[0].selection_includes(index)
 
     def selection_set(self, first, last=None):
-        """ Manually change the selection """
+        """Manually change the selection"""
         for list_ in self.lists:
             list_.selection_set(first, last)
 
 
 class SettingsDisplay(Dialog):
-    """ Settings form User Interface"""
+    """Settings form User Interface"""
 
     def body(self, master):
         self.root_window = master.master.master  # This is really gross. I'm sorry.
@@ -436,7 +438,7 @@ class SettingsDisplay(Dialog):
         return 1
 
     def get_color(self):
-        """ Present user with color palette dialog and return color in HSBK """
+        """Present user with color palette dialog and return color in HSBK"""
         color = askcolor()[0]
         if color:
             # RGBtoHBSK sometimes returns >65535, so we have to clamp
@@ -444,7 +446,7 @@ class SettingsDisplay(Dialog):
             config["PresetColors"][self.preset_color_name.get()] = str(hsbk)
 
     def register_keybinding(self, bulb: str, keys: str, color: str):
-        """ Get the keybind from the input box and pass the color off to the root window. """
+        """Get the keybind from the input box and pass the color off to the root window."""
         if color not in KEYBIND_ACTIONS:
             try:
                 color = self.root_window.frame_map[
@@ -462,7 +464,7 @@ class SettingsDisplay(Dialog):
         self.preset_color_name.focus_set()  # Set focus to a dummy widget to reset the Entry
 
     def on_keybind_keys_click(self, event):
-        """ Call when cursor is in key-combo entry """
+        """Call when cursor is in key-combo entry"""
         self.update()
         self.update_idletasks()
         self.key_listener.restart()
@@ -476,7 +478,7 @@ class SettingsDisplay(Dialog):
             self.update_idletasks()
 
     def delete_keybind(self):
-        """ Delete keybind currently selected in the multi-list box. """
+        """Delete keybind currently selected in the multi-list box."""
         _, keybind, _ = self.mlb.get(ACTIVE)
         self.mlb.delete(ACTIVE)
         self.root_window.delete_keybind(keybind)

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """General utility classes and functions."""
+
 import colorsys
 import os
 import subprocess
@@ -12,7 +13,7 @@ import mss
 
 
 class Color(NamedTuple):
-    """ A single color vector in HSBK color-space. """
+    """A single color vector in HSBK color-space."""
 
     hue: int
     saturation: int
@@ -26,8 +27,8 @@ TypeHSBK = Union[Tuple[int, int, int, int], Color]
 
 
 def hsbk_to_rgb(hsvk: TypeHSBK) -> TypeRGB:
-    """ Convert Tuple in HSBK color-space to RGB space.
-    Converted from PHP https://gist.github.com/joshrp/5200913 """
+    """Convert Tuple in HSBK color-space to RGB space.
+    Converted from PHP https://gist.github.com/joshrp/5200913"""
     # pylint: disable=invalid-name
     iH, iS, iV, iK = hsvk
     dS = (100 * iS / 65535) / 100.0  # Saturation: 0.0-1.0
@@ -89,12 +90,12 @@ def hsbk_to_rgb(hsvk: TypeHSBK) -> TypeRGB:
 
 
 def hsv_to_rgb(h: float, s: float = 1, v: float = 1) -> TypeRGB:
-    """ Convert a Hue-angle to an RGB value for display. """
+    """Convert a Hue-angle to an RGB value for display."""
     return tuple(int(c * 255) for c in colorsys.hsv_to_rgb(float(h) / 360, s, v))
 
 
 def kelvin_to_rgb(temperature: int) -> TypeRGB:
-    """ Convert a Kelvin (K) color-temperature to an RGB value for display."""
+    """Convert a Kelvin (K) color-temperature to an RGB value for display."""
     # pylint: disable=invalid-name
     temperature /= 100
     if temperature <= 66:
@@ -103,11 +104,11 @@ def kelvin_to_rgb(temperature: int) -> TypeRGB:
         green = 99.4708025861 * log(green + 0.0000000001) - 161.1195681661
     else:
         red = temperature - 60
-        red = 329.698727466 * (red ** -0.1332047592)
+        red = 329.698727466 * (red**-0.1332047592)
         red = max(red, 0)
         red = min(red, 255)
         green = temperature - 60
-        green = 288.1221695283 * (green ** -0.0755148492)
+        green = 288.1221695283 * (green**-0.0755148492)
     green = max(green, 0)
     green = min(green, 255)
     # calc blue
@@ -124,43 +125,45 @@ def kelvin_to_rgb(temperature: int) -> TypeRGB:
 
 
 def tuple2hex(tuple_: TypeRGB) -> str:
-    """ Takes a color in tuple form and converts it to hex. """
+    """Takes a color in tuple form and converts it to hex."""
     return "#%02x%02x%02x" % tuple_
 
 
 def str2list(string: str, type_func) -> List:
-    """ Takes a Python list-formatted string and returns a list of elements of type type_func """
+    """Takes a Python list-formatted string and returns a list of elements of type type_func"""
     return list(map(type_func, string.strip("()[]").split(",")))
 
 
 def str2tuple(string: str, type_func) -> Tuple:
-    """ Takes a Python list-formatted string and returns a tuple of type type_func """
+    """Takes a Python list-formatted string and returns a tuple of type type_func"""
     return tuple(str2list(string, type_func))
 
 
 # Multi monitor methods
 @lru_cache(maxsize=None)
 def get_primary_monitor() -> Tuple[int, ...]:
-    """ Return the system's default primary monitor rectangle bounds. """
+    """Return the system's default primary monitor rectangle bounds."""
     # primary monitor has top left as 0, 0
     return next(rect for rect in get_display_rects() if rect[:2] == (0, 0))
 
 
 def resource_path(relative_path) -> Union[int, bytes]:
-    """ Get absolute path to resource, works for dev and for PyInstaller """
+    """Get absolute path to resource, works for dev and for PyInstaller"""
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS  # pylint: disable=protected-access,no-member
     except Exception:  # pylint: disable=broad-except
         # repo root = two dirs up from this file (lifx_control_panel/utilities/utils.py).
         # CWD-independent, unlike the old os.path.abspath("../").
-        base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        base_path = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
 
     return os.path.join(base_path, relative_path)
 
 
 def get_display_rects():
-    """ Return a list of tuples of monitor rectangles. """
+    """Return a list of tuples of monitor rectangles."""
     with mss.mss() as sct:
         return [tuple(m.values()) for m in sct.monitors]
 
@@ -175,12 +178,12 @@ STARTUP_LNK = os.path.join(
 
 
 def get_launch_on_startup() -> bool:
-    """ The shortcut's existence is the setting; no config entry to drift out of sync. """
+    """The shortcut's existence is the setting; no config entry to drift out of sync."""
     return os.path.exists(STARTUP_LNK)
 
 
 def set_launch_on_startup(enable: bool):
-    """ Create or remove the Startup-folder shortcut. """
+    """Create or remove the Startup-folder shortcut."""
     if not enable:
         if os.path.exists(STARTUP_LNK):
             os.remove(STARTUP_LNK)

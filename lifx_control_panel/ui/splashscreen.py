@@ -3,11 +3,12 @@
 
 Displays lifx_control_panel's icon while GUI loads
 """
+
 from tkinter import Toplevel, Canvas, PhotoImage
 
 
 class Splash:
-    """ From http://code.activestate.com/recipes/576936/ """
+    """From http://code.activestate.com/recipes/576936/"""
 
     def __init__(self, root, file):
         self.__root = root
