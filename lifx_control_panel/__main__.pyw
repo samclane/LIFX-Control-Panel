@@ -134,7 +134,8 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         if any(self.device_map):
             self.tk_light_name.set(next(iter(self.device_map.keys())))
             self.current_light = self.device_map[self.tk_light_name.get()]
-            self.restore_state()
+            if config.getboolean("AppSettings", "restore_state_on_startup"):
+                self.restore_state()
         else:
             messagebox.showwarning("No lights found.", "No LIFX devices were found on your LAN. Try using File->Rescan"
                                                        " to search again.")

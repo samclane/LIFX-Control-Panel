@@ -251,6 +251,7 @@ class SettingsDisplay(Dialog):
         # Labels
         Label(master, text="Start Minimized?: ").grid(row=0, column=0)
         Label(master, text="Launch on Startup?: ").grid(row=0, column=2)
+        Label(master, text="Restore State on Startup?: ").grid(row=0, column=4)
         Label(master, text="Avg. Monitor Default: ").grid(row=1, column=0)
         Label(master, text="Smooth Transition Time (sec): ").grid(row=2, column=0)
         Label(master, text="Brightness Offset: ").grid(row=3, column=0)
@@ -270,6 +271,12 @@ class SettingsDisplay(Dialog):
         # Launch on Windows startup
         self.launch_startup = BooleanVar(master, value=get_launch_on_startup())
         self.launch_startup_check = Checkbutton(master, variable=self.launch_startup)
+
+        # Re-apply the saved light state when the app starts
+        self.restore_state = BooleanVar(
+            master, value=config.getboolean("AppSettings", "restore_state_on_startup")
+        )
+        self.restore_state_check = Checkbutton(master, variable=self.restore_state)
 
         # Avg monitor color match
         self.avg_monitor = StringVar(
@@ -379,6 +386,7 @@ class SettingsDisplay(Dialog):
         # Insert
         self.start_mini_check.grid(row=0, column=1)
         self.launch_startup_check.grid(row=0, column=3)
+        self.restore_state_check.grid(row=0, column=5)
         ttk.Separator(master, orient=HORIZONTAL).grid(
             row=0, sticky="esw", columnspan=100
         )
@@ -421,6 +429,7 @@ class SettingsDisplay(Dialog):
         if self.launch_startup.get() != get_launch_on_startup():
             set_launch_on_startup(self.launch_startup.get())
         config["AppSettings"]["start_minimized"] = str(self.start_mini.get())
+        config["AppSettings"]["restore_state_on_startup"] = str(self.restore_state.get())
         config["AverageColor"]["DefaultMonitor"] = str(self.avg_monitor.get())
         config["AverageColor"]["Duration"] = str(self.duration_scale.get())
         config["AverageColor"]["BrightnessOffset"] = str(self.brightness_offset.get())
