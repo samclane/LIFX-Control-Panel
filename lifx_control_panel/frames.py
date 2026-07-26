@@ -374,7 +374,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         )
         self.preset_dropdown.grid(row=0, column=0, sticky="ew")
         self.preset_dropdown.configure(width=13)
-        self.color_var.trace("w", self.change_preset_dropdown)
+        self.color_var.trace_add("write", self.change_preset_dropdown)
         self.tk_user_def_color_var = tkinter.StringVar(self, value="User Presets")
         self.user_dropdown = ttk.OptionMenu(
             self.preset_colors_lf,
@@ -388,7 +388,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         )
         self.user_dropdown.grid(row=0, column=1, sticky="ew")
         self.user_dropdown.config(width=13)
-        self.tk_user_def_color_var.trace("w", self.change_user_dropdown)
+        self.tk_user_def_color_var.trace_add("write", self.change_user_dropdown)
         self.preset_colors_lf.columnconfigure((0, 1), weight=1, uniform="preset")
         self.preset_colors_lf.grid(row=5, columnspan=4, sticky="ew")
 
@@ -411,7 +411,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             tkinter.IntVar(self, init_color.kelvin, "Kelvin"),
         )
         for i in self.hsbk:
-            i.trace("w", self.trigger_icon_update)
+            i.trace_add("write", self.trigger_icon_update)
         self.hsbk_entry_vars = tuple(
             tkinter.StringVar(self, str(var.get())) for var in self.hsbk
         )

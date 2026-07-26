@@ -58,7 +58,7 @@ class ColorScale(tk.Canvas):
             self._variable = tk.IntVar(self)
         val = max(min(self.max, val), self.min)
         self._variable.set(val)
-        self._variable.trace("w", self._update_val)
+        self._variable.trace_add("write", self._update_val)
 
         self.gradient = tk.PhotoImage(master=self, width=int(width), height=int(height))
 

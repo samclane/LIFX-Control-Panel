@@ -142,7 +142,7 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.bulb_icons.grid(row=1, column=1, sticky='w')
         self.bulb_icons.canvas.bind('<Button-1>', self.on_bulb_canvas_click)
         # Keep light-name in sync with drop-down selection
-        self.tk_light_name.trace('w', self.bulb_changed)
+        self.tk_light_name.trace_add('write', self.bulb_changed)
 
         self.group_icons.grid(row=2, column=1, sticky='w')
         self.group_icons.canvas.bind('<Button-1>', self.on_bulb_canvas_click)
