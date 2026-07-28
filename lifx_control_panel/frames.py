@@ -1,4 +1,5 @@
 import logging
+import threading
 import tkinter
 from tkinter import ttk, _setit
 from typing import Union, List, Tuple, Dict, Mapping
@@ -39,10 +40,19 @@ from lifx_control_panel.utilities.utils import (
     str2tuple,
     get_display_rects,
 )
+from lifx_control_panel.utilities.multizone import set_zone_colors
 
 MAX_KELVIN_DEFAULT = 9000
 
 MIN_KELVIN_DEFAULT = 1500
+
+# LIFX documents a budget of about 20 messages a second per device; ColorScale fires
+# <B1-Motion> per pixel, which without this puts ~1800/sec on the wire during a slider drag.
+COLOR_SEND_INTERVAL_MS = 50
+
+# ~1 in 5 messages is lost to a strip on a weak link, in bursts. Six tries at lifxlan's
+# one-second ack timeout covers a multi-second burst; it runs on a worker thread.
+ZONE_COMMIT_ATTEMPTS = 6
 
 
 class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
@@ -77,6 +87,9 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     logger: logging.Logger
     min_kelvin: int = MIN_KELVIN_DEFAULT
     max_kelvin: int = MAX_KELVIN_DEFAULT
+    # Class-level so set_color is safe to call before/during __init__
+    _color_send_job = None
+    _pending_color = None
 
     def __init__(self, master, target: lifxlan.Device):
         super().__init__(
@@ -121,11 +134,9 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         # Add custom screen region (real ugly)
         self._setup_screen_region_select()
 
-        # Per-zone editing for multizone devices (Beam, Z strip) — disabled: unreliable
-        # against real hardware (Beam drops/ignores fire-and-forget SetColorZones). The
-        # _setup_zone_controls/paint_zone/commit_paint machinery is kept for when it's revisited.
-        # if hasattr(target, "get_color_zones"):  # hasattr also matches test dummies
-        #     self._setup_zone_controls()
+        # Per-zone editing for multizone devices (Beam, Z strip)
+        if hasattr(target, "get_color_zones"):  # hasattr also matches test dummies
+            self._setup_zone_controls()
 
         self._pad_children()
 
@@ -189,8 +200,11 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             )
             for index, zone in enumerate(zones)
         ]
+        # The canvas is the source of truth while painting; commit_paint pushes it to the bulb
+        self.zone_colors: List[Color] = list(zones)
+        self._zone_commit_lock = threading.Lock()
+        self._commit_seq = 0
         self._last_painted_zone = None
-        self._painted_this_drag = {}
         self.zone_canvas.bind("<Button-1>", self.paint_zone)
         self.zone_canvas.bind("<B1-Motion>", self.paint_zone)
         self.zone_canvas.bind("<ButtonRelease-1>", self.commit_paint)
@@ -198,37 +212,54 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         zones_lf.grid(row=8, columnspan=4)
 
     def paint_zone(self, event):
-        """Set the zone under the cursor to the color currently selected in the HSBK sliders."""
+        """Paint the zone under the cursor with the color currently in the HSBK sliders.
+
+        Canvas only -- nothing is sent until the mouse comes up. A drag crosses a zone every
+        few pixels, and one packet per crossing (~90/s here) buries a device rated for about
+        20 messages a second: it stops acking, stops answering reads, and stays that way.
+        """
         index = int(event.x // self.zone_width)
         if not 0 <= index < len(self.zone_rects):
             return
-        # <B1-Motion> fires per pixel; only send when the drag crosses into a new zone,
-        # otherwise a socket-per-event flood freezes the GUI thread mid-drag.
-        if index == self._last_painted_zone:
+        if index == self._last_painted_zone:  # <B1-Motion> fires per pixel
             return
         self._last_painted_zone = index
-        self.stop_threads()
         color = self.get_color_values_hsbk()
-        self.logger.debug("paint_zone %d -> HSBK %s", index, tuple(color))
-        self._painted_this_drag[index] = color
-        # rapid=fire-and-forget: the Beam doesn't ack MultiZoneSetColorZones, so a blocking
-        # req_with_ack would stall the GUI for the full timeout on every click/drag event.
-        self.target.set_zone_color(index, index, color, rapid=True)
+        self.zone_colors[index] = color
         self.zone_canvas.itemconfig(
             self.zone_rects[index], fill=tuple2hex(hsbk_to_rgb(color))
         )
 
     def commit_paint(self, *_):
-        """Re-send the gesture's zones on mouse release.
-
-        Painting has to be fire-and-forget (the bulb never acks SetColorZones), so a single
-        dropped UDP packet silently leaves that zone unpainted. Sending each painted zone once
-        more on release covers those drops without the per-pixel flood that froze the GUI.
-        """
-        for index, color in self._painted_this_drag.items():
-            self.target.set_zone_color(index, index, color, rapid=True)
-        self._painted_this_drag.clear()
+        """On mouse release, send the whole painted strip to the bulb as one acked message."""
         self._last_painted_zone = None  # so re-clicking the same zone repaints
+        self.stop_threads()
+        # Flush any throttled whole-device color first, or it would land 50ms later and
+        # repaint the strip uniform on top of the zones we're about to send.
+        if self._color_send_job is not None:
+            self.after_cancel(self._color_send_job)
+            self._flush_color()
+        self._commit_seq += 1
+        self.logger.debug("commit_paint -> %d zones", len(self.zone_colors))
+        threading.Thread(
+            target=self._commit_zones,
+            args=(list(self.zone_colors), self._commit_seq),
+            daemon=True,
+        ).start()
+
+    def _commit_zones(self, colors, seq):
+        """Retry a zone commit off the GUI thread.
+
+        Packet loss to a strip comes in bursts of a second or more, so landing a commit can
+        take several seconds of retries -- far too long to block tkinter for.
+        """
+        with self._zone_commit_lock:
+            if seq != self._commit_seq:
+                return  # a newer gesture was queued while this one waited; don't undo it
+            try:
+                set_zone_colors(self.target, colors, attempts=ZONE_COMMIT_ATTEMPTS)
+            except lifxlan.WorkflowException as exc:
+                self.logger.warning("Couldn't commit painted zones: %s", exc)
 
     def _setup_screen_region_select(self):
         self.screen_region_lf = ttk.LabelFrame(
@@ -568,11 +599,27 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     def update_color_from_ui(self, *_, **__):
         """Send new color state to bulb when UI is changed."""
         self.stop_threads()
+        if hasattr(self, "zone_rects"):
+            # On a strip the sliders choose the color paint_zone will apply -- they are a
+            # palette, not a device command. Pushing it to the bulb here would flood the
+            # whole strip with that color and reset zone_colors, so every stroke painted
+            # the color the strip had just become and appeared to do nothing. Use the
+            # presets or the palette button to set the whole strip at once.
+            self._show_paint_color()
+            return
         self.set_color(self.get_color_values_hsbk(), rapid=True)
 
-    def set_color(self, color, rapid=False):
-        """Should be called whenever the bulb wants to change color. Sends bulb command and updates UI accordingly."""
-        self.stop_threads()
+    def _show_paint_color(self):
+        """Reflect the sliders in the swatches without touching the bulb or the zones."""
+        for key in range(len(self.hsbk)):
+            self.update_display(key)
+        self.update_label()
+        self.current_color.config(
+            background=tuple2hex(hsbk_to_rgb(self.get_color_values_hsbk()))
+        )
+
+    def _send_color(self, color, rapid):
+        """The one place a whole-device color actually goes out on the wire."""
         try:
             self.target.set_color(
                 color,
@@ -584,6 +631,34 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
         except lifxlan.WorkflowException as exc:
             if not rapid:
                 raise exc
+
+    def _flush_color(self):
+        """Send the newest color a drag has produced since the last tick."""
+        self._color_send_job = None
+        if self._pending_color is not None:
+            color, self._pending_color = self._pending_color, None
+            self._send_color(color, rapid=True)
+
+    def set_color(self, color, rapid=False):
+        """Should be called whenever the bulb wants to change color. Sends bulb command and updates UI accordingly."""
+        self.stop_threads()
+        if rapid:
+            # ColorScale fires <B1-Motion> per pixel, so one packet per event puts ~1800
+            # msg/sec on a device that absorbs about 20. The backlog then keeps applying for
+            # seconds *after* the drag, overwriting whatever was sent next -- which is why
+            # painting zones stopped taking once a slider had been touched. Coalesce to the
+            # newest value per tick; the trailing send guarantees the final value lands.
+            self._pending_color = color
+            if self._color_send_job is None:
+                self._color_send_job = self.after(
+                    COLOR_SEND_INTERVAL_MS, self._flush_color
+                )
+        else:
+            if self._color_send_job is not None:
+                self.after_cancel(self._color_send_job)
+                self._color_send_job = None
+            self._pending_color = None
+            self._send_color(color, rapid=False)
         # Keep the sliders in sync with the chosen color. paint_zone reads them as its source,
         # and for multizone the heartbeat no longer syncs a device color, so presets/palette
         # would otherwise leave the sliders (and thus painting) stuck at the dim init color.
@@ -595,6 +670,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             self.update_display(key)
         self.update_label()
         if hasattr(self, "zone_rects"):  # whole-device set makes all zones uniform
+            self.zone_colors = [Color(*color)] * len(self.zone_rects)
             for rect in self.zone_rects:
                 self.zone_canvas.itemconfig(rect, fill=tuple2hex(hsbk_to_rgb(color)))
         if not rapid:

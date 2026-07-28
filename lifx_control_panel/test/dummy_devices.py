@@ -7,8 +7,10 @@ import time
 import traceback
 from tkinter import *
 from tkinter import messagebox
+from types import SimpleNamespace
 from typing import Iterable
 
+import lifxlan
 from lifxlan import Group
 
 from utilities.utils import Color as DummyColor
@@ -259,14 +261,38 @@ class DummyBulb(DummyDevice):
 
 
 class MultiZoneDummy(DummyBulb):
-    def __init__(self, color=DummyColor(0, 0, 0, 1500), label="N/A", num_zones=8):
+    def __init__(
+        self,
+        color=DummyColor(0, 0, 0, 1500),
+        label="N/A",
+        num_zones=8,
+        firmware=(2, 90),
+    ):
         super().__init__(color, label)
         self.zones = [self.color] * num_zones
+        self.firmware = firmware  # 2.77+ understands SetExtendedColorZones
+        self.acked_messages = []
 
     # Multizone API
 
     def get_color_zones(self, start=0, end=0):
         return self.zones[start:end] if end else self.zones[start:]
+
+    def req_with_resp(self, msg_type, response_type, payload=None, *_, **__):
+        """Only the firmware query reaches a device this way in this app."""
+        major, minor = self.firmware
+        return SimpleNamespace(build=0, version=(major << 16) | minor)
+
+    def req_with_ack(self, msg_type, payload, *_, **__):
+        """Only SetExtendedColorZones (510) reaches a device this way; older firmware
+        ignores the unknown message type, which the client sees as a missing ack."""
+        if self.firmware < (2, 77):
+            raise lifxlan.WorkflowException("no ack")
+        self.acked_messages.append(msg_type)
+        start = payload["zone_index"]
+        for offset, color in enumerate(payload["colors"]):
+            if start + offset < len(self.zones):
+                self.zones[start + offset] = color
 
     def set_zone_color(self, start, end, color, duration=0, rapid=False, apply=1):
         # end is INCLUSIVE, matching the real SetColorZones protocol message

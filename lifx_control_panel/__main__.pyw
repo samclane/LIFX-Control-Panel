@@ -40,6 +40,7 @@ from lifx_control_panel.utilities.keypress import KeybindManager
 from lifx_control_panel.utilities.utils import (resource_path,
                                                 Color,
                                                 str2tuple)
+from lifx_control_panel.utilities.multizone import set_zone_colors
 
 # determine if application is a script file or frozen exe
 APPLICATION_PATH = os.path.dirname(__file__)
@@ -329,8 +330,8 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
             try:
                 power, color = state.split(";", 1)
                 color = ast.literal_eval(color)  # tuple (single color) or list of tuples (zones)
-                if isinstance(color, list) and hasattr(device, "set_zone_colors"):
-                    device.set_zone_colors(color, rapid=True)
+                if isinstance(color, list) and hasattr(device, "set_zone_color"):
+                    set_zone_colors(device, color)
                 else:
                     if isinstance(color, list):  # zones saved, but device rediscovered as plain Light
                         color = color[0]
