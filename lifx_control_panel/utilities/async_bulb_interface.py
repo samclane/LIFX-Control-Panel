@@ -33,18 +33,12 @@ class AsyncBulbInterface(threading.Thread):
         """Set internet device list to passed list of LIFX devices."""
         for dev in device_list:
             try:
-                label = dev.get_label()
+                label = dev.label or dev.get_label()  # cached by scan_for_lights' prefetch
                 self.color_queue[label] = queue.Queue()
-                try:
-                    if hasattr(
-                        dev, "get_color_zones"
-                    ):  # multizone; hasattr also matches test dummies
-                        color = dev.get_color_zones()[0]
-                    else:
-                        color = getattr(dev, "color", None)
-                except Exception as e:
-                    self.logger.error(e)
-                    color = None
+                # Multizone devices are skipped by query_device below, so their cache entry
+                # is never read -- seeding it cost ~11 round-trips per strip for nothing.
+                # (.color would be the per-zone list on a strip, not a single color.)
+                color = None if hasattr(dev, "get_color_zones") else getattr(dev, "color", None)
                 self.color_cache[dev.label] = color
                 self.power_queue[dev.label] = queue.Queue()
                 try:

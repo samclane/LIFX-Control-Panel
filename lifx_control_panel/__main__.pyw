@@ -8,6 +8,7 @@ Notes
     This is the "main" function of the app, and can be run simply with 'python main.pyw'
 """
 import ast
+import concurrent.futures
 import logging
 import os
 import socket as _socket
@@ -16,7 +17,7 @@ import threading
 import tkinter
 import tkinter.colorchooser
 import traceback
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from logging.handlers import RotatingFileHandler
 from PIL import Image
 from tkinter import font as tkfont, messagebox, ttk
@@ -217,6 +218,27 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         style.configure("Running.TButton", foreground="#0a7d22", font=(base.cget("family"),
                                                                       base.cget("size"), "bold"))
 
+    def _prefetch_state(self, device) -> Optional[str]:
+        """ One round-trip pass for a single device, run concurrently with the other devices.
+
+        lifxlan getters always hit the network, but they cache what comes back on the
+        Device; warming those attributes here means the sequential frame build below
+        reads memory instead of the LAN. LightState answers label+power+color in one
+        packet, so a plain bulb costs two packets total. Returns its group label
+        (GetGroup caches only the group id, so it has to be handed back). """
+        for attempt in range(1, SCAN_ATTEMPTS + 1):
+            try:
+                if hasattr(device, "get_color_zones"):  # multizone has no combined state packet
+                    device.get_label()
+                    device.get_power()
+                else:
+                    device.get_color()
+                return device.get_group_label()
+            except lifxlan.WorkflowException as exc:
+                self.logger.warning("Error prefetching state for %s (attempt %d/%d): %s",
+                                    device.mac_addr, attempt, SCAN_ATTEMPTS, exc)
+        return None
+
     def scan_for_lights(self):
         """ Communicating with the interface Thread, attempt to find any new devices """
         # Stop and restart the bulb interface
@@ -237,6 +259,14 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
                 except lifxlan.WorkflowException as exc:
                     self.logger.warning("Error checking device type for %s (attempt %d/%d): %s",
                                         device.mac_addr, attempt, SCAN_ATTEMPTS, exc)
+        # Every device's state in parallel, before anything touches it serially below
+        group_map: Dict[str, List[lifxlan.Device]] = defaultdict(list)
+        if device_list:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=len(device_list)) as pool:
+                for device, group_label in zip(device_list, pool.map(self._prefetch_state, device_list)):
+                    if group_label is not None:
+                        group_map[group_label].append(device)
+
         self.bulb_interface = AsyncBulbInterface(stop_event, HEARTBEAT_RATE_MS)
         self.bulb_interface.set_device_list(device_list)
         self.bulb_interface.daemon = True
@@ -248,8 +278,10 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
             # retry transient UDP timeouts (WorkflowException) instead of skipping the bulb
             for attempt in range(1, SCAN_ATTEMPTS + 1):
                 try:
-                    product: str = lifxlan.product_map[light.get_product()]
-                    label: str = light.get_label()
+                    # .product/.label were cached by discovery and _prefetch_state; the
+                    # getters would each cost another round-trip
+                    product: str = lifxlan.product_map[light.product or light.get_product()]
+                    label: str = light.label or light.get_label()
                     # Build the frame before registering the device/icon: a WorkflowException
                     # mid-build otherwise leaves a clickable entry with no frame,
                     # which KeyErrors in bulb_changed
@@ -269,22 +301,24 @@ class LifxFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
                         except KeyError:
                             self.group_icons.set_selected_bulb(label)
                         self.logger.info("Building new frame: %s", new_frame.get_label())
-                    group_label = light.get_group_label()
-                    if group_label not in self.device_map.keys():
-                        self.build_group_frame(group_label)
                     break
                 except lifxlan.WorkflowException as exc:
                     self.logger.warning("Error when communicating with LIFX device (attempt %d/%d): %s",
                                         attempt, SCAN_ATTEMPTS, exc)
                 except KeyError as exc:
                     self.logger.warning("Unknown device: %s: %s",
-                                        light.get_product(), light.get_label())
+                                        light.product, light.label)
                     break
+        for group_label, devices in group_map.items():
+            if group_label not in self.device_map.keys():
+                self.build_group_frame(group_label, devices)
         if hasattr(self, 'tray_icon'):  # first scan runs before the tray icon exists
             self.tray_icon.update_menu()
 
-    def build_group_frame(self, group_label):
-        group = self.lifx.get_devices_by_group(group_label)
+    def build_group_frame(self, group_label, devices):
+        # Built from the devices we already discovered; lifx.get_devices_by_group() would
+        # re-run a full LAN discovery (broadcast + a GetGroup per bulb) for every group
+        group = lifxlan.Group(devices)
         group.get_label = lambda: group_label  # pylint: disable=cell-var-from-loop
         # Giving an attribute here is a bit dirty, but whatever
         group.label = group_label

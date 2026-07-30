@@ -55,6 +55,22 @@ COLOR_SEND_INTERVAL_MS = 50
 ZONE_COMMIT_ATTEMPTS = 6
 
 
+def _cached(target, attr, fetch):
+    """Prefer the state lifxlan already cached on the Device -- scan_for_lights warms it
+    for every device in parallel -- over spending another round-trip here. Falls back to
+    the getter when the attribute is unset (prefetch failed) or absent (test dummies)."""
+    value = getattr(target, attr, None)
+    return fetch() if value is None else value
+
+
+def _cached_color(target) -> Color:
+    """A single color for the device. get_color_zones() overwrites .color with the whole
+    per-zone list, so on a strip the cached attribute is never a valid single color."""
+    if hasattr(target, "get_color_zones"):  # hasattr also matches test dummies
+        return Color(*target.get_color())
+    return Color(*_cached(target, "color", target.get_color))
+
+
 class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
     """Holds control and state information about a single device."""
 
@@ -153,9 +169,11 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
                 self._pad_children(child)
 
     def _get_light_info(self, target: lifxlan.Device) -> Tuple[int, Color]:
-        # WorkflowException propagates up to scan_for_lights, which retries the frame build
-        self.label = target.get_label()
-        bulb_power: int = target.get_power()
+        # WorkflowException propagates up to scan_for_lights, which retries the frame build.
+        # Cached attributes come from scan_for_lights' parallel prefetch; the getters are
+        # only reached when that prefetch was skipped or failed for this device.
+        self.label = _cached(target, "label", target.get_label)
+        bulb_power: int = _cached(target, "power_level", target.get_power)
         if hasattr(
             target, "get_color_zones"
         ):  # multizone; hasattr also matches test dummies
@@ -165,7 +183,7 @@ class LightFrame(ttk.Labelframe):  # pylint: disable=too-many-ancestors
             init_color = self.initial_zones[0]
         else:
             target: lifxlan.Light
-            init_color = Color(*target.get_color())
+            init_color = _cached_color(target)
         # get_product_features() populates lazily; raw .product_features can still be None
         features = target.get_product_features()
         self.min_kelvin = features.get("min_kelvin") or MIN_KELVIN_DEFAULT
@@ -843,14 +861,15 @@ class GroupFrame(LightFrame):
             self.min_kelvin, self.max_kelvin = 0, 99999  # arbitrary range
             return 0, Color(0, 0, 0, 0)
 
-        self.label = devices[0].get_group_label()
-        bulb_power: int = devices[0].get_power()
+        # build_group_frame already knows the label and prefetched every member's state
+        self.label = _cached(target, "label", devices[0].get_group_label)
+        bulb_power: int = _cached(devices[0], "power_level", devices[0].get_power)
         # Find an init_color- ensure device has color attribute, otherwise fallback
         color_devices: List[
             Union[lifxlan.Group, lifxlan.Light, lifxlan.MultiZoneLight]
         ] = list(filter(lambda d: d.supports_color(), devices))
         if color_devices and hasattr(color_devices[0], "get_color"):
-            init_color = Color(*color_devices[0].get_color())
+            init_color = _cached_color(color_devices[0])
         # get_product_features() populates lazily; raw .product_features can still be None
         self.min_kelvin = min(
             device.get_product_features().get("min_kelvin") or MIN_KELVIN_DEFAULT
